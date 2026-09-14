@@ -1,0 +1,30 @@
+# Normalize text files to LF in the repository; Git picks the working-tree line endings per platform.
+* text=auto
+
+# Source
+*.cs      text diff=csharp
+*.xaml    text
+*.csproj  text
+*.props   text
+*.targets text
+*.json    text
+*.md      text
+*.yml     text
+*.yaml    text
+
+# Visual Studio can mis-parse solution files with LF endings.
+*.sln     text eol=crlf
+
+# Scripts run by their native shells.
+*.ps1     text eol=crlf
+*.cmd     text eol=crlf
+*.bat     text eol=crlf
+*.sh      text eol=lf
+
+# Binaries
+*.png     binary
+*.jpg     binary
+*.ico     binary
+*.dll     binary
+*.exe     binary
+*.snk     binary
