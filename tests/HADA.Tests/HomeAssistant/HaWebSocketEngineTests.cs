@@ -1,0 +1,172 @@
+using System.Net.WebSockets;
+using HADA.Core.Abstractions;
+using HADA.Core.Entities;
+using HADA.Core.Messaging;
+using HADA.Core.Models;
+using HADA.Engine.WebSocket;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+
+namespace HADA.Tests.HomeAssistant;
+
+public sealed class HaWebSocketEngineTests : IAsyncLifetime
+{
+    private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+
+    private readonly FakeHomeAssistant _homeAssistant = new();
+    private readonly ChannelEventBus _bus = new();
+    private readonly EntityRegistry _registry;
+
+    public HaWebSocketEngineTests() => _registry = new EntityRegistry(_bus);
+
+    public async Task InitializeAsync()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor
+        {
+            Id = "cpu_load",
+            Name = "CPU load",
+            Kind = EntityKind.Sensor,
+            UnitOfMeasurement = "%",
+        });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "lock_screen", Name = "Lock screen", Kind = EntityKind.Button });
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _homeAssistant.DisposeAsync();
+        await _bus.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Authenticates_and_subscribes_to_command_events()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        var messages = _homeAssistant.SocketMessages;
+        Assert.Equal("auth", messages[0].GetProperty("type").GetString());
+        Assert.Equal(FakeHomeAssistant.ValidToken, messages[0].GetProperty("access_token").GetString());
+        Assert.Contains(messages, m =>
+            m.GetProperty("type").GetString() == "subscribe_events"
+            && m.GetProperty("event_type").GetString() == "hada_command");
+    }
+
+    [Fact]
+    public async Task Rejected_token_faults_without_retrying()
+    {
+        await using var engine = CreateEngine(accessToken: "wrong-token");
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Faulted);
+
+        // Several reconnect delays' worth of time.
+        await Task.Delay(500);
+
+        Assert.Equal(1, _homeAssistant.ConnectionAttempts);
+        Assert.Equal(EngineConnectionState.Faulted, engine.State);
+    }
+
+    [Fact]
+    public async Task Readings_are_written_as_states_with_entity_metadata()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "unknown_sensor", State = "1" });
+        await _bus.PublishAsync(new TelemetryEvent
+        {
+            SensorId = "cpu_load",
+            State = "12.5",
+            Attributes = new Dictionary<string, object?> { ["cores"] = 8 },
+        });
+
+        var write = await WaitForStateWriteAsync("sensor.testpc_cpu_load");
+        Assert.Equal($"Bearer {FakeHomeAssistant.ValidToken}", write.Authorization);
+        Assert.Equal("12.5", write.Body.GetProperty("state").GetString());
+        var attributes = write.Body.GetProperty("attributes");
+        Assert.Equal("Test PC CPU load", attributes.GetProperty("friendly_name").GetString());
+        Assert.Equal("%", attributes.GetProperty("unit_of_measurement").GetString());
+        Assert.Equal(8, attributes.GetProperty("cores").GetInt32());
+        Assert.DoesNotContain(_homeAssistant.StateWrites, w => w.EntityId.Contains("unknown_sensor"));
+    }
+
+    [Fact]
+    public async Task Command_event_for_this_device_publishes_action_command()
+    {
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "other_pc", action = "lock_screen" });
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "testpc", action = "cpu_load" });
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "testpc", action = "lock_screen" });
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        await using var enumerator = commands.ReadAllAsync(timeout.Token).GetAsyncEnumerator(timeout.Token);
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal("lock_screen", enumerator.Current.ActionId);
+        Assert.Equal("websocket", enumerator.Current.Origin);
+        Assert.False(commands.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task Stop_marks_sensors_unavailable_and_closes_the_socket_gracefully()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "12.5" });
+        await WaitForStateWriteAsync("sensor.testpc_cpu_load");
+
+        await engine.StopAsync(CancellationToken.None);
+
+        Assert.Equal(EngineConnectionState.Disconnected, engine.State);
+        var last = _homeAssistant.StateWrites.Last(w => w.EntityId == "sensor.testpc_cpu_load");
+        Assert.Equal("unavailable", last.Body.GetProperty("state").GetString());
+        Assert.Equal("Test PC CPU load", last.Body.GetProperty("attributes").GetProperty("friendly_name").GetString());
+        await WaitUntilAsync(() => _homeAssistant.ClientCloseStatus == WebSocketCloseStatus.NormalClosure);
+    }
+
+    [Fact]
+    public async Task Start_without_configuration_stays_idle()
+    {
+        await using var engine = new HaWebSocketEngine(
+            _bus, _registry, Options.Create(new HaWebSocketOptions()), NullLogger<HaWebSocketEngine>.Instance);
+
+        await engine.StartAsync(CancellationToken.None);
+
+        Assert.Equal(EngineConnectionState.Disconnected, engine.State);
+        Assert.Equal(0, _homeAssistant.ConnectionAttempts);
+    }
+
+    private HaWebSocketEngine CreateEngine(string accessToken = FakeHomeAssistant.ValidToken) => new(
+        _bus,
+        _registry,
+        Options.Create(new HaWebSocketOptions
+        {
+            BaseUrl = _homeAssistant.BaseUrl.ToString(),
+            AccessToken = accessToken,
+            DeviceId = "TestPC",
+            DeviceName = "Test PC",
+            MinReconnectDelay = TimeSpan.FromMilliseconds(50),
+        }),
+        NullLogger<HaWebSocketEngine>.Instance);
+
+    private async Task<StateWrite> WaitForStateWriteAsync(string entityId)
+    {
+        StateWrite? write = null;
+        await WaitUntilAsync(() => (write = Array.Find(_homeAssistant.StateWrites, w => w.EntityId == entityId)) is not null);
+        return write!;
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        using var timeout = new CancellationTokenSource(Timeout);
+        while (!condition())
+        {
+            await Task.Delay(20, timeout.Token);
+        }
+    }
+}

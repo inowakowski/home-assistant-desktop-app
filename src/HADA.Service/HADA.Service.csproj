@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-HADA.Service-1a434cf5-aa8d-46cb-a4ef-18032d5b72ac</UserSecretsId>
@@ -13,5 +13,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HADA.Core\HADA.Core.csproj" />
+    <ProjectReference Include="..\HADA.Engine.Mqtt\HADA.Engine.Mqtt.csproj" />
+    <ProjectReference Include="..\HADA.Engine.WebSocket\HADA.Engine.WebSocket.csproj" />
+    <ProjectReference Include="..\HADA.Ipc\HADA.Ipc.csproj" />
+    <ProjectReference Include="..\HADA.Platform.Windows\HADA.Platform.Windows.csproj" />
   </ItemGroup>
 </Project>
