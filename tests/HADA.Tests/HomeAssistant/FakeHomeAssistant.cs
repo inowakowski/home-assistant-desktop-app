@@ -5,12 +5,14 @@ using System.Text.Json;
 
 namespace HADA.Tests.HomeAssistant;
 
-public sealed record StateWrite(string EntityId, string? Authorization, JsonElement Body);
+/// <param name="Body">The JSON body of a POST; <see langword="default"/> for a DELETE.</param>
+public sealed record StateWrite(string Method, string EntityId, string? Authorization, JsonElement Body);
 
 /// <summary>Just enough of Home Assistant's WebSocket and REST APIs to exercise the WebSocket engine.</summary>
 internal sealed class FakeHomeAssistant : IAsyncDisposable
 {
     public const string ValidToken = "valid-token";
+    public const string Version = "2026.9.0";
 
     private readonly HttpListener _listener = new();
     private readonly Task _acceptLoop;
@@ -91,21 +93,29 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     {
         var request = context.Request;
         var path = request.Url!.AbsolutePath;
+        const string statesPrefix = "/api/states/";
+
         if (path == "/api/websocket" && request.IsWebSocketRequest)
         {
             Interlocked.Increment(ref _connectionAttempts);
             var webSocketContext = await context.AcceptWebSocketAsync(subProtocol: null);
             await RunSessionAsync(webSocketContext.WebSocket);
         }
-        else if (request.HttpMethod == "POST" && path.StartsWith("/api/states/", StringComparison.Ordinal))
+        else if (request.HttpMethod is "POST" or "DELETE" && path.StartsWith(statesPrefix, StringComparison.Ordinal))
         {
-            using var body = await JsonDocument.ParseAsync(request.InputStream);
-            lock (_stateWrites)
+            JsonElement body = default;
+            if (request.HttpMethod == "POST")
             {
-                _stateWrites.Add(new StateWrite(path["/api/states/".Length..], request.Headers["Authorization"], body.RootElement.Clone()));
+                using var document = await JsonDocument.ParseAsync(request.InputStream);
+                body = document.RootElement.Clone();
             }
 
-            context.Response.StatusCode = 201;
+            lock (_stateWrites)
+            {
+                _stateWrites.Add(new StateWrite(request.HttpMethod, path[statesPrefix.Length..], request.Headers["Authorization"], body));
+            }
+
+            context.Response.StatusCode = request.HttpMethod == "POST" ? 201 : 200;
             context.Response.Close();
         }
         else
@@ -119,7 +129,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     {
         try
         {
-            await SendAsync(socket, new { type = "auth_required", ha_version = "2026.9.0" });
+            await SendAsync(socket, new { type = "auth_required", ha_version = Version });
             if (await ReceiveAsync(socket) is not { } auth)
             {
                 return;
@@ -133,7 +143,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                 return;
             }
 
-            await SendAsync(socket, new { type = "auth_ok", ha_version = "2026.9.0" });
+            await SendAsync(socket, new { type = "auth_ok", ha_version = Version });
             _socket = socket;
 
             while (await ReceiveAsync(socket) is { } message)

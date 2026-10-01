@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="App_Title" xml:space="preserve"><value>HADA – Home Assistant Desktop App</value></data>
+  <data name="App_TitleElevated" xml:space="preserve"><value>HADA – Home Assistant Desktop App (Administrator)</value></data>
+
+  <data name="Nav_Overview" xml:space="preserve"><value>Overview</value></data>
+  <data name="Nav_Connections" xml:space="preserve"><value>Connections</value></data>
+  <data name="Nav_Entities" xml:space="preserve"><value>Entities</value></data>
+  <data name="Nav_Logs" xml:space="preserve"><value>Logs</value></data>
+
+  <data name="Common_On" xml:space="preserve"><value>On</value></data>
+  <data name="Common_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="Common_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Common_Revert" xml:space="preserve"><value>Discard changes</value></data>
+  <data name="Common_Unlock" xml:space="preserve"><value>Unlock editing</value></data>
+
+  <data name="Tray_Open" xml:space="preserve"><value>Open HADA</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Tray_Connected" xml:space="preserve"><value>HADA: connected to the service</value></data>
+  <data name="Tray_Waiting" xml:space="preserve"><value>HADA: waiting for the service</value></data>
+
+  <data name="Overview_Title" xml:space="preserve"><value>Overview</value></data>
+  <data name="Overview_Subtitle" xml:space="preserve"><value>Live status of the HADA service, its connections and entities.</value></data>
+  <data name="Overview_Entities" xml:space="preserve"><value>Entities</value></data>
+  <data name="Overview_NoEntities" xml:space="preserve"><value>No entities yet.</value></data>
+  <data name="Card_Service" xml:space="preserve"><value>HADA service</value></data>
+  <data name="Card_Mqtt" xml:space="preserve"><value>MQTT</value></data>
+  <data name="Card_HomeAssistant" xml:space="preserve"><value>Home Assistant (WebSocket)</value></data>
+  <data name="Card_Tray" xml:space="preserve"><value>Session sensors</value></data>
+  <data name="Status_Running" xml:space="preserve"><value>Running</value></data>
+  <data name="Status_NotRunning" xml:space="preserve"><value>Not running</value></data>
+  <data name="Status_NotRunningDetail" xml:space="preserve"><value>Start the HADA service to see live data.</value></data>
+  <data name="Status_Version" xml:space="preserve"><value>Version {0} · running since {1:g}</value></data>
+  <data name="State_Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="State_Connecting" xml:space="preserve"><value>Connecting…</value></data>
+  <data name="State_Disconnected" xml:space="preserve"><value>Disconnected</value></data>
+  <data name="State_Faulted" xml:space="preserve"><value>Error</value></data>
+  <data name="State_FaultedDetail" xml:space="preserve"><value>See Logs for details.</value></data>
+  <data name="State_NotConfigured" xml:space="preserve"><value>Not configured</value></data>
+  <data name="State_NotConfiguredDetail" xml:space="preserve"><value>Set it up on the Connections page.</value></data>
+  <data name="Tray_ClientsConnected" xml:space="preserve"><value>Connected ({0})</value></data>
+  <data name="Tray_NoClients" xml:space="preserve"><value>No tray app connected</value></data>
+  <data name="Tray_ClientsDetail" xml:space="preserve"><value>Active window and volume come from the tray app.</value></data>
+  <data name="Column_Entity" xml:space="preserve"><value>Entity</value></data>
+  <data name="Column_Value" xml:space="preserve"><value>Value</value></data>
+  <data name="Column_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Column_Updated" xml:space="preserve"><value>Updated</value></data>
+  <data name="Entity_Sensor" xml:space="preserve"><value>Sensor</value></data>
+  <data name="Entity_Button" xml:space="preserve"><value>Button</value></data>
+  <data name="Entity_Disabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="Source_Service" xml:space="preserve"><value>Service</value></data>
+  <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
+
+  <data name="Connections_Title" xml:space="preserve"><value>Connections</value></data>
+  <data name="Connections_Subtitle" xml:space="preserve"><value>How HADA talks to Home Assistant. Configure one of the two.</value></data>
+  <data name="Settings_LockedTitle" xml:space="preserve"><value>Read-only</value></data>
+  <data name="Settings_LockedMessage" xml:space="preserve"><value>Changing settings requires administrator rights.</value></data>
+  <data name="Settings_ElevationDeclined" xml:space="preserve"><value>Administrator rights were not granted.</value></data>
+  <data name="Settings_Unsaved" xml:space="preserve"><value>You have unsaved changes.</value></data>
+  <data name="Mqtt_Description" xml:space="preserve"><value>Recommended. Entities appear in Home Assistant automatically through MQTT discovery.</value></data>
+  <data name="Ha_Description" xml:space="preserve"><value>Direct connection without a broker. Entities have no unique ID.</value></data>
+  <data name="Field_Host" xml:space="preserve"><value>Broker host</value></data>
+  <data name="Field_Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Field_UseTls" xml:space="preserve"><value>TLS encryption</value></data>
+  <data name="Field_Username" xml:space="preserve"><value>Username</value></data>
+  <data name="Field_Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Field_BaseUrl" xml:space="preserve"><value>Home Assistant URL</value></data>
+  <data name="Field_AccessToken" xml:space="preserve"><value>Long-lived access token</value></data>
+  <data name="Field_DeviceId" xml:space="preserve"><value>Device ID</value></data>
+  <data name="Field_DeviceName" xml:space="preserve"><value>Device name</value></data>
+  <data name="Field_DiscoveryPrefix" xml:space="preserve"><value>Discovery prefix</value></data>
+  <data name="Field_BaseTopic" xml:space="preserve"><value>Base topic</value></data>
+  <data name="Field_CommandEventType" xml:space="preserve"><value>Command event type</value></data>
+  <data name="Field_Advanced" xml:space="preserve"><value>Advanced</value></data>
+  <data name="Field_ClearSecret" xml:space="preserve"><value>Remove the saved value</value></data>
+  <data name="Placeholder_MachineName" xml:space="preserve"><value>Default: {0}</value></data>
+  <data name="Placeholder_SecretSaved" xml:space="preserve"><value>Saved – leave empty to keep it</value></data>
+  <data name="Placeholder_SecretNone" xml:space="preserve"><value>Not set</value></data>
+  <data name="Test_Button" xml:space="preserve"><value>Test connection</value></data>
+  <data name="Test_SuccessTitle" xml:space="preserve"><value>Connection works</value></data>
+  <data name="Test_FailureTitle" xml:space="preserve"><value>Connection failed</value></data>
+  <data name="Save_SuccessTitle" xml:space="preserve"><value>Settings saved</value></data>
+  <data name="Save_SuccessMessage" xml:space="preserve"><value>Changed connections restart automatically.</value></data>
+  <data name="Save_FailureTitle" xml:space="preserve"><value>Settings were not saved</value></data>
+  <data name="Validation_Title" xml:space="preserve"><value>Check the settings</value></data>
+  <data name="Validation_HostRequired" xml:space="preserve"><value>Enter the broker host first.</value></data>
+  <data name="Validation_Host" xml:space="preserve"><value>The broker host is not a valid host name or IP address.</value></data>
+  <data name="Validation_Port" xml:space="preserve"><value>The port must be a whole number between 1 and 65535.</value></data>
+  <data name="Validation_Topic" xml:space="preserve"><value>Topic prefixes must not be empty or contain spaces, + or #.</value></data>
+  <data name="Validation_UrlRequired" xml:space="preserve"><value>Enter the Home Assistant URL first.</value></data>
+  <data name="Validation_Url" xml:space="preserve"><value>The Home Assistant URL must start with http:// or https://.</value></data>
+  <data name="Validation_EventType" xml:space="preserve"><value>The command event type must not be empty or contain spaces.</value></data>
+  <data name="Error_ServiceUnavailable" xml:space="preserve"><value>The HADA service is not running or cannot be reached.</value></data>
+  <data name="Error_Unauthorized" xml:space="preserve"><value>This action requires administrator rights.</value></data>
+  <data name="Error_UnexpectedTitle" xml:space="preserve"><value>Unexpected error</value></data>
+
+  <data name="Entities_Title" xml:space="preserve"><value>Entities</value></data>
+  <data name="Entities_Subtitle" xml:space="preserve"><value>Choose what this computer shares with Home Assistant. Disabled entities are removed from Home Assistant.</value></data>
+  <data name="Entities_Empty" xml:space="preserve"><value>No entities are registered yet. Is the HADA service running?</value></data>
+  <data name="EntityHint_active_window" xml:space="preserve"><value>Sends window titles, which can contain document names, e-mail subjects or web page titles.</value></data>
+  <data name="EntityHint_lock_screen" xml:space="preserve"><value>Lets Home Assistant lock this computer.</value></data>
+
+  <data name="Logs_Title" xml:space="preserve"><value>Logs</value></data>
+  <data name="Logs_Subtitle" xml:space="preserve"><value>Recent messages from the HADA service.</value></data>
+  <data name="Logs_Level" xml:space="preserve"><value>Minimum level</value></data>
+  <data name="Logs_LevelAll" xml:space="preserve"><value>All</value></data>
+  <data name="Logs_LevelInformation" xml:space="preserve"><value>Information</value></data>
+  <data name="Logs_LevelWarning" xml:space="preserve"><value>Warnings</value></data>
+  <data name="Logs_LevelError" xml:space="preserve"><value>Errors</value></data>
+  <data name="Logs_AutoScroll" xml:space="preserve"><value>Auto-scroll</value></data>
+  <data name="Logs_Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Logs_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Logs_Empty" xml:space="preserve"><value>No log entries.</value></data>
+</root>

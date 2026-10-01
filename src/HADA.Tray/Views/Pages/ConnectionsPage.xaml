@@ -1,0 +1,392 @@
+<Page
+    x:Class="HADA.Tray.Views.Pages.ConnectionsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="clr-namespace:HADA.Tray.Localization"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="{l:Tr Nav_Connections}">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1000" Margin="28,8,28,28">
+            <ui:TextBlock FontTypography="Title" Text="{l:Tr Connections_Title}" />
+            <ui:TextBlock
+                Margin="0,4,0,16"
+                Appearance="Secondary"
+                Text="{l:Tr Connections_Subtitle}"
+                TextWrapping="Wrap" />
+
+            <ui:Card
+                Margin="0,0,0,12"
+                Padding="16,12"
+                Visibility="{Binding Settings.IsLocked, Converter={StaticResource BooleanToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon
+                        VerticalAlignment="Center"
+                        FontSize="24"
+                        Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                        Symbol="ShieldLock24" />
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="14,0,16,0"
+                        VerticalAlignment="Center">
+                        <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Settings_LockedTitle}" />
+                        <ui:TextBlock
+                            Appearance="Secondary"
+                            Text="{l:Tr Settings_LockedMessage}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:Button
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Appearance="Primary"
+                        Command="{Binding UnlockCommand}"
+                        Content="{l:Tr Common_Unlock}">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="ShieldKeyhole24" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+                </Grid>
+            </ui:Card>
+
+            <StackPanel DataContext="{Binding Settings}">
+                <ui:InfoBar
+                    Title="{Binding Feedback.Title}"
+                    Margin="0,0,0,12"
+                    IsOpen="{Binding Feedback.IsOpen, Mode=TwoWay}"
+                    Message="{Binding Feedback.Message}"
+                    Severity="{Binding Feedback.Severity}" />
+
+                <!--  MQTT  -->
+                <ui:Card Margin="0,0,0,12" Padding="20">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource IconTile}">
+                                <ui:SymbolIcon FontSize="22" Symbol="Router24" />
+                            </Border>
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="14,0,16,0"
+                                VerticalAlignment="Center">
+                                <ui:TextBlock FontTypography="Subtitle" Text="MQTT" />
+                                <ui:TextBlock
+                                    Appearance="Secondary"
+                                    Text="{l:Tr Mqtt_Description}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                                <ui:ProgressRing
+                                    Width="20"
+                                    Height="20"
+                                    Margin="0,0,12,0"
+                                    IsIndeterminate="True"
+                                    Visibility="{Binding IsTestingMqtt, Converter={StaticResource BooleanToVisibility}}" />
+                                <ui:Button Command="{Binding TestMqttCommand}" Content="{l:Tr Test_Button}">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="PlugConnected24" />
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <ui:InfoBar
+                            Title="{Binding MqttTest.Title}"
+                            Margin="0,16,0,0"
+                            IsOpen="{Binding MqttTest.IsOpen, Mode=TwoWay}"
+                            Message="{Binding MqttTest.Message}"
+                            Severity="{Binding MqttTest.Severity}" />
+
+                        <Grid Margin="0,18,0,0" IsEnabled="{Binding CanEdit}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_Host}" />
+                                <ui:TextBox PlaceholderText="homeassistant.local" Text="{Binding MqttHost, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <Grid
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <ui:TextBlock
+                                        Margin="0,0,0,6"
+                                        Appearance="Secondary"
+                                        FontTypography="Caption"
+                                        Text="{l:Tr Field_Port}" />
+                                    <ui:NumberBox
+                                        MaxDecimalPlaces="0"
+                                        Maximum="65535"
+                                        Minimum="1"
+                                        SpinButtonPlacementMode="Hidden"
+                                        Value="{Binding MqttPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="20,0,0,0">
+                                    <ui:TextBlock
+                                        Margin="0,0,0,6"
+                                        Appearance="Secondary"
+                                        FontTypography="Caption"
+                                        Text="{l:Tr Field_UseTls}" />
+                                    <ui:ToggleSwitch
+                                        Margin="0,6,0,0"
+                                        IsChecked="{Binding MqttUseTls}"
+                                        OffContent="{l:Tr Common_Off}"
+                                        OnContent="{l:Tr Common_On}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_Username}" />
+                                <ui:TextBox Text="{Binding MqttUsername, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Row="1"
+                                Grid.Column="2"
+                                Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_Password}" />
+                                <ui:PasswordBox Password="{Binding MqttPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding MqttPasswordPlaceholder}" />
+                                <CheckBox
+                                    Margin="0,6,0,0"
+                                    Content="{l:Tr Field_ClearSecret}"
+                                    IsChecked="{Binding ClearMqttPassword}"
+                                    Visibility="{Binding HasMqttPassword, Converter={StaticResource BooleanToVisibility}}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_DeviceId}" />
+                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding MqttDeviceId, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Row="2"
+                                Grid.Column="2"
+                                Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_DeviceName}" />
+                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding MqttDeviceName, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <Expander
+                                Grid.Row="3"
+                                Grid.ColumnSpan="3"
+                                Header="{l:Tr Field_Advanced}">
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="20" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Appearance="Secondary"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Field_DiscoveryPrefix}" />
+                                        <ui:TextBox Text="{Binding MqttDiscoveryPrefix, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Appearance="Secondary"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Field_BaseTopic}" />
+                                        <ui:TextBox Text="{Binding MqttBaseTopic, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Expander>
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <!--  Home Assistant WebSocket  -->
+                <ui:Card Margin="0,0,0,12" Padding="20">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource IconTile}">
+                                <ui:SymbolIcon FontSize="22" Symbol="HomeCheckmark24" />
+                            </Border>
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="14,0,16,0"
+                                VerticalAlignment="Center">
+                                <ui:TextBlock FontTypography="Subtitle" Text="Home Assistant (WebSocket)" />
+                                <ui:TextBlock
+                                    Appearance="Secondary"
+                                    Text="{l:Tr Ha_Description}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                                <ui:ProgressRing
+                                    Width="20"
+                                    Height="20"
+                                    Margin="0,0,12,0"
+                                    IsIndeterminate="True"
+                                    Visibility="{Binding IsTestingHomeAssistant, Converter={StaticResource BooleanToVisibility}}" />
+                                <ui:Button Command="{Binding TestHomeAssistantCommand}" Content="{l:Tr Test_Button}">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="PlugConnected24" />
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <ui:InfoBar
+                            Title="{Binding HomeAssistantTest.Title}"
+                            Margin="0,16,0,0"
+                            IsOpen="{Binding HomeAssistantTest.IsOpen, Mode=TwoWay}"
+                            Message="{Binding HomeAssistantTest.Message}"
+                            Severity="{Binding HomeAssistantTest.Severity}" />
+
+                        <Grid Margin="0,18,0,0" IsEnabled="{Binding CanEdit}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_BaseUrl}" />
+                                <ui:TextBox PlaceholderText="http://homeassistant.local:8123" Text="{Binding HomeAssistantUrl, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_AccessToken}" />
+                                <ui:PasswordBox Password="{Binding AccessToken, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding AccessTokenPlaceholder}" />
+                                <CheckBox
+                                    Margin="0,6,0,0"
+                                    Content="{l:Tr Field_ClearSecret}"
+                                    IsChecked="{Binding ClearAccessToken}"
+                                    Visibility="{Binding HasAccessToken, Converter={StaticResource BooleanToVisibility}}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_DeviceId}" />
+                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding HomeAssistantDeviceId, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Row="1"
+                                Grid.Column="2"
+                                Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Appearance="Secondary"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_DeviceName}" />
+                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding HomeAssistantDeviceName, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <Expander
+                                Grid.Row="2"
+                                Grid.ColumnSpan="3"
+                                Header="{l:Tr Field_Advanced}">
+                                <StackPanel Margin="0,12,0,0">
+                                    <ui:TextBlock
+                                        Margin="0,0,0,6"
+                                        Appearance="Secondary"
+                                        FontTypography="Caption"
+                                        Text="{l:Tr Field_CommandEventType}" />
+                                    <ui:TextBox Text="{Binding CommandEventType, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                            </Expander>
+                        </Grid>
+                    </StackPanel>
+                </ui:Card>
+
+                <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                    <ui:Button
+                        Appearance="Primary"
+                        Command="{Binding SaveCommand}"
+                        Content="{l:Tr Common_Save}">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Save24" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+                    <ui:Button
+                        Margin="8,0,0,0"
+                        Command="{Binding RevertCommand}"
+                        Content="{l:Tr Common_Revert}" />
+                    <ui:TextBlock
+                        Margin="16,0,0,0"
+                        VerticalAlignment="Center"
+                        Appearance="Secondary"
+                        Text="{l:Tr Settings_Unsaved}"
+                        Visibility="{Binding IsDirty, Converter={StaticResource BooleanToVisibility}}" />
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\HADA.Engine.WebSocket\HADA.Engine.WebSocket.csproj" />
     <ProjectReference Include="..\..\src\HADA.Ipc\HADA.Ipc.csproj" />
     <ProjectReference Include="..\..\src\HADA.Platform.Windows\HADA.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\HADA.Service\HADA.Service.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,65 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+
+    <!--  Coloured dot for a StatusKind (Neutral, Success, Warning, Error) on the DataContext's Kind property.  -->
+    <Style x:Key="StatusDot" TargetType="Ellipse">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
+        <Setter Property="Fill" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Kind}" Value="Success">
+                <Setter Property="Fill" Value="{DynamicResource SystemFillColorSuccessBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Warning">
+                <Setter Property="Fill" Value="{DynamicResource SystemFillColorCautionBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Kind}" Value="Error">
+                <Setter Property="Fill" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--  Badge background for a log entry's Level.  -->
+    <Style x:Key="LogLevelBadge" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SystemFillColorNeutralBackgroundBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="6,1" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Level}" Value="Information">
+                <Setter Property="Background" Value="{DynamicResource SystemFillColorAttentionBackgroundBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Level}" Value="Warning">
+                <Setter Property="Background" Value="{DynamicResource SystemFillColorCautionBackgroundBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Level}" Value="Error">
+                <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Level}" Value="Critical">
+                <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--  Rounded tile behind an icon.  -->
+    <Style x:Key="IconTile" TargetType="Border">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    </Style>
+
+    <!--  Table row separator; rows of disabled entities are dimmed.  -->
+    <Style x:Key="TableRow" TargetType="Border">
+        <Setter Property="Padding" Value="18,10" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                <Setter Property="Opacity" Value="0.55" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

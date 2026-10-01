@@ -44,7 +44,13 @@ public sealed partial class IpcClient(
         {
             try
             {
-                var pipe = new NamedPipeClientStream(".", options.Value.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+                // Identification only: the service may check who we are, but cannot act as us.
+                var pipe = new NamedPipeClientStream(
+                    ".",
+                    options.Value.PipeName,
+                    PipeDirection.InOut,
+                    PipeOptions.Asynchronous,
+                    System.Security.Principal.TokenImpersonationLevel.Identification);
                 await using (pipe.ConfigureAwait(false))
                 {
                     // Waits for as long as it takes the service to create the pipe.

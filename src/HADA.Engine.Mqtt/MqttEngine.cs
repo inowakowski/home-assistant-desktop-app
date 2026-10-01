@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using HADA.Core.Abstractions;
@@ -14,6 +15,7 @@ namespace HADA.Engine.Mqtt;
 /// <summary>
 /// Engine A: MQTT with Home Assistant discovery. Availability uses a retained topic backed by a last will,
 /// so Home Assistant marks every entity unavailable when the connection drops.
+/// Disabled entities are removed from Home Assistant by clearing their retained discovery config.
 /// </summary>
 public sealed partial class MqttEngine : ICommunicationEngine
 {
@@ -21,6 +23,8 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private const string Offline = "offline";
     private const string PressPayload = "PRESS";
     private const int MaxStateLength = 255;
+
+    private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(10);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -30,6 +34,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     private readonly IEventBus _bus;
     private readonly IEntityRegistry _registry;
+    private readonly IEntityFilter _filter;
     private readonly MqttOptions _options;
     private readonly ILogger _logger;
     private readonly MqttTopics _topics;
@@ -43,10 +48,16 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private TaskCompletionSource _disconnected = NewSignal();
     private volatile EngineConnectionState _state;
 
-    public MqttEngine(IEventBus bus, IEntityRegistry registry, IOptions<MqttOptions> options, ILogger<MqttEngine> logger)
+    public MqttEngine(
+        IEventBus bus,
+        IEntityRegistry registry,
+        IOptions<MqttOptions> options,
+        ILogger<MqttEngine> logger,
+        IEntityFilter? filter = null)
     {
         _bus = bus;
         _registry = registry;
+        _filter = filter ?? EntityFilter.AllEnabled;
         _options = options.Value;
         _logger = logger;
 
@@ -71,6 +82,39 @@ public sealed partial class MqttEngine : ICommunicationEngine
     public string Name => "mqtt";
 
     public EngineConnectionState State => _state;
+
+    /// <summary>
+    /// Connects to the broker with <paramref name="options"/> and disconnects again without publishing anything.
+    /// A unique client id keeps a running engine's session from being taken over.
+    /// </summary>
+    public static async Task<ConnectionTestResult> TestConnectionAsync(MqttOptions options, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(options.Host))
+        {
+            return new ConnectionTestResult(false, "No MQTT broker host is configured.");
+        }
+
+        using var client = new MqttClientFactory().CreateMqttClient();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TestTimeout);
+        try
+        {
+            await client.ConnectAsync(CreateClientOptions(options, $"hada-test-{Guid.NewGuid():N}").Build(), timeout.Token)
+                .ConfigureAwait(false);
+            await client.DisconnectAsync(new MqttClientDisconnectOptionsBuilder().Build(), CancellationToken.None)
+                .ConfigureAwait(false);
+            return new ConnectionTestResult(true, $"Connected to MQTT broker {options.Host}:{options.Port}.");
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new ConnectionTestResult(
+                false, $"MQTT broker {options.Host}:{options.Port} did not respond within {TestTimeout.TotalSeconds:0} s.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ConnectionTestResult(false, Describe(ex));
+        }
+    }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -194,29 +238,33 @@ public sealed partial class MqttEngine : ICommunicationEngine
         await AnnounceAllAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private MqttClientOptions BuildClientOptions()
-    {
-        var builder = new MqttClientOptionsBuilder()
-            .WithTcpServer(_options.Host, _options.Port, System.Net.Sockets.AddressFamily.Unspecified)
-            .WithClientId($"hada-{_topics.DeviceId}")
-            .WithCleanSession(true)
-            .WithKeepAlivePeriod(TimeSpan.FromSeconds(30))
+    private MqttClientOptions BuildClientOptions() =>
+        CreateClientOptions(_options, $"hada-{_topics.DeviceId}")
             .WithWillTopic(_topics.Availability)
             .WithWillPayload(Offline)
             .WithWillRetain(true)
-            .WithWillQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce);
+            .WithWillQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+            .Build();
 
-        if (NullIfEmpty(_options.Username) is { } username)
+    private static MqttClientOptionsBuilder CreateClientOptions(MqttOptions options, string clientId)
+    {
+        var builder = new MqttClientOptionsBuilder()
+            .WithTcpServer(options.Host, options.Port, System.Net.Sockets.AddressFamily.Unspecified)
+            .WithClientId(clientId)
+            .WithCleanSession(true)
+            .WithKeepAlivePeriod(TimeSpan.FromSeconds(30));
+
+        if (NullIfEmpty(options.Username) is { } username)
         {
-            builder.WithCredentials(username, _options.Password);
+            builder.WithCredentials(username, options.Password);
         }
 
-        if (_options.UseTls)
+        if (options.UseTls)
         {
             builder.WithTlsOptions(tls => tls.UseTls(true));
         }
 
-        return builder.Build();
+        return builder;
     }
 
     private Task OnMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
@@ -251,7 +299,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     private async Task DispatchCommandAsync(string entityId, string payload)
     {
-        if (!_registry.TryGet(entityId, out var entity) || entity.Kind != EntityKind.Button || payload != PressPayload)
+        if (!TryGetExposed(entityId, EntityKind.Button, out var entity) || payload != PressPayload)
         {
             LogIgnoredCommand(_logger, entityId, payload);
             return;
@@ -274,7 +322,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
         {
             await foreach (var reading in readings.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (!_registry.TryGet(reading.SensorId, out var entity) || entity.Kind != EntityKind.Sensor)
+                if (!TryGetExposed(reading.SensorId, EntityKind.Sensor, out var entity))
                 {
                     continue;
                 }
@@ -302,9 +350,9 @@ public sealed partial class MqttEngine : ICommunicationEngine
         {
             await foreach (var registration in registrations.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (_state == EngineConnectionState.Connected)
+                if (_state == EngineConnectionState.Connected && _registry.TryGet(registration.Entity.Id, out var entity))
                 {
-                    await TryPublishDiscoveryAsync(registration.Entity, cancellationToken).ConfigureAwait(false);
+                    await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -321,7 +369,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
     {
         foreach (var entity in _registry.Entities)
         {
-            await TryPublishDiscoveryAsync(entity, cancellationToken).ConfigureAwait(false);
+            await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
         }
 
         foreach (var reading in _lastReadings.Values)
@@ -330,8 +378,14 @@ public sealed partial class MqttEngine : ICommunicationEngine
         }
     }
 
-    private Task TryPublishDiscoveryAsync(EntityDescriptor entity, CancellationToken cancellationToken)
+    private Task TryAnnounceEntityAsync(EntityDescriptor entity, CancellationToken cancellationToken)
     {
+        // An empty retained config makes Home Assistant remove the entity.
+        if (!_filter.IsEnabled(entity.Id))
+        {
+            return TryPublishAsync(_topics.Discovery(entity), string.Empty, retain: true, cancellationToken);
+        }
+
         var isSensor = entity.Kind == EntityKind.Sensor;
         var isButton = entity.Kind == EntityKind.Button;
         var payload = new DiscoveryPayload(
@@ -386,6 +440,12 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
                 .Build(),
             cancellationToken);
+
+    private bool TryGetExposed(string entityId, EntityKind kind, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
+        _registry.TryGet(entityId, out entity) && entity.Kind == kind && _filter.IsEnabled(entityId);
+
+    private static string Describe(Exception exception) =>
+        exception.InnerException is null ? exception.Message : $"{exception.Message} ({exception.GetBaseException().Message})";
 
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
 

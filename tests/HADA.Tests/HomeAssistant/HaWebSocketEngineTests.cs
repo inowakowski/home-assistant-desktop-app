@@ -141,18 +141,53 @@ public sealed class HaWebSocketEngineTests : IAsyncLifetime
         Assert.Equal(0, _homeAssistant.ConnectionAttempts);
     }
 
-    private HaWebSocketEngine CreateEngine(string accessToken = FakeHomeAssistant.ValidToken) => new(
+    [Fact]
+    public async Task Disabled_sensors_are_deleted_from_home_assistant_and_ignored()
+    {
+        await using var engine = CreateEngine(filter: new EntityFilter(["cpu_load"]));
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => Array.Exists(
+            _homeAssistant.StateWrites, write => write.Method == "DELETE" && write.EntityId == "sensor.testpc_cpu_load"));
+
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "12.5" });
+        await Task.Delay(300);
+
+        Assert.DoesNotContain(_homeAssistant.StateWrites, write => write.Method == "POST");
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_succeeds_with_a_valid_token()
+    {
+        var result = await HaWebSocketEngine.TestConnectionAsync(CreateOptions(FakeHomeAssistant.ValidToken), CancellationToken.None);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Contains(FakeHomeAssistant.Version, result.Message);
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_reports_a_rejected_token()
+    {
+        var result = await HaWebSocketEngine.TestConnectionAsync(CreateOptions("wrong-token"), CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Contains("rejected", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private HaWebSocketEngine CreateEngine(string accessToken = FakeHomeAssistant.ValidToken, IEntityFilter? filter = null) => new(
         _bus,
         _registry,
-        Options.Create(new HaWebSocketOptions
-        {
-            BaseUrl = _homeAssistant.BaseUrl.ToString(),
-            AccessToken = accessToken,
-            DeviceId = "TestPC",
-            DeviceName = "Test PC",
-            MinReconnectDelay = TimeSpan.FromMilliseconds(50),
-        }),
-        NullLogger<HaWebSocketEngine>.Instance);
+        Options.Create(CreateOptions(accessToken)),
+        NullLogger<HaWebSocketEngine>.Instance,
+        filter);
+
+    private HaWebSocketOptions CreateOptions(string accessToken) => new()
+    {
+        BaseUrl = _homeAssistant.BaseUrl.ToString(),
+        AccessToken = accessToken,
+        DeviceId = "TestPC",
+        DeviceName = "Test PC",
+        MinReconnectDelay = TimeSpan.FromMilliseconds(50),
+    };
 
     private async Task<StateWrite> WaitForStateWriteAsync(string entityId)
     {

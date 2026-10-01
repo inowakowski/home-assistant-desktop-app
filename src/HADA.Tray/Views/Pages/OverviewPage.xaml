@@ -1,0 +1,142 @@
+<Page
+    x:Class="HADA.Tray.Views.Pages.OverviewPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="clr-namespace:HADA.Tray.Localization"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="{l:Tr Nav_Overview}">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="28,8,16,28" DataContext="{Binding Overview}">
+            <ui:TextBlock FontTypography="Title" Text="{l:Tr Overview_Title}" />
+            <ui:TextBlock
+                Margin="0,4,0,20"
+                Appearance="Secondary"
+                Text="{l:Tr Overview_Subtitle}"
+                TextWrapping="Wrap" />
+
+            <ItemsControl ItemsSource="{Binding Cards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="2" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Margin="0,0,12,12" Padding="18">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource IconTile}">
+                                    <ui:SymbolIcon FontSize="22" Symbol="{Binding Symbol}" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                                    <ui:TextBlock FontTypography="BodyStrong" Text="{Binding Title}" />
+                                    <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                        <Ellipse VerticalAlignment="Center" Style="{StaticResource StatusDot}" />
+                                        <ui:TextBlock Margin="8,0,0,0" Text="{Binding Text}" />
+                                    </StackPanel>
+                                    <ui:TextBlock
+                                        Margin="0,4,0,0"
+                                        Appearance="Secondary"
+                                        FontTypography="Caption"
+                                        Text="{Binding Detail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </ui:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ui:TextBlock
+                Margin="0,12,0,10"
+                FontTypography="Subtitle"
+                Text="{l:Tr Overview_Entities}" />
+            <ui:Card Margin="0,0,12,0" Padding="0">
+                <StackPanel>
+                    <Grid Margin="18,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="110" />
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock
+                            Appearance="Secondary"
+                            FontTypography="Caption"
+                            Text="{l:Tr Column_Entity}" />
+                        <ui:TextBlock
+                            Grid.Column="1"
+                            Appearance="Secondary"
+                            FontTypography="Caption"
+                            Text="{l:Tr Column_Value}" />
+                        <ui:TextBlock
+                            Grid.Column="2"
+                            Appearance="Secondary"
+                            FontTypography="Caption"
+                            Text="{l:Tr Column_Source}" />
+                        <ui:TextBlock
+                            Grid.Column="3"
+                            Appearance="Secondary"
+                            FontTypography="Caption"
+                            Text="{l:Tr Column_Updated}" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Entities}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource TableRow}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="110" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:SymbolIcon
+                                                VerticalAlignment="Center"
+                                                FontSize="20"
+                                                Symbol="{Binding Symbol}" />
+                                            <StackPanel Margin="12,0,0,0">
+                                                <ui:TextBlock Text="{Binding Name}" />
+                                                <ui:TextBlock
+                                                    Appearance="Tertiary"
+                                                    FontTypography="Caption"
+                                                    Text="{Binding Caption}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <ui:TextBlock
+                                            Grid.Column="1"
+                                            Margin="0,0,12,0"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding ValueText}"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTip="{Binding ValueText}" />
+                                        <ui:TextBlock
+                                            Grid.Column="2"
+                                            VerticalAlignment="Center"
+                                            Appearance="Secondary"
+                                            Text="{Binding SourceText}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <ui:TextBlock
+                                            Grid.Column="3"
+                                            VerticalAlignment="Center"
+                                            Appearance="Secondary"
+                                            Text="{Binding UpdatedText}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ui:TextBlock
+                        Margin="18,4,18,16"
+                        Appearance="Secondary"
+                        Text="{l:Tr Overview_NoEntities}"
+                        Visibility="{Binding HasNoEntities, Converter={StaticResource BooleanToVisibility}}" />
+                </StackPanel>
+            </ui:Card>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

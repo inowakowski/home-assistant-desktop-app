@@ -47,7 +47,8 @@ public sealed class MqttEngineTests : IAsyncLifetime
             var message = e.ApplicationMessage;
             lock (_observed)
             {
-                _observed.Add(new ObservedMessage(message.Topic, message.ConvertPayloadToString()));
+                // MQTTnet returns null rather than "" for an empty payload, e.g. a cleared retained message.
+                _observed.Add(new ObservedMessage(message.Topic, message.ConvertPayloadToString() ?? string.Empty));
             }
 
             _messageArrived.Release();
@@ -178,7 +179,47 @@ public sealed class MqttEngineTests : IAsyncLifetime
         Assert.Equal(EngineConnectionState.Disconnected, engine.State);
     }
 
-    private MqttEngine CreateEngine() => new(
+    [Fact]
+    public async Task Disabled_entities_are_removed_from_home_assistant_and_ignored()
+    {
+        // As if the sensor had been announced before it was disabled.
+        await PublishAsync("homeassistant/sensor/testpc/cpu_load/config", "{}", retain: true);
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine(new EntityFilter(["cpu_load", "lock_screen"]));
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        await WaitForMessageAsync("homeassistant/sensor/testpc/cpu_load/config", payload: string.Empty);
+        Assert.Null(await _broker.GetRetainedMessageAsync("homeassistant/sensor/testpc/cpu_load/config"));
+
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "50" });
+        await PublishAsync("hada/testpc/lock_screen/set", "PRESS");
+        await Task.Delay(300);
+
+        Assert.DoesNotContain(Snapshot(), message => message.Topic == "hada/testpc/cpu_load/state");
+        Assert.DoesNotContain(Snapshot(), message =>
+            message.Topic == "homeassistant/button/testpc/lock_screen/config" && message.Payload.Length > 0);
+        Assert.False(commands.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_succeeds_against_a_running_broker()
+    {
+        var result = await MqttEngine.TestConnectionAsync(new MqttOptions { Host = "127.0.0.1", Port = _port }, CancellationToken.None);
+
+        Assert.True(result.Success, result.Message);
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_fails_when_nothing_is_listening()
+    {
+        var result = await MqttEngine.TestConnectionAsync(new MqttOptions { Host = "127.0.0.1", Port = GetFreePort() }, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.False(string.IsNullOrWhiteSpace(result.Message));
+    }
+
+    private MqttEngine CreateEngine(IEntityFilter? filter = null) => new(
         _bus,
         _registry,
         Options.Create(new MqttOptions
@@ -189,7 +230,8 @@ public sealed class MqttEngineTests : IAsyncLifetime
             DeviceName = "Test PC",
             MinReconnectDelay = TimeSpan.FromMilliseconds(100),
         }),
-        NullLogger<MqttEngine>.Instance);
+        NullLogger<MqttEngine>.Instance,
+        filter);
 
     private MqttClientOptions ClientOptions(string clientId) => new MqttClientOptionsBuilder()
         .WithTcpServer("127.0.0.1", _port, AddressFamily.Unspecified)

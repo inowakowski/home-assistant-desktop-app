@@ -1,0 +1,66 @@
+<ui:FluentWindow
+    x:Class="HADA.Tray.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="clr-namespace:HADA.Tray.Localization"
+    xmlns:pages="clr-namespace:HADA.Tray.Views.Pages"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="{Binding WindowTitle}"
+    Width="1120"
+    Height="760"
+    MinWidth="860"
+    MinHeight="560"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowCornerPreference="Round"
+    WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Title="{Binding WindowTitle}">
+            <ui:TitleBar.Icon>
+                <ui:SymbolIcon Symbol="HomeCheckmark24" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <ui:NavigationView
+            x:Name="Navigation"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleVisible="True"
+            OpenPaneLength="220"
+            PaneDisplayMode="Left"
+            TitleBar="{Binding ElementName=AppTitleBar, Mode=OneWay}">
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="{l:Tr Nav_Overview}" TargetPageType="{x:Type pages:OverviewPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Home24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{l:Tr Nav_Connections}" TargetPageType="{x:Type pages:ConnectionsPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="PlugConnected24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{l:Tr Nav_Entities}" TargetPageType="{x:Type pages:EntitiesPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="AppsList24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem Content="{l:Tr Nav_Logs}" TargetPageType="{x:Type pages:LogsPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="DocumentText24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.FooterMenuItems>
+        </ui:NavigationView>
+    </Grid>
+</ui:FluentWindow>

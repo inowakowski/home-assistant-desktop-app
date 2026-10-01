@@ -10,10 +10,11 @@ namespace HADA.Ipc;
 /// </summary>
 public sealed class IpcMessageStream(Stream stream)
 {
-    public const int ProtocolVersion = 1;
+    /// <summary>Version 2 added client roles and the control requests.</summary>
+    public const int ProtocolVersion = 2;
 
     /// <summary>Caps how much memory a misbehaving peer can make the other side allocate.</summary>
-    public const int MaxMessageBytes = 64 * 1024;
+    public const int MaxMessageBytes = 256 * 1024;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
