@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using HADA.Core;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Logging;
@@ -29,7 +30,8 @@ public static class ServiceHost
     /// </summary>
     public static bool IsUnwantedSecondCopy()
     {
-        if (WindowsServiceHelpers.IsWindowsService())
+        // A portable copy shares nothing with any other HADA, so it need not ask who else is running.
+        if (WindowsServiceHelpers.IsWindowsService() || AppInstance.IsPortable)
         {
             return false;
         }
@@ -53,6 +55,16 @@ public static class ServiceHost
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.AddWindowsService(options => options.ServiceName = "HADA");
+
+        if (AppInstance.IsPortable)
+        {
+            // Everything stays in the copy's own folder, and belongs to the user running it: secrets only that
+            // user can read, settings that user may change, and a service that ends with the tray app.
+            settingsStore ??= new SettingsStore(AppInstance.PortableDataFolder, protectFolder: false);
+            SettingsStore.SecretScope = System.Security.Cryptography.DataProtectionScope.CurrentUser;
+            builder.Services.Configure<IpcOptions>(options => options.TrustSameUser = true);
+            builder.Services.AddHostedService<PortableLifetime>();
+        }
 
         // Settings saved from the tray's settings window, added last so they override appsettings.json.
         settingsStore ??= new SettingsStore();

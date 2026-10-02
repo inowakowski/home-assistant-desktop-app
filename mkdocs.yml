@@ -48,6 +48,7 @@ nav:
   - Home: index.md
   - Getting started:
       - Installation: getting-started/installation.md
+      - Portable version: getting-started/portable.md
       - First setup: getting-started/first-setup.md
       - Updating: getting-started/updating.md
   - What it does:

@@ -37,11 +37,12 @@ public sealed class UpdateViewModel : ObservableObject
     private bool _isChecking;
 
     /// <param name="isElevated">Whether this is the administrator copy of the window, opened with "Unlock editing".</param>
-    public UpdateViewModel(ServiceControlClient client, bool isElevated)
+    /// <param name="isPortable">Whether this is a portable copy, which no installer can update.</param>
+    public UpdateViewModel(ServiceControlClient client, bool isElevated, bool isPortable = false)
     {
         _client = client;
-        CanInstall = !isElevated;
-        _idleDetail = Loc.Get(isElevated ? "Update_DetailElevated" : "Update_Detail");
+        CanInstall = !isElevated && !isPortable;
+        _idleDetail = Loc.Get(isPortable ? "Update_DetailPortable" : isElevated ? "Update_DetailElevated" : "Update_Detail");
         _detail = _idleDetail;
         OpenReleasePageCommand = new RelayCommand(OpenReleasePage);
         _installCommand = new AsyncCommand(InstallAsync, () => CanInstall && _update is not null);
@@ -211,7 +212,7 @@ public sealed class UpdateViewModel : ObservableObject
                     HadaReleases.Downloads,
                     update.Version,
                     RuntimeInformation.OSArchitecture,
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HADA", "updates"),
+                    Path.Combine(TrayPaths.DataFolder, "updates"),
                     progress);
                 _installerVersion = update.Version;
             }

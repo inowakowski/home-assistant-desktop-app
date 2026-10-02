@@ -23,7 +23,7 @@ HADA connects a Windows computer to [Home Assistant](https://www.home-assistant.
 
 ## Start here
 
-1. [Install HADA](getting-started/installation.md)
+1. [Install HADA](getting-started/installation.md), or unpack the [portable version](getting-started/portable.md)
 2. [Connect it to Home Assistant](getting-started/first-setup.md)
 3. Use the entities in [automations](home-assistant/examples.md)
 

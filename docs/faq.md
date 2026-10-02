@@ -39,6 +39,10 @@ The installers are not code-signed yet, so SmartScreen does not know them. Choos
 
 Yes: `msiexec /i HADA-<version>-x64.msi /qn`. The tray app then starts at the next sign-in. Settings can be put in `appsettings.json`; see [Configuration](reference/configuration.md).
 
+## Can I use it without installing it, or without administrator rights?
+
+Yes, with the [portable version](getting-started/portable.md): a folder to unpack and run. Its service then runs as you instead of as a Windows service, so it does not work while nobody is signed in.
+
 ## Where are my settings, and how do I remove everything?
 
 Settings and logs are in `%ProgramData%\HADA`; personal settings under `HKCU\Software\HADA`. Uninstalling leaves both in place, so that updating keeps them. Delete them by hand to forget everything.

@@ -24,12 +24,14 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build
 
-      - name: Build installers
+      - name: Build installers and portable packages
         shell: pwsh
         run: ./scripts/Publish-HADA.ps1
 
       - uses: actions/upload-artifact@v4
         with:
           name: installers
-          path: artifacts/installer/**/*.msi
+          path: |
+            artifacts/installer/**/*.msi
+            artifacts/installer/**/*.zip
           if-no-files-found: error

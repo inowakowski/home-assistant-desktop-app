@@ -2,6 +2,11 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.2.0 (pre-release)
+
+- **Portable version:** a ZIP to unpack and run, without installing and without administrator rights. It keeps everything in its own folder and can run next to an installed HADA.
+- `HADA.Tray.exe --exit` tells the running tray app to exit.
+
 ## 1.1.0 (pre-release)
 
 - **Quick actions:** entries in the tray icon's menu, optionally with a global keyboard shortcut, that show up in Home Assistant as triggers of the device.

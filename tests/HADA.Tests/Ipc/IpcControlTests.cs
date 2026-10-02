@@ -109,6 +109,25 @@ public sealed class IpcControlTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_portable_copys_service_lets_its_own_user_save_settings_without_elevation()
+    {
+        // The service of a portable copy runs as the user; what its settings can make it do, that user can do anyway.
+        var options = new IpcOptions { PipeName = "HADA.Tests." + Guid.NewGuid().ToString("N"), ClientName = "ui", TrustSameUser = true };
+        using var server = new IpcServer(_serviceBus, _serviceRegistry, Options.Create(options), NullLogger<IpcServer>.Instance, _control);
+        await server.StartAsync(CancellationToken.None);
+        await using var client = new ServiceControlClient(options);
+        var before = _control.SaveCalls;
+
+        var update = new SettingsUpdate(
+            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
+        Assert.True((await client.SaveSettingsAsync(update)).Success);
+        Assert.True((await client.TestConnectionAsync(ConnectionTarget.Mqtt, update)).Success);
+
+        Assert.Equal(before + 1, _control.SaveCalls);
+        await server.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task Client_reports_when_the_service_is_not_running()
     {
         await Assert.ThrowsAsync<ServiceUnavailableException>(() => _client.GetStatusAsync());

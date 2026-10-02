@@ -36,6 +36,7 @@
   <data name="Update_Open" xml:space="preserve"><value>What is new</value></data>
   <data name="Update_Install" xml:space="preserve"><value>Download and install</value></data>
   <data name="Update_DetailElevated" xml:space="preserve"><value>To install it, use the HADA window opened from the tray icon, not this administrator window.</value></data>
+  <data name="Update_DetailPortable" xml:space="preserve"><value>This is a portable copy: download the portable ZIP of the new version, exit HADA, and replace the service and tray folders. Keep the data folder; it holds your settings.</value></data>
   <data name="Update_Downloading" xml:space="preserve"><value>Downloading… {0:0} %</value></data>
   <data name="Update_Started" xml:space="preserve"><value>The installer was started; carry on in its window. HADA closes while it is being replaced.</value></data>
   <data name="Update_Failed" xml:space="preserve"><value>The download did not work: {0} You can also get the installer from the release page.</value></data>
@@ -72,6 +73,7 @@
 It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Windows 10 may lack.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors and controls, when you sign in. The HADA service always starts with Windows.</value></data>
+  <data name="Autostart_DetailPortable" xml:space="preserve"><value>Starts this portable copy of HADA when you sign in, by adding it to your startup programs. Turn it off before you move or delete the folder.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>HADA service</value></data>
   <data name="Card_Mqtt" xml:space="preserve"><value>MQTT</value></data>
   <data name="Card_HomeAssistant" xml:space="preserve"><value>Home Assistant (WebSocket)</value></data>

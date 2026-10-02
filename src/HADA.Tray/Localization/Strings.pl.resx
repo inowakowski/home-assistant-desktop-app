@@ -36,6 +36,7 @@
   <data name="Update_Open" xml:space="preserve"><value>Co nowego</value></data>
   <data name="Update_Install" xml:space="preserve"><value>Pobierz i zainstaluj</value></data>
   <data name="Update_DetailElevated" xml:space="preserve"><value>Aby zainstalować, użyj okna HADA otwartego z ikony w zasobniku, a nie tego okna administratora.</value></data>
+  <data name="Update_DetailPortable" xml:space="preserve"><value>To kopia przenośna: pobierz ZIP portable nowej wersji, zakończ HADA i podmień foldery service oraz tray. Zachowaj folder data – są w nim Twoje ustawienia.</value></data>
   <data name="Update_Downloading" xml:space="preserve"><value>Pobieranie… {0:0}%</value></data>
   <data name="Update_Started" xml:space="preserve"><value>Instalator został uruchomiony; dokończ w jego oknie. HADA zamknie się na czas wymiany plików.</value></data>
   <data name="Update_Failed" xml:space="preserve"><value>Pobieranie nie powiodło się: {0} Instalator możesz też pobrać ze strony wydania.</value></data>
@@ -72,6 +73,7 @@
 Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 zawiera, a w Windows 10 może go brakować.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Uruchamiaj z systemem Windows</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Uruchamia aplikację Tray, a z nią sensory i sterowanie sesji, po zalogowaniu. Usługa HADA zawsze startuje razem z Windows.</value></data>
+  <data name="Autostart_DetailPortable" xml:space="preserve"><value>Uruchamia tę przenośną kopię HADA po zalogowaniu, dodając ją do programów startowych Twojego konta. Wyłącz to, zanim przeniesiesz lub usuniesz folder.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>Usługa HADA</value></data>
   <data name="Card_Mqtt" xml:space="preserve"><value>MQTT</value></data>
   <data name="Card_HomeAssistant" xml:space="preserve"><value>Home Assistant (WebSocket)</value></data>

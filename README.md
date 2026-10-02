@@ -14,13 +14,13 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 
 ## Install
 
-Download the installer for your computer from the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases), run it, then open HADA from the tray icon and set up a connection. Step by step: [Installation](docs/getting-started/installation.md) and [First setup](docs/getting-started/first-setup.md).
+Download the installer for your computer from the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases), run it, then open HADA from the tray icon and set up a connection. Or take the [portable version](docs/getting-started/portable.md): a ZIP to unpack and run, without installing and without administrator rights. Step by step: [Installation](docs/getting-started/installation.md) and [First setup](docs/getting-started/first-setup.md).
 
 ## Documentation
 
 | | |
 |---|---|
-| **Getting started** | [Installation](docs/getting-started/installation.md) · [First setup](docs/getting-started/first-setup.md) · [Updating](docs/getting-started/updating.md) |
+| **Getting started** | [Installation](docs/getting-started/installation.md) · [Portable version](docs/getting-started/portable.md) · [First setup](docs/getting-started/first-setup.md) · [Updating](docs/getting-started/updating.md) |
 | **What it does** | [Sensors](docs/features/sensors.md) · [Controls](docs/features/controls.md) · [Notifications](docs/features/notifications.md) · [Custom sensors and buttons](docs/features/custom-entities.md) · [Several users](docs/features/several-users.md) · [The HADA window](docs/window.md) |
 | **Home Assistant** | [MQTT engine](docs/home-assistant/mqtt.md) · [WebSocket engine](docs/home-assistant/websocket.md) · [Automation examples](docs/home-assistant/examples.md) |
 | **Reference** | [Configuration](docs/reference/configuration.md) · [Logs](docs/reference/logs.md) · [Security](docs/reference/security.md) · [Known limitations](docs/reference/limitations.md) · [Troubleshooting](docs/reference/troubleshooting.md) · [FAQ](docs/faq.md) |
@@ -34,7 +34,7 @@ The same pages build into a website with [MkDocs](docs/development/building.md#b
 ```powershell
 dotnet build
 dotnet test
-.\scripts\Publish-HADA.ps1   # both installers, into artifacts\installer
+.\scripts\Publish-HADA.ps1   # installers and portable ZIPs, into artifacts\installer
 ```
 
 Needs the [.NET SDK 10](https://dotnet.microsoft.com/download); details in [Building and running](docs/development/building.md).
