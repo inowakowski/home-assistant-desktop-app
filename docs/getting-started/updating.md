@@ -13,7 +13,7 @@ On the **Settings** page:
 
 - **Check now** asks GitHub at once and says what it found. Anyone signed in may use it; pressing it again within half a minute repeats the last answer instead of asking again.
 - **Check for updates automatically** turns the daily request off or on. **Check now** works either way.
-- **Offer test versions too** decides whether versions marked as pre-release count. So far every version of HADA is one, so with this off nothing is offered.
+- **Offer test versions too** decides whether versions marked as pre-release count. They have the newest features and have been tried less. Off by default.
 
 The check sees only what GitHub shows without signing in. While the repository is private there is nothing to compare with; **Check now** says so, and `update_available` stays off.
 

@@ -52,7 +52,7 @@
   <data name="Preferences_AutoCheck" xml:space="preserve"><value>Sprawdzaj aktualizacje automatycznie</value></data>
   <data name="Preferences_AutoCheckDetail" xml:space="preserve"><value>Raz dziennie usługa pyta GitHub, czy wydano nowszą wersję. Nic nie jest pobierane, dopóki o to nie poprosisz.</value></data>
   <data name="Preferences_Prereleases" xml:space="preserve"><value>Proponuj także wersje testowe</value></data>
-  <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Wersje oznaczone jako pre-release (preview). Na razie każda wersja HADA jest taka.</value></data>
+  <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Wersje oznaczone jako pre-release: mają najnowsze funkcje, ale są słabiej sprawdzone.</value></data>
   <data name="Preferences_LockedMessage" xml:space="preserve"><value>Zmiana sposobu sprawdzania aktualizacji wymaga uprawnień administratora. Samo sprawdzenie i Twoje ustawienia osobiste poniżej – nie.</value></data>
   <data name="Preferences_Personal" xml:space="preserve"><value>Dla Ciebie</value></data>
   <data name="Preferences_PersonalDetail" xml:space="preserve"><value>Dotyczą tylko Twojego konta, działają od razu i nie wymagają uprawnień administratora.</value></data>

@@ -7,6 +7,6 @@ public sealed class UpdateOptions
     /// <summary>Whether the service asks GitHub for a newer version once a day. Asking on request works either way.</summary>
     public bool CheckAutomatically { get; set; } = true;
 
-    /// <summary>Whether versions marked as pre-releases count as newer versions.</summary>
-    public bool IncludePrereleases { get; set; } = true;
+    /// <summary>Whether versions marked as pre-releases, which are newer but less tested, count as newer versions.</summary>
+    public bool IncludePrereleases { get; set; }
 }

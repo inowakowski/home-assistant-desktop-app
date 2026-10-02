@@ -25,7 +25,7 @@ public sealed class UpdateCheckerTests : IAsyncDisposable
 
     private readonly ChannelEventBus _bus = new();
     private readonly EntityRegistry _registry;
-    private readonly TestOptionsMonitor<UpdateOptions> _options = new(new UpdateOptions());
+    private readonly TestOptionsMonitor<UpdateOptions> _options = new(new UpdateOptions { IncludePrereleases = true });
     private readonly FakeGitHub _gitHub = new();
     private readonly UpdateChecker _checker;
 
@@ -139,20 +139,20 @@ public sealed class UpdateCheckerTests : IAsyncDisposable
     public void Saved_update_settings_bind_back_from_configuration()
     {
         var data = StoredSettingsConfigurationProvider.ToConfiguration(
-            new StoredSettings { Updates = new UpdateSettings(CheckAutomatically: false, IncludePrereleases: false) });
+            new StoredSettings { Updates = new UpdateSettings(CheckAutomatically: false, IncludePrereleases: true) });
 
         var bound = new ConfigurationBuilder().AddInMemoryCollection(data).Build()
             .GetSection(UpdateOptions.SectionName).Get<UpdateOptions>();
 
         Assert.False(bound!.CheckAutomatically);
-        Assert.False(bound.IncludePrereleases);
+        Assert.True(bound.IncludePrereleases);
 
-        // Settings saved by an older version have no such section; both then stay on.
+        // Settings saved by an older version have no such section: checking stays on, test versions stay out.
         var defaults = new ConfigurationBuilder()
             .AddInMemoryCollection(StoredSettingsConfigurationProvider.ToConfiguration(new StoredSettings())).Build()
             .GetSection(UpdateOptions.SectionName).Get<UpdateOptions>() ?? new UpdateOptions();
         Assert.True(defaults.CheckAutomatically);
-        Assert.True(defaults.IncludePrereleases);
+        Assert.False(defaults.IncludePrereleases);
     }
 
     /// <summary>Answers every request with whatever was set last, and counts them.</summary>

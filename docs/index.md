@@ -25,4 +25,4 @@ HADA connects a Windows computer to [Home Assistant](https://www.home-assistant.
 2. [Connect it to Home Assistant](getting-started/first-setup.md)
 3. Use the entities in [automations](home-assistant/examples.md)
 
-HADA is free and open source, under the [MIT license](https://github.com/inowakowski/home-assistant-desktop-app/blob/main/LICENSE). It is a pre-release: every version so far is a preview, and settings or MQTT topics may still change before 1.0.
+HADA is free and open source, under the [MIT license](https://github.com/inowakowski/home-assistant-desktop-app/blob/main/LICENSE). Stable versions keep their settings and MQTT topics from one version to the next; versions marked as pre-release carry new features that have been tried less.

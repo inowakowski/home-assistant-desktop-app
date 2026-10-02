@@ -72,7 +72,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         Assert.Equal("broker.local", settings.Mqtt.Host);
         Assert.Equal(FakeServiceControl.CustomSensor, Assert.Single(settings.CustomSensors));
         Assert.Equal("hello", Assert.Single(logs).Message);
-        Assert.False(settings.Updates.IncludePrereleases);
+        Assert.True(settings.Updates.IncludePrereleases);
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public sealed class IpcControlTests : IAsyncDisposable
                 [.. registry.Entities.Select(entity => new EntityStatus(entity, true, "service", null, null))]));
 
         public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor], [], new UpdateSettings(IncludePrereleases: false)));
+            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor], [], new UpdateSettings(IncludePrereleases: true)));
 
         public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
         {

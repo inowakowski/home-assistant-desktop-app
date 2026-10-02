@@ -11,8 +11,6 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 - A Windows service plus a small tray app: about 15 MB and 20 to 25 MB of memory. Works with nobody signed in.
 - MQTT discovery, or a direct WebSocket connection. x64 and ARM64, Windows 10 (1809+) and 11. Polish and English.
 
-Every version so far is a preview: settings and MQTT topics may still change before 1.0.
-
 ## Install
 
 Download the installer for your computer from the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases), run it, then open HADA from the tray icon and set up a connection. Step by step: [Installation](docs/getting-started/installation.md) and [First setup](docs/getting-started/first-setup.md).

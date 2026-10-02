@@ -49,7 +49,7 @@ public sealed class SettingsViewModel : ObservableObject
     private string _homeAssistantDeviceName = string.Empty;
     private string _commandEventType = "hada_command";
     private bool _checkUpdatesAutomatically = true;
-    private bool _includePrereleases = true;
+    private bool _includePrereleases;
 
     public SettingsViewModel(ServiceControlClient client, bool isElevated)
     {

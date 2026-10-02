@@ -1,6 +1,14 @@
 # Changelog
 
-Every version so far is a preview. Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases).
+Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
+
+## 1.0.0
+
+The first stable version. It is 0.5.0 with one change:
+
+- Test versions (pre-releases) are no longer offered as updates unless **Offer test versions too** is turned on. An installation that saved its settings with 0.5.0 keeps what it had.
+
+From here on, settings and MQTT topics stay compatible from one stable version to the next.
 
 ## 0.5.0
 

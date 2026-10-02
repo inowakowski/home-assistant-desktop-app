@@ -52,7 +52,7 @@
   <data name="Preferences_AutoCheck" xml:space="preserve"><value>Check for updates automatically</value></data>
   <data name="Preferences_AutoCheckDetail" xml:space="preserve"><value>Once a day the service asks GitHub whether a newer version was released. Nothing is downloaded until you ask for it.</value></data>
   <data name="Preferences_Prereleases" xml:space="preserve"><value>Offer test versions too</value></data>
-  <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Versions marked as pre-release (preview). So far every version of HADA is one.</value></data>
+  <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Versions marked as pre-release: they have the newest features, and have been tried less.</value></data>
   <data name="Preferences_LockedMessage" xml:space="preserve"><value>Changing how updates are checked requires administrator rights. Checking now, and your personal settings below, do not.</value></data>
   <data name="Preferences_Personal" xml:space="preserve"><value>For you</value></data>
   <data name="Preferences_PersonalDetail" xml:space="preserve"><value>These apply to your account only, take effect at once and need no administrator rights.</value></data>

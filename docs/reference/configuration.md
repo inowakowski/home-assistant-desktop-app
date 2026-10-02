@@ -55,7 +55,7 @@ You can also configure the service without the window, through `appsettings.json
 | `Entities:Disabled` | *(none)* | Entity IDs not shared with Home Assistant |
 | `Entities:Enabled` | *(none)* | IDs of the entities that are off unless listed here: `sleep`, `hibernate`, `shutdown`, `restart` |
 | `Updates:CheckAutomatically` | `true` | Whether the service asks GitHub for a newer version once a day |
-| `Updates:IncludePrereleases` | `true` | Whether versions marked as pre-release count as newer versions |
+| `Updates:IncludePrereleases` | `false` | Whether versions marked as pre-release count as newer versions |
 | `CustomSensors:Items` | *(none)* | [Custom sensors and buttons](../features/custom-entities.md): `Name`, `Type` (`Text`, `ProcessRunning`, `PowerShell`, `DeviceConnected`, `CommandButton` or `LaunchButton`), `Value`, and optionally `Id`, `Unit` and `IntervalSeconds` |
 
 > Configure **one** engine. With both configured, every sensor appears in Home Assistant twice.

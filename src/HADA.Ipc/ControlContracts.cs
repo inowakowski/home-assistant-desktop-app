@@ -55,7 +55,7 @@ public sealed record UpdateCheckResult(
 
 /// <param name="CheckAutomatically">Whether the service asks GitHub for a newer version once a day.</param>
 /// <param name="IncludePrereleases">Whether versions marked as pre-releases count as newer versions.</param>
-public sealed record UpdateSettings(bool CheckAutomatically = true, bool IncludePrereleases = true);
+public sealed record UpdateSettings(bool CheckAutomatically = true, bool IncludePrereleases = false);
 
 public sealed record EngineStatus(string Name, bool IsConfigured, EngineConnectionState State);
 
