@@ -1,0 +1,30 @@
+<!--
+    Builds the HADA installer (MSI) from already published apps. Use scripts\Publish-HADA.ps1, which publishes
+    first; this project is deliberately not part of the solution, so "dotnet build" stays fast and needs no publish.
+-->
+<Project Sdk="WixToolset.Sdk/5.0.2">
+
+  <PropertyGroup>
+    <!-- x64 or arm64; matches the runtime the apps were published for. -->
+    <InstallerPlatform Condition="'$(InstallerPlatform)' == ''">x64</InstallerPlatform>
+    <PublishRoot Condition="'$(PublishRoot)' == ''">$(MSBuildThisFileDirectory)..\artifacts\publish\win-$(InstallerPlatform)\</PublishRoot>
+
+    <OutputName>HADA-$(Version)-$(InstallerPlatform)</OutputName>
+    <OutputPath>$(MSBuildThisFileDirectory)..\artifacts\installer\</OutputPath>
+    <IntermediateOutputPath>obj\$(InstallerPlatform)\</IntermediateOutputPath>
+    <Cultures>en-US</Cultures>
+    <DefineConstants>ProductVersion=$(Version);ServiceDir=$(PublishRoot)service;TrayDir=$(PublishRoot)tray;IconFile=$(MSBuildThisFileDirectory)..\assets\hada.ico</DefineConstants>
+
+    <!-- Windows Installer's own validation reports advisory findings as warnings; they must not fail the build. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- ICE61 objects to replacing an installation of the same version, which Package.wxs allows on purpose. -->
+    <SuppressIces>ICE61</SuppressIces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+</Project>

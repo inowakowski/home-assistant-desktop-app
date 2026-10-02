@@ -20,7 +20,7 @@ namespace HADA.Engine.WebSocket;
 /// <list type="bullet">
 /// <item>The WebSocket API (<c>/api/websocket</c>) carries authentication, a heartbeat and commands, which arrive as
 /// custom events (<see cref="HaWebSocketOptions.CommandEventType"/>).</item>
-/// <item>Sensor states are written through the REST API (<c>POST /api/states/sensor.*</c>), since the WebSocket API
+/// <item>Sensor states are written through the REST API (<c>POST /api/states/sensor.*</c> or <c>binary_sensor.*</c>), since the WebSocket API
 /// cannot set states. These entities have no unique id, so they cannot be edited in the Home Assistant UI and
 /// disappear when Home Assistant restarts; the engine re-sends them after every reconnect.</item>
 /// <item>Sensors disabled in settings are deleted from Home Assistant (<c>DELETE /api/states/sensor.*</c>) on connect.</item>
@@ -51,6 +51,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private CancellationToken _stoppingToken;
     private Task _connectionLoop = Task.CompletedTask;
     private Task _telemetryLoop = Task.CompletedTask;
+    private Task _registryLoop = Task.CompletedTask;
     private volatile HaConnection? _connection;
     private volatile EngineConnectionState _state;
 
@@ -150,8 +151,12 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         var readings = _bus.Subscribe<TelemetryEvent>(
             new EventSubscriptionOptions { Capacity = 256, Backpressure = BackpressureMode.DropOldest });
 
-        _connectionLoop = Task.Run(() => MaintainConnectionAsync(token));
-        _telemetryLoop = Task.Run(() => ForwardTelemetryAsync(readings, token));
+        var registryChanges = _bus.Subscribe<EntityRegistryChange>();
+
+        // Not started with the caller's token: the loops end through StopAsync, not when starting is cancelled.
+        _connectionLoop = Task.Run(() => MaintainConnectionAsync(token), CancellationToken.None);
+        _telemetryLoop = Task.Run(() => ForwardTelemetryAsync(readings, token), CancellationToken.None);
+        _registryLoop = Task.Run(() => FollowRegistryAsync(registryChanges, token), CancellationToken.None);
         return Task.CompletedTask;
     }
 
@@ -165,6 +170,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         // Stop producing updates first so nothing overwrites the "unavailable" states below.
         await _stopping.CancelAsync().ConfigureAwait(false);
         await _telemetryLoop.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _registryLoop.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         if (_state == EngineConnectionState.Connected)
         {
@@ -377,7 +383,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         // Commands must name this device explicitly, so one event never locks every computer at once.
         var deviceId = data.TryGetProperty("device_id", out var device) ? device.GetString() : null;
         var action = data.TryGetProperty("action", out var actionProperty) ? actionProperty.GetString() : null;
-        if (deviceId != _deviceId || action is null || !TryGetExposed(action, EntityKind.Button, out var entity))
+        if (deviceId != _deviceId || action is null || !TryGetExposed(action, out var entity) || entity.Kind != EntityKind.Button)
         {
             LogIgnoredCommand(_logger, deviceId, action);
             return;
@@ -399,13 +405,14 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         {
             await foreach (var reading in readings.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (!TryGetExposed(reading.SensorId, EntityKind.Sensor, out var entity))
+                if (!TryGetExposedSensor(reading.SensorId, out var entity))
                 {
                     continue;
                 }
 
+                // A replayed reading must not bring an unavailable sensor back to its stale value.
                 _lastReadings[entity.Id] = reading;
-                if (_state == EngineConnectionState.Connected)
+                if (_state == EngineConnectionState.Connected && _registry.IsAvailable(entity.Id))
                 {
                     await TrySetStateAsync(entity, reading.State, reading.Attributes, cancellationToken).ConfigureAwait(false);
                 }
@@ -420,12 +427,54 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         }
     }
 
+    /// <summary>
+    /// Deletes the state of sensors removed from the registry, e.g. a deleted custom sensor, and marks sensors
+    /// unavailable while their source is away, e.g. the tray app's sensors after it exits.
+    /// </summary>
+    private async Task FollowRegistryAsync(IEventSubscription<EntityRegistryChange> changes, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var change in changes.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var entity = change.Entity;
+                var connected = _state == EngineConnectionState.Connected;
+                switch (change)
+                {
+                    case EntityUnregistered:
+                        _lastReadings.TryRemove(entity.Id, out _);
+                        if (connected && entity.Kind.ReportsState())
+                        {
+                            await TrySendStateRequestAsync(HttpMethod.Delete, entity, content: null, cancellationToken).ConfigureAwait(false);
+                        }
+
+                        break;
+                    case EntityAvailabilityChanged { IsAvailable: false } when connected && TryGetExposedSensor(entity.Id, out _):
+                        await TrySetStateAsync(entity, Unavailable, attributes: null, cancellationToken).ConfigureAwait(false);
+                        break;
+                    case EntityAvailabilityChanged { IsAvailable: true } when connected
+                        && TryGetExposedSensor(entity.Id, out _)
+                        && _lastReadings.TryGetValue(entity.Id, out var reading):
+                        await TrySetStateAsync(entity, reading.State, reading.Attributes, cancellationToken).ConfigureAwait(false);
+                        break;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            await changes.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
     /// <summary>States written before a sensor was disabled would otherwise linger in Home Assistant.</summary>
     private async Task RemoveDisabledSensorsAsync(CancellationToken cancellationToken)
     {
         foreach (var entity in _registry.Entities)
         {
-            if (entity.Kind == EntityKind.Sensor && !_filter.IsEnabled(entity.Id))
+            if (entity.Kind.ReportsState() && !_filter.IsEnabled(entity.Id))
             {
                 await TrySendStateRequestAsync(HttpMethod.Delete, entity, content: null, cancellationToken).ConfigureAwait(false);
             }
@@ -436,9 +485,12 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     {
         foreach (var reading in _lastReadings.Values)
         {
-            if (TryGetExposed(reading.SensorId, EntityKind.Sensor, out var entity))
+            if (TryGetExposedSensor(reading.SensorId, out var entity))
             {
-                await TrySetStateAsync(entity, reading.State, reading.Attributes, cancellationToken).ConfigureAwait(false);
+                var isAvailable = _registry.IsAvailable(entity.Id);
+                await TrySetStateAsync(
+                        entity, isAvailable ? reading.State : Unavailable, isAvailable ? reading.Attributes : null, cancellationToken)
+                    .ConfigureAwait(false);
             }
         }
     }
@@ -447,7 +499,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     {
         foreach (var sensorId in _lastReadings.Keys)
         {
-            if (TryGetExposed(sensorId, EntityKind.Sensor, out var entity))
+            if (TryGetExposedSensor(sensorId, out var entity))
             {
                 await TrySetStateAsync(entity, Unavailable, attributes: null, cancellationToken).ConfigureAwait(false);
             }
@@ -478,7 +530,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private async Task TrySendStateRequestAsync(
         HttpMethod method, EntityDescriptor entity, HttpContent? content, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(method, new Uri(_baseUrl!, $"api/states/sensor.{_deviceId}_{entity.Id}"))
+        var domain = entity.Kind == EntityKind.BinarySensor ? "binary_sensor" : "sensor";
+        using var request = new HttpRequestMessage(method, new Uri(_baseUrl!, $"api/states/{domain}.{_deviceId}_{entity.Id}"))
         {
             Content = content,
         };
@@ -502,8 +555,11 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         }
     }
 
-    private bool TryGetExposed(string entityId, EntityKind kind, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
-        _registry.TryGet(entityId, out entity) && entity.Kind == kind && _filter.IsEnabled(entityId);
+    private bool TryGetExposed(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
+        _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entityId);
+
+    private bool TryGetExposedSensor(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
+        TryGetExposed(entityId, out entity) && entity.Kind.ReportsState();
 
     private static async Task<JsonDocument> ReceiveRequiredAsync(HaConnection connection, CancellationToken cancellationToken) =>
         await connection.ReceiveAsync(cancellationToken).ConfigureAwait(false)

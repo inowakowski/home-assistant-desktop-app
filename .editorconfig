@@ -1,0 +1,32 @@
+root = true
+
+[*.cs]
+# Task.Run(..., CancellationToken.None) is deliberate where a loop must outlive the caller's token;
+# the rule stays on so every such place says so explicitly.
+
+# IEventBus uses @event as a parameter name; nothing but C# implements these interfaces.
+dotnet_diagnostic.CA1716.severity = none
+
+# IpcMessageStream frames messages on a stream; the name says what it is.
+dotnet_diagnostic.CA1711.severity = none
+
+# Returning Task instead of the concrete Task<T> keeps private helpers' signatures simple.
+dotnet_diagnostic.CA1859.severity = none
+
+[src/HADA.Tray/**.cs]
+# View model members are read through data binding, which needs instance properties.
+dotnet_diagnostic.CA1822.severity = none
+
+[tests/**.cs]
+# Test names are sentences with underscores.
+dotnet_diagnostic.CA1707.severity = none
+
+# xUnit disposes fixtures through IAsyncLifetime / IAsyncDisposable.
+dotnet_diagnostic.CA1001.severity = none
+
+# Literal arrays in assertions are clearer than shared fields.
+dotnet_diagnostic.CA1861.severity = none
+
+# Logging performance does not matter in tests, where plain LogError(...) reads best.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none

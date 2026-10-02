@@ -4,16 +4,22 @@ namespace HADA.Engine.Mqtt;
 internal sealed record DiscoveryPayload(
     string Name,
     string UniqueId,
-    string AvailabilityTopic,
+    DiscoveryAvailability[] Availability,
+    string AvailabilityMode,
     string? StateTopic,
     string? JsonAttributesTopic,
     string? CommandTopic,
     string? PayloadPress,
+    string? PayloadOn,
+    string? PayloadOff,
     string? Icon,
     string? DeviceClass,
     string? UnitOfMeasurement,
     string? StateClass,
     DiscoveryDevice Device);
+
+/// <summary>A topic carrying <c>online</c> or <c>offline</c>.</summary>
+internal sealed record DiscoveryAvailability(string Topic);
 
 internal sealed record DiscoveryDevice(
     string[] Identifiers,

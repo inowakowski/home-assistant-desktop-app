@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-HADA.Service-1a434cf5-aa8d-46cb-a4ef-18032d5b72ac</UserSecretsId>
+    <ApplicationIcon>..\..\assets\hada.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

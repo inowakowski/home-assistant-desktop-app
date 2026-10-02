@@ -36,6 +36,9 @@ internal sealed class MqttTopics
 
     public string Command(string entityId) => _devicePrefix + entityId + CommandSuffix;
 
+    /// <summary>Whether the entity's own source is there, e.g. the tray app for session sensors.</summary>
+    public string EntityAvailability(string entityId) => _devicePrefix + entityId + "/availability";
+
     public string Discovery(EntityDescriptor entity) =>
         $"{_discoveryPrefix}/{Component(entity.Kind)}/{DeviceId}/{entity.Id}/config";
 
@@ -68,6 +71,7 @@ internal sealed class MqttTopics
     {
         EntityKind.Sensor => "sensor",
         EntityKind.Button => "button",
+        EntityKind.BinarySensor => "binary_sensor",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 }

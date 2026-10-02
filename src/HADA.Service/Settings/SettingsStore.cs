@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using HADA.Ipc;
 
 namespace HADA.Service.Settings;
@@ -21,6 +22,8 @@ public sealed record StoredSettings
     public string? AccessToken { get; init; }
 
     public IReadOnlyList<string>? DisabledEntities { get; init; }
+
+    public IReadOnlyList<CustomSensorDefinition>? CustomSensors { get; init; }
 }
 
 /// <summary>
@@ -31,7 +34,11 @@ public sealed record StoredSettings
 public sealed class SettingsStore(string? folderPath = null)
 {
     private static readonly byte[] Entropy = "HADA.Settings.v1"u8.ToArray();
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
 
     public string FolderPath { get; } =
         folderPath ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "HADA");
@@ -83,6 +90,23 @@ public sealed class SettingsStore(string? folderPath = null)
         catch (Exception ex) when (ex is CryptographicException or FormatException)
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Creates and protects the folder ahead of the first save, so files written there earlier, such as logs,
+    /// are protected too. Returns <see langword="false"/> when the account running the service may not do that.
+    /// </summary>
+    public bool TryEnsureFolder()
+    {
+        try
+        {
+            EnsureFolder();
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 

@@ -42,6 +42,9 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private readonly IMqttClient _client;
     private readonly ConcurrentDictionary<string, TelemetryEvent> _lastReadings = new(StringComparer.Ordinal);
 
+    // Discovery topic and id of entities unregistered while disconnected; cleared on the next connect.
+    private readonly ConcurrentDictionary<string, string> _pendingRemovals = new(StringComparer.Ordinal);
+
     private CancellationTokenSource? _stopping;
     private CancellationToken _stoppingToken;
     private Task _running = Task.CompletedTask;
@@ -136,12 +139,13 @@ public sealed partial class MqttEngine : ICommunicationEngine
         // Subscribe before connecting so readings and registrations made in the meantime are not missed.
         var readings = _bus.Subscribe<TelemetryEvent>(
             new EventSubscriptionOptions { Capacity = 256, Backpressure = BackpressureMode.DropOldest });
-        var registrations = _bus.Subscribe<EntityRegistered>();
+        var registryChanges = _bus.Subscribe<EntityRegistryChange>();
 
+        // Not started with the caller's token: the loops end through StopAsync, not when starting is cancelled.
         _running = Task.WhenAll(
-            Task.Run(() => MaintainConnectionAsync(token)),
-            Task.Run(() => ForwardTelemetryAsync(readings, token)),
-            Task.Run(() => AnnounceRegistrationsAsync(registrations, token)));
+            Task.Run(() => MaintainConnectionAsync(token), CancellationToken.None),
+            Task.Run(() => ForwardTelemetryAsync(readings, token), CancellationToken.None),
+            Task.Run(() => FollowRegistryAsync(registryChanges, token), CancellationToken.None));
 
         return Task.CompletedTask;
     }
@@ -205,7 +209,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
             catch (Exception ex)
             {
                 _state = EngineConnectionState.Faulted;
-                LogConnectFailed(_logger, ex, retryDelay);
+                LogConnectFailed(_logger, Describe(ex), retryDelay);
                 await _client.TryDisconnectAsync(MqttClientDisconnectOptionsReason.NormalDisconnection, "reconnecting")
                     .ConfigureAwait(false);
             }
@@ -299,7 +303,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     private async Task DispatchCommandAsync(string entityId, string payload)
     {
-        if (!TryGetExposed(entityId, EntityKind.Button, out var entity) || payload != PressPayload)
+        if (!TryGetExposed(entityId, out var entity) || entity.Kind != EntityKind.Button || payload != PressPayload)
         {
             LogIgnoredCommand(_logger, entityId, payload);
             return;
@@ -322,7 +326,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
         {
             await foreach (var reading in readings.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (!TryGetExposed(reading.SensorId, EntityKind.Sensor, out var entity))
+                if (!TryGetExposed(reading.SensorId, out var entity) || !entity.Kind.ReportsState())
                 {
                     continue;
                 }
@@ -344,15 +348,34 @@ public sealed partial class MqttEngine : ICommunicationEngine
         }
     }
 
-    private async Task AnnounceRegistrationsAsync(IEventSubscription<EntityRegistered> registrations, CancellationToken cancellationToken)
+    private async Task FollowRegistryAsync(IEventSubscription<EntityRegistryChange> changes, CancellationToken cancellationToken)
     {
         try
         {
-            await foreach (var registration in registrations.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var change in changes.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (_state == EngineConnectionState.Connected && _registry.TryGet(registration.Entity.Id, out var entity))
+                var connected = _state == EngineConnectionState.Connected;
+                switch (change)
                 {
-                    await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
+                    case EntityUnregistered removed:
+                        _pendingRemovals[_topics.Discovery(removed.Entity)] = removed.Entity.Id;
+                        if (connected)
+                        {
+                            await ClearPendingRemovalsAsync(cancellationToken).ConfigureAwait(false);
+                        }
+
+                        break;
+                    case EntityRegistered registered when _registry.TryGet(registered.Entity.Id, out var entity):
+                        _pendingRemovals.TryRemove(_topics.Discovery(entity), out _);
+                        if (connected)
+                        {
+                            await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
+                        }
+
+                        break;
+                    case EntityAvailabilityChanged availability when connected && _filter.IsEnabled(availability.Entity.Id):
+                        await TryPublishEntityAvailabilityAsync(availability.Entity.Id, cancellationToken).ConfigureAwait(false);
+                        break;
                 }
             }
         }
@@ -361,12 +384,25 @@ public sealed partial class MqttEngine : ICommunicationEngine
         }
         finally
         {
-            await registrations.DisposeAsync().ConfigureAwait(false);
+            await changes.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task ClearPendingRemovalsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var (topic, entityId) in _pendingRemovals)
+        {
+            if (await TryRemoveEntityAsync(topic, entityId, cancellationToken).ConfigureAwait(false))
+            {
+                _pendingRemovals.TryRemove(topic, out _);
+            }
         }
     }
 
     private async Task AnnounceAllAsync(CancellationToken cancellationToken)
     {
+        await ClearPendingRemovalsAsync(cancellationToken).ConfigureAwait(false);
+
         foreach (var entity in _registry.Entities)
         {
             await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
@@ -378,56 +414,94 @@ public sealed partial class MqttEngine : ICommunicationEngine
         }
     }
 
-    private Task TryAnnounceEntityAsync(EntityDescriptor entity, CancellationToken cancellationToken)
+    private async Task TryAnnounceEntityAsync(EntityDescriptor entity, CancellationToken cancellationToken)
     {
-        // An empty retained config makes Home Assistant remove the entity.
         if (!_filter.IsEnabled(entity.Id))
         {
-            return TryPublishAsync(_topics.Discovery(entity), string.Empty, retain: true, cancellationToken);
+            await TryRemoveEntityAsync(_topics.Discovery(entity), entity.Id, cancellationToken).ConfigureAwait(false);
+            return;
         }
 
-        var isSensor = entity.Kind == EntityKind.Sensor;
+        var isSensor = entity.Kind.ReportsState();
         var isButton = entity.Kind == EntityKind.Button;
+        var isBinary = entity.Kind == EntityKind.BinarySensor;
         var payload = new DiscoveryPayload(
             Name: entity.Name,
             UniqueId: $"{_device.Identifiers[0]}_{entity.Id}",
-            AvailabilityTopic: _topics.Availability,
+            // The device is connected, and the entity's own source (e.g. the tray app) is there.
+            Availability: [new(_topics.Availability), new(_topics.EntityAvailability(entity.Id))],
+            AvailabilityMode: "all",
             StateTopic: isSensor ? _topics.State(entity.Id) : null,
             JsonAttributesTopic: isSensor ? _topics.Attributes(entity.Id) : null,
             CommandTopic: isButton ? _topics.Command(entity.Id) : null,
             PayloadPress: isButton ? PressPayload : null,
+            PayloadOn: isBinary ? BinaryState.On : null,
+            PayloadOff: isBinary ? BinaryState.Off : null,
             Icon: entity.Icon,
             DeviceClass: entity.DeviceClass,
             UnitOfMeasurement: entity.UnitOfMeasurement,
             StateClass: entity.StateClass,
             Device: _device);
 
-        return TryPublishAsync(_topics.Discovery(entity), JsonSerializer.Serialize(payload, JsonOptions), retain: true, cancellationToken);
+        await TryPublishAsync(_topics.Discovery(entity), JsonSerializer.Serialize(payload, JsonOptions), retain: true, cancellationToken)
+            .ConfigureAwait(false);
+        await TryPublishEntityAvailabilityAsync(entity.Id, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Retained, so the entity stays unavailable across reconnects for as long as its source is away.</summary>
+    private Task TryPublishEntityAvailabilityAsync(string entityId, CancellationToken cancellationToken) =>
+        TryPublishAsync(
+            _topics.EntityAvailability(entityId), _registry.IsAvailable(entityId) ? Online : Offline, retain: true, cancellationToken);
+
+    /// <remarks>
+    /// Retained, because Home Assistant subscribes to an entity's topics only after it has processed the discovery
+    /// config: a state sent right behind the config would be missed, and a sensor that reports only changes would
+    /// stay "unknown" until its next change. Stale values are no concern, as the availability topic covers those.
+    /// </remarks>
     private async Task TryPublishReadingAsync(TelemetryEvent reading, CancellationToken cancellationToken)
     {
         if (reading.Attributes.Count > 0)
         {
             await TryPublishAsync(
-                    _topics.Attributes(reading.SensorId), JsonSerializer.Serialize(reading.Attributes), retain: false, cancellationToken)
+                    _topics.Attributes(reading.SensorId), JsonSerializer.Serialize(reading.Attributes), retain: true, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         var state = reading.State.Length > MaxStateLength ? reading.State[..MaxStateLength] : reading.State;
-        await TryPublishAsync(_topics.State(reading.SensorId), state, retain: false, cancellationToken).ConfigureAwait(false);
+        await TryPublishAsync(_topics.State(reading.SensorId), state, retain: true, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task TryPublishAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
+    /// <summary>Removes an entity from Home Assistant, along with the retained readings it left on the broker.</summary>
+    private async Task<bool> TryRemoveEntityAsync(string discoveryTopic, string entityId, CancellationToken cancellationToken)
+    {
+        // An empty retained payload deletes the retained message; an empty config makes Home Assistant drop the entity.
+        var removed = await TryPublishAsync(discoveryTopic, string.Empty, retain: true, cancellationToken).ConfigureAwait(false);
+
+        // An entity that was replaced under the same id, e.g. a custom sensor whose type changed, keeps its topics:
+        // its first new reading may already be there.
+        if (!TryGetExposed(entityId, out _))
+        {
+            _lastReadings.TryRemove(entityId, out _);
+            await TryPublishAsync(_topics.State(entityId), string.Empty, retain: true, cancellationToken).ConfigureAwait(false);
+            await TryPublishAsync(_topics.Attributes(entityId), string.Empty, retain: true, cancellationToken).ConfigureAwait(false);
+            await TryPublishAsync(_topics.EntityAvailability(entityId), string.Empty, retain: true, cancellationToken).ConfigureAwait(false);
+        }
+
+        return removed;
+    }
+
+    private async Task<bool> TryPublishAsync(string topic, string payload, bool retain, CancellationToken cancellationToken)
     {
         try
         {
             await PublishAsync(topic, payload, retain, cancellationToken).ConfigureAwait(false);
+            return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // The connection loop owns recovery; cached readings are re-sent after reconnecting.
             LogPublishFailed(_logger, ex, topic);
+            return false;
         }
     }
 
@@ -441,8 +515,8 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 .Build(),
             cancellationToken);
 
-    private bool TryGetExposed(string entityId, EntityKind kind, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
-        _registry.TryGet(entityId, out entity) && entity.Kind == kind && _filter.IsEnabled(entityId);
+    private bool TryGetExposed(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
+        _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entityId);
 
     private static string Describe(Exception exception) =>
         exception.InnerException is null ? exception.Message : $"{exception.Message} ({exception.GetBaseException().Message})";
@@ -460,8 +534,9 @@ public sealed partial class MqttEngine : ICommunicationEngine
     [LoggerMessage(Level = LogLevel.Warning, Message = "Disconnected from MQTT broker; reconnecting in {RetryDelay}.")]
     private static partial void LogDisconnected(ILogger logger, TimeSpan retryDelay);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "MQTT connection failed; retrying in {RetryDelay}.")]
-    private static partial void LogConnectFailed(ILogger logger, Exception exception, TimeSpan retryDelay);
+    // The reason only: the stack trace of a refused connection says nothing more, and it repeats on every retry.
+    [LoggerMessage(Level = LogLevel.Warning, Message = "MQTT connection failed: {Reason} Retrying in {RetryDelay}.")]
+    private static partial void LogConnectFailed(ILogger logger, string reason, TimeSpan retryDelay);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to disconnect cleanly from MQTT broker.")]
     private static partial void LogDisconnectFailed(ILogger logger, Exception exception);

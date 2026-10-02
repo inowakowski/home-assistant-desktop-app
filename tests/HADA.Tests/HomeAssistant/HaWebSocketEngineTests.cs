@@ -92,6 +92,45 @@ public sealed class HaWebSocketEngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Binary_sensors_are_written_to_the_binary_sensor_domain_and_deleted_when_unregistered()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "display_on", Name = "Display", Kind = EntityKind.BinarySensor });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "display_on", State = BinaryState.On });
+
+        var write = await WaitForStateWriteAsync("binary_sensor.testpc_display_on");
+        Assert.Equal("on", write.Body.GetProperty("state").GetString());
+
+        await _registry.UnregisterAsync("display_on");
+
+        await WaitUntilAsync(() => Array.Exists(
+            _homeAssistant.StateWrites, w => w.Method == "DELETE" && w.EntityId == "binary_sensor.testpc_display_on"));
+    }
+
+    [Fact]
+    public async Task A_sensor_whose_source_is_away_is_set_unavailable_and_restored_when_it_returns()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "12.5" });
+        await WaitForStateWriteAsync("sensor.testpc_cpu_load");
+
+        await _registry.SetAvailabilityAsync("cpu_load", isAvailable: false);
+        await WaitUntilAsync(() => LastState("sensor.testpc_cpu_load") == "unavailable");
+
+        await _registry.SetAvailabilityAsync("cpu_load", isAvailable: true);
+        await WaitUntilAsync(() => LastState("sensor.testpc_cpu_load") == "12.5");
+    }
+
+    private string? LastState(string entityId) =>
+        _homeAssistant.StateWrites.LastOrDefault(write => write.EntityId == entityId && write.Method == "POST")
+            ?.Body.GetProperty("state").GetString();
+
+    [Fact]
     public async Task Command_event_for_this_device_publishes_action_command()
     {
         await using var commands = _bus.Subscribe<ActionCommand>();

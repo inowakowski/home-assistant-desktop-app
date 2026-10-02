@@ -23,13 +23,15 @@ public sealed record ServiceStatus(
 
 public sealed record EngineStatus(string Name, bool IsConfigured, EngineConnectionState State);
 
-/// <param name="Source"><c>service</c>, or the name of the tray client that registered the entity.</param>
+/// <param name="Source"><c>service</c>, <c>custom</c> for a custom sensor, or the name of the tray client that registered the entity.</param>
+/// <param name="IsAvailable">False while the entity's source is away, e.g. a tray sensor after the tray app exited.</param>
 public sealed record EntityStatus(
     EntityDescriptor Entity,
     bool IsEnabled,
     string Source,
     string? State,
-    DateTimeOffset? UpdatedAt);
+    DateTimeOffset? UpdatedAt,
+    bool IsAvailable = true);
 
 public sealed record MqttSettings(
     string Host,
@@ -53,7 +55,8 @@ public sealed record SettingsSnapshot(
     bool HasMqttPassword,
     HomeAssistantSettings HomeAssistant,
     bool HasAccessToken,
-    IReadOnlyList<string> DisabledEntities);
+    IReadOnlyList<string> DisabledEntities,
+    IReadOnlyList<CustomSensorDefinition> CustomSensors);
 
 public enum SecretChange
 {
@@ -75,7 +78,8 @@ public sealed record SettingsUpdate(
     SecretUpdate MqttPassword,
     HomeAssistantSettings HomeAssistant,
     SecretUpdate AccessToken,
-    IReadOnlyList<string> DisabledEntities);
+    IReadOnlyList<string> DisabledEntities,
+    IReadOnlyList<CustomSensorDefinition> CustomSensors);
 
 public enum ConnectionTarget
 {

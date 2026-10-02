@@ -70,6 +70,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         var logs = await _client.GetLogsAsync(afterSequence: 0);
 
         Assert.Equal("broker.local", settings.Mqtt.Host);
+        Assert.Equal(FakeServiceControl.CustomSensor, Assert.Single(settings.CustomSensors));
         Assert.Equal("hello", Assert.Single(logs).Message);
     }
 
@@ -78,7 +79,7 @@ public sealed class IpcControlTests : IAsyncDisposable
     {
         await _server.StartAsync(CancellationToken.None);
         var update = new SettingsUpdate(
-            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, []);
+            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], []);
 
         if (IsElevatedAdministrator())
         {
@@ -120,6 +121,14 @@ public sealed class IpcControlTests : IAsyncDisposable
     {
         public static readonly MqttSettings Mqtt = new("broker.local", 1883, false, "", "", "", "homeassistant", "hada");
         public static readonly HomeAssistantSettings HomeAssistant = new("", "", "", "hada_command");
+        public static readonly CustomSensorDefinition CustomSensor = new()
+        {
+            Id = "game_running",
+            Name = "Game running",
+            Type = CustomSensorType.ProcessRunning,
+            Value = "game",
+            IntervalSeconds = 5,
+        };
 
         public int SaveCalls { get; private set; }
 
@@ -134,7 +143,7 @@ public sealed class IpcControlTests : IAsyncDisposable
                 [.. registry.Entities.Select(entity => new EntityStatus(entity, true, "service", null, null))]));
 
         public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, []));
+            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor]));
 
         public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
         {

@@ -33,7 +33,7 @@ public sealed partial class IpcServer(
     private const int MaxConcurrentRequestsPerClient = 4;
     private const int MaxLogEntriesPerResponse = 50;
 
-    private readonly ConcurrentDictionary<string, string> _ipcEntityOwners = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, EntityOwner> _ipcEntityOwners = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<Guid, string> _sensorClients = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -120,7 +120,8 @@ public sealed partial class IpcServer(
                     switch (message)
                     {
                         case EntityRegistrationMessage registration when hello.Role == IpcClientRole.Sensors:
-                            await RegisterAsync(registration.Entity, clientName, cancellationToken).ConfigureAwait(false);
+                            await RegisterAsync(registration.Entity, new EntityOwner(connectionId, clientName), cancellationToken)
+                                .ConfigureAwait(false);
                             break;
                         case TelemetryMessage telemetry when hello.Role == IpcClientRole.Sensors:
                             await PublishAsync(telemetry.Reading, clientName, cancellationToken).ConfigureAwait(false);
@@ -156,6 +157,7 @@ public sealed partial class IpcServer(
             finally
             {
                 _sensorClients.TryRemove(connectionId, out _);
+                await MarkEntitiesUnavailableAsync(connectionId, cancellationToken).ConfigureAwait(false);
 
                 // Let in-flight answers finish, or fail on the closed pipe, before the pipe is disposed.
                 await Task.WhenAll(pendingRequests).ConfigureAwait(false);
@@ -237,7 +239,7 @@ public sealed partial class IpcServer(
         Entities =
         [
             .. status.Entities.Select(entity =>
-                _ipcEntityOwners.TryGetValue(entity.Entity.Id, out var owner) ? entity with { Source = owner } : entity),
+                _ipcEntityOwners.TryGetValue(entity.Entity.Id, out var owner) ? entity with { Source = owner.ClientName } : entity),
         ],
     };
 
@@ -264,30 +266,31 @@ public sealed partial class IpcServer(
         return isAdministrator;
     }
 
-    private async Task RegisterAsync(EntityDescriptor entity, string clientName, CancellationToken cancellationToken)
+    private async Task RegisterAsync(EntityDescriptor entity, EntityOwner owner, CancellationToken cancellationToken)
     {
-        if (entity.Kind != EntityKind.Sensor)
+        if (!entity.Kind.ReportsState())
         {
             // Commands cannot be routed back to a client yet.
-            LogRegistrationRejected(logger, clientName, entity.Id, "only sensors can be registered over IPC");
+            LogRegistrationRejected(logger, owner.ClientName, entity.Id, "only sensors can be registered over IPC");
             return;
         }
 
         if (registry.TryGet(entity.Id, out _) && !_ipcEntityOwners.ContainsKey(entity.Id))
         {
-            LogRegistrationRejected(logger, clientName, entity.Id, "the id belongs to a service entity");
+            LogRegistrationRejected(logger, owner.ClientName, entity.Id, "the id belongs to a service entity");
             return;
         }
 
-        var isNew = _ipcEntityOwners.TryAdd(entity.Id, clientName);
+        var isNew = _ipcEntityOwners.TryAdd(entity.Id, owner);
         if (!isNew)
         {
-            _ipcEntityOwners[entity.Id] = clientName;
+            _ipcEntityOwners[entity.Id] = owner;
         }
 
         try
         {
             await registry.RegisterAsync(entity, cancellationToken).ConfigureAwait(false);
+            await registry.SetAvailabilityAsync(entity.Id, isAvailable: true, cancellationToken).ConfigureAwait(false);
         }
         catch (ArgumentException ex)
         {
@@ -296,7 +299,29 @@ public sealed partial class IpcServer(
                 _ipcEntityOwners.TryRemove(entity.Id, out _);
             }
 
-            LogRegistrationRejected(logger, clientName, entity.Id, ex.Message);
+            LogRegistrationRejected(logger, owner.ClientName, entity.Id, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// A client that went away can no longer report, so its sensors must not keep showing their last value:
+    /// a "user active" that stays on after sign-out would mislead every automation that reads it.
+    /// </summary>
+    private async Task MarkEntitiesUnavailableAsync(Guid connectionId, CancellationToken cancellationToken)
+    {
+        // When the service itself is stopping, the engines report everything unavailable anyway.
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        foreach (var (entityId, owner) in _ipcEntityOwners)
+        {
+            // Another connection of the same user may have taken the entity over since.
+            if (owner.ConnectionId == connectionId)
+            {
+                await registry.SetAvailabilityAsync(entityId, isAvailable: false, CancellationToken.None).ConfigureAwait(false);
+            }
         }
     }
 
@@ -310,6 +335,8 @@ public sealed partial class IpcServer(
 
         await bus.PublishAsync(reading with { Source = clientName }, cancellationToken).ConfigureAwait(false);
     }
+
+    private sealed record EntityOwner(Guid ConnectionId, string ClientName);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Session IPC disabled: cannot create pipe '{PipeName}'.")]
     private static partial void LogPipeUnavailable(ILogger logger, Exception exception, string pipeName);

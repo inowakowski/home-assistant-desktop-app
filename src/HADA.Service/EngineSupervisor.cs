@@ -18,6 +18,9 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
     // Configuration reloads fire several change notifications in a row; apply them once.
     private static readonly TimeSpan ReloadDelay = TimeSpan.FromMilliseconds(500);
 
+    private readonly IEventBus _bus;
+    private readonly IEntityRegistry _registry;
+    private readonly TelemetryCache? _telemetry;
     private readonly IOptionsMonitor<EntityOptions> _entityOptions;
     private readonly ILogger _logger;
     private readonly EngineSlot[] _slots;
@@ -33,8 +36,12 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         IOptionsMonitor<MqttOptions> mqttOptions,
         IOptionsMonitor<HaWebSocketOptions> homeAssistantOptions,
         IOptionsMonitor<EntityOptions> entityOptions,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        TelemetryCache? telemetry = null)
     {
+        _bus = bus;
+        _registry = registry;
+        _telemetry = telemetry;
         _entityOptions = entityOptions;
         _logger = loggerFactory.CreateLogger<EngineSupervisor>();
         _slots =
@@ -154,9 +161,23 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
             }
 
             var filter = new EntityFilter(_entityOptions.CurrentValue.Disabled);
+            var anyRecreated = false;
             foreach (var slot in _slots)
             {
-                await slot.ApplyAsync(filter, _logger, cancellationToken).ConfigureAwait(false);
+                anyRecreated |= await slot.ApplyAsync(filter, _logger, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (anyRecreated && _telemetry is not null)
+            {
+                // A new engine has seen no readings yet, and sensors that report only changes may stay silent for
+                // hours. Engines cache what they receive while still connecting, so this is not lost.
+                foreach (var reading in _telemetry.Latest)
+                {
+                    if (_registry.TryGet(reading.SensorId, out _))
+                    {
+                        await _bus.PublishAsync(reading, cancellationToken).ConfigureAwait(false);
+                    }
+                }
             }
         }
         finally
@@ -185,7 +206,8 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
 
         public abstract IDisposable? OnChange(Action callback);
 
-        public abstract Task ApplyAsync(EntityFilter filter, ILogger logger, CancellationToken cancellationToken);
+        /// <summary>Returns whether the engine was (re)created because its settings or the filter changed.</summary>
+        public abstract Task<bool> ApplyAsync(EntityFilter filter, ILogger logger, CancellationToken cancellationToken);
 
         public Task StopAsync(CancellationToken cancellationToken) =>
             Engine?.StopAsync(cancellationToken) ?? Task.CompletedTask;
@@ -210,14 +232,14 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
 
         public override IDisposable? OnChange(Action callback) => monitor.OnChange(_ => callback());
 
-        public override async Task ApplyAsync(EntityFilter filter, ILogger logger, CancellationToken cancellationToken)
+        public override async Task<bool> ApplyAsync(EntityFilter filter, ILogger logger, CancellationToken cancellationToken)
         {
             var options = monitor.CurrentValue;
             var fingerprint = JsonSerializer.Serialize(options) + "|"
                 + string.Join(',', filter.DisabledEntityIds.Order(StringComparer.Ordinal));
             if (fingerprint == _fingerprint)
             {
-                return;
+                return false;
             }
 
             if (Engine is { } previous)
@@ -232,6 +254,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
             Engine = engine;
             _fingerprint = fingerprint;
             await engine.StartAsync(cancellationToken).ConfigureAwait(false);
+            return true;
         }
     }
 }

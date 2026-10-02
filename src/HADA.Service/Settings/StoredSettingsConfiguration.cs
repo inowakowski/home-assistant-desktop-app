@@ -57,6 +57,21 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
             }
         }
 
+        if (settings.CustomSensors is { } customSensors)
+        {
+            for (var i = 0; i < customSensors.Count; i++)
+            {
+                var sensor = customSensors[i];
+                var prefix = $"{CustomSensorOptions.SectionName}:Items:{i}:";
+                data[prefix + nameof(sensor.Id)] = sensor.Id;
+                data[prefix + nameof(sensor.Name)] = sensor.Name;
+                data[prefix + nameof(sensor.Type)] = sensor.Type.ToString();
+                data[prefix + nameof(sensor.Value)] = sensor.Value;
+                data[prefix + nameof(sensor.Unit)] = sensor.Unit;
+                data[prefix + nameof(sensor.IntervalSeconds)] = sensor.IntervalSeconds.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
         return data;
     }
 }

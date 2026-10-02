@@ -1,0 +1,196 @@
+<Page
+    x:Class="HADA.Tray.Views.Pages.CustomSensorsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:HADA.Tray.Views.Controls"
+    xmlns:l="clr-namespace:HADA.Tray.Localization"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:HADA.Tray.ViewModels"
+    Title="{l:Tr Nav_CustomSensors}"
+    Style="{StaticResource HadaPage}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <controls:SaveBar Grid.Row="1" DataContext="{Binding Settings}" />
+        <ScrollViewer
+            Grid.Row="0"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1000" Margin="28,8,28,28">
+            <ui:TextBlock FontTypography="Title" Text="{l:Tr Custom_Title}" />
+            <ui:TextBlock
+                Margin="0,4,0,16"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="{l:Tr Custom_Subtitle}"
+                TextWrapping="Wrap" />
+
+            <ui:Card
+                Margin="0,0,0,12"
+                Padding="16,12"
+                Visibility="{Binding Settings.IsLocked, Converter={StaticResource BooleanToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon
+                        VerticalAlignment="Center"
+                        FontSize="24"
+                        Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                        Symbol="ShieldLock24" />
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="14,0,16,0"
+                        VerticalAlignment="Center">
+                        <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Settings_LockedTitle}" />
+                        <ui:TextBlock
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            Text="{l:Tr Settings_LockedMessage}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:Button
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Appearance="Primary"
+                        Command="{Binding UnlockCommand}"
+                        Content="{l:Tr Common_Unlock}">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="ShieldKeyhole24" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+                </Grid>
+            </ui:Card>
+
+            <ItemsControl ItemsSource="{Binding Settings.CustomSensors}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Margin="0,0,0,12" Padding="18">
+                            <StackPanel IsEnabled="{Binding DataContext.Settings.CanEdit, RelativeSource={RelativeSource AncestorType=Page}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="16" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="16" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="16" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Custom_Name}" />
+                                        <ui:TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Custom_Id}" />
+                                        <ui:TextBox PlaceholderText="{Binding IdPlaceholder}" Text="{Binding Id, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4">
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Custom_Type}" />
+                                        <ComboBox
+                                            DisplayMemberPath="Label"
+                                            ItemsSource="{x:Static vm:CustomSensorViewModel.TypeOptions}"
+                                            SelectedValue="{Binding Type}"
+                                            SelectedValuePath="Type" />
+                                    </StackPanel>
+                                    <ui:Button
+                                        Grid.Column="6"
+                                        VerticalAlignment="Bottom"
+                                        Command="{Binding RemoveCommand}"
+                                        ToolTip="{l:Tr Custom_Remove}">
+                                        <ui:Button.Icon>
+                                            <ui:SymbolIcon Symbol="Delete24" />
+                                        </ui:Button.Icon>
+                                    </ui:Button>
+                                </Grid>
+
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{Binding ValueLabel}" />
+                                        <ui:TextBox PlaceholderText="{Binding ValuePlaceholder}" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        Width="130"
+                                        Margin="16,0,0,0"
+                                        Visibility="{Binding ShowsUnit, Converter={StaticResource BooleanToVisibility}}">
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Custom_Unit}" />
+                                        <ui:TextBox PlaceholderText="°C, %, MB…" Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel
+                                        Grid.Column="2"
+                                        Width="150"
+                                        Margin="16,0,0,0"
+                                        Visibility="{Binding ShowsInterval, Converter={StaticResource BooleanToVisibility}}">
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Custom_Interval}" />
+                                        <ui:NumberBox
+                                            MaxDecimalPlaces="0"
+                                            Maximum="{Binding MaxInterval}"
+                                            Minimum="{Binding MinInterval}"
+                                            SpinButtonPlacementMode="Hidden"
+                                            Value="{Binding IntervalSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </ui:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ui:Card
+                Margin="0,0,0,12"
+                Padding="18,16"
+                Visibility="{Binding Settings.HasNoCustomSensors, Converter={StaticResource BooleanToVisibility}}">
+                <ui:TextBlock
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{l:Tr Custom_Empty}"
+                    TextWrapping="Wrap" />
+            </ui:Card>
+
+            <ui:Button Command="{Binding Settings.AddCustomSensorCommand}" Content="{l:Tr Custom_Add}">
+                <ui:Button.Icon>
+                    <ui:SymbolIcon Symbol="Add24" />
+                </ui:Button.Icon>
+            </ui:Button>
+
+            <ui:TextBlock
+                Margin="0,16,0,0"
+                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                FontTypography="Caption"
+                Text="{l:Tr Custom_PowerShellNote}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

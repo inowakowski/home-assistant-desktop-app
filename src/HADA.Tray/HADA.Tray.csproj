@@ -8,7 +8,13 @@
     <UseWPF>true</UseWPF>
     <!-- Only for NotifyIcon: WPF has no notification-area icon of its own. -->
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>..\..\assets\hada.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The same icon for the window and the notification area, loaded as /Assets/hada.ico. -->
+    <Resource Include="..\..\assets\hada.ico" Link="Assets\hada.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Keep WPF type names such as Application unambiguous. -->

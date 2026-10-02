@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Logging;
 using HADA.Core.Messaging;
 using HADA.Engine.Mqtt;
 using HADA.Engine.WebSocket;
@@ -7,6 +8,7 @@ using HADA.Ipc;
 using HADA.Platform.Windows.Actions;
 using HADA.Platform.Windows.Sensors;
 using HADA.Service;
+using HADA.Service.CustomSensors;
 using HADA.Service.Logging;
 using HADA.Service.Settings;
 
@@ -25,12 +27,26 @@ var logBuffer = new LogBuffer();
 builder.Logging.AddProvider(new InMemoryLoggerProvider(logBuffer));
 builder.Services.AddSingleton(logBuffer);
 
+// And a file, for what happened while nobody was looking. It lives next to the settings, in the same protected folder.
+settingsStore.TryEnsureFolder();
+builder.Logging.AddProvider(new FileLoggerProvider(
+    new FileLoggerOptions { FilePath = Path.Combine(settingsStore.FolderPath, "logs", "service.log") }));
+
+// A sensor that fails must not take the connection to Home Assistant and every other sensor down with it.
+// The host logs the failure; the rest of the service keeps running.
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
+});
+
 builder.Services.AddSingleton<IEventBus, ChannelEventBus>();
 builder.Services.AddSingleton<IEntityRegistry, EntityRegistry>();
 
 builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
 builder.Services.Configure<HaWebSocketOptions>(builder.Configuration.GetSection(HaWebSocketOptions.SectionName));
 builder.Services.Configure<EntityOptions>(builder.Configuration.GetSection(EntityOptions.SectionName));
+builder.Services.Configure<CustomSensorOptions>(builder.Configuration.GetSection(CustomSensorOptions.SectionName));
 
 builder.Services.AddSingleton<TelemetryCache>();
 builder.Services.AddSingleton<EngineSupervisor>();
@@ -41,7 +57,15 @@ builder.Services.AddHostedService(services => services.GetRequiredService<Teleme
 builder.Services.AddHostedService(services => services.GetRequiredService<EngineSupervisor>());
 builder.Services.AddHostedService<IpcServer>();
 builder.Services.AddHostedService<CpuLoadSensor>();
+builder.Services.AddHostedService<MemoryUsageSensor>();
+builder.Services.AddHostedService<BatterySensor>();
+builder.Services.AddHostedService<PowerStateSensor>();
+builder.Services.AddHostedService<SessionLockSensor>();
+builder.Services.AddHostedService<LastBootSensor>();
 builder.Services.AddHostedService<LockScreenAction>();
+
+// After the built-in entities, so a custom sensor can never take one of their ids first.
+builder.Services.AddHostedService<CustomSensorHost>();
 
 var host = builder.Build();
 host.Run();

@@ -1,0 +1,46 @@
+<!--
+    Footer of every page that edits settings: the result of the last save, and the Save and Discard buttons.
+    It sits below the page's scroll viewer, so it stays in view however far the page is scrolled.
+    Expects a SettingsViewModel as its DataContext.
+-->
+<UserControl
+    x:Class="HADA.Tray.Views.Controls.SaveBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="clr-namespace:HADA.Tray.Localization"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Border
+        Padding="28,12,28,16"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+        BorderThickness="0,1,0,0">
+        <StackPanel MaxWidth="1000">
+            <ui:InfoBar
+                Title="{Binding Feedback.Title}"
+                Margin="0,0,0,12"
+                IsOpen="{Binding Feedback.IsOpen, Mode=TwoWay}"
+                Message="{Binding Feedback.Message}"
+                Severity="{Binding Feedback.Severity}"
+                Visibility="{Binding Feedback.IsOpen, Converter={StaticResource BooleanToVisibility}}" />
+            <StackPanel Orientation="Horizontal">
+                <ui:Button
+                    Appearance="Primary"
+                    Command="{Binding SaveCommand}"
+                    Content="{l:Tr Common_Save}">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="Save24" />
+                    </ui:Button.Icon>
+                </ui:Button>
+                <ui:Button
+                    Margin="8,0,0,0"
+                    Command="{Binding RevertCommand}"
+                    Content="{l:Tr Common_Revert}" />
+                <ui:TextBlock
+                    Margin="16,0,0,0"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="{l:Tr Settings_Unsaved}"
+                    Visibility="{Binding IsDirty, Converter={StaticResource BooleanToVisibility}}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

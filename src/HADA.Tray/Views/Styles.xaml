@@ -2,6 +2,17 @@
 
     <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
 
+    <!--
+        Every page uses this. WPF applies an implicit style only to the exact type, so WPF-UI's style for Page does
+        not reach the page classes, and text placed directly on a page would keep WPF's default black in the dark theme.
+        CanContentScroll="False" stops WPF-UI's NavigationView from wrapping the page in its own scroll viewer, which
+        would give the page unlimited height: its own scroll viewer would then swallow the mouse wheel with nothing to scroll.
+    -->
+    <Style x:Key="HadaPage" TargetType="Page">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="ScrollViewer.CanContentScroll" Value="False" />
+    </Style>
+
     <!--  Coloured dot for a StatusKind (Neutral, Success, Warning, Error) on the DataContext's Kind property.  -->
     <Style x:Key="StatusDot" TargetType="Ellipse">
         <Setter Property="Width" Value="10" />

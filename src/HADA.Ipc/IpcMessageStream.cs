@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -8,10 +9,14 @@ namespace HADA.Ipc;
 /// Length-prefixed JSON framing: a 4-byte little-endian payload length followed by that many bytes of UTF-8 JSON.
 /// Writes are serialized, so several producers may share one stream; reads must come from a single reader.
 /// </summary>
+[SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The semaphore's wait handle is never used, so it holds nothing to release; the stream belongs to the caller.")]
 public sealed class IpcMessageStream(Stream stream)
 {
-    /// <summary>Version 2 added client roles and the control requests.</summary>
-    public const int ProtocolVersion = 2;
+    /// <summary>Version 2 added client roles and the control requests; version 3 binary sensors and custom sensors.</summary>
+    public const int ProtocolVersion = 3;
 
     /// <summary>Caps how much memory a misbehaving peer can make the other side allocate.</summary>
     public const int MaxMessageBytes = 256 * 1024;

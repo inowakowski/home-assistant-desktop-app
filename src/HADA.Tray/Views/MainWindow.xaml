@@ -11,6 +11,7 @@
     MinWidth="860"
     MinHeight="560"
     ExtendsContentIntoTitleBar="True"
+    Icon="pack://application:,,,/HADA.Tray;component/Assets/hada.ico"
     WindowBackdropType="Mica"
     WindowCornerPreference="Round"
     WindowStartupLocation="CenterScreen">
@@ -25,7 +26,7 @@
             Grid.Row="0"
             Title="{Binding WindowTitle}">
             <ui:TitleBar.Icon>
-                <ui:SymbolIcon Symbol="HomeCheckmark24" />
+                <ui:ImageIcon Source="pack://application:,,,/HADA.Tray;component/Assets/hada.ico" />
             </ui:TitleBar.Icon>
         </ui:TitleBar>
 
@@ -51,6 +52,11 @@
                 <ui:NavigationViewItem Content="{l:Tr Nav_Entities}" TargetPageType="{x:Type pages:EntitiesPage}">
                     <ui:NavigationViewItem.Icon>
                         <ui:SymbolIcon Symbol="AppsList24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="{l:Tr Nav_CustomSensors}" TargetPageType="{x:Type pages:CustomSensorsPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="AddCircle24" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>

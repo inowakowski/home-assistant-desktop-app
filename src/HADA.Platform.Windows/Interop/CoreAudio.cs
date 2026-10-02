@@ -8,11 +8,13 @@ namespace HADA.Platform.Windows.Interop;
 internal enum EDataFlow
 {
     Render = 0,
+    Capture = 1,
 }
 
 internal enum ERole
 {
     Multimedia = 1,
+    Communications = 2,
 }
 
 [ComImport]

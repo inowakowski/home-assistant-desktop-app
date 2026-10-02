@@ -189,9 +189,7 @@ public sealed class EntityRowViewModel(string id) : ObservableObject
         Symbol = EntityVisuals.SymbolFor(entity);
         IsEnabled = status.IsEnabled;
         Caption = $"{entity.Id} · {(status.IsEnabled ? EntityVisuals.KindText(entity) : Loc.Get("Entity_Disabled"))}";
-        ValueText = entity.Kind == EntityKind.Button || status.State is null
-            ? "—"
-            : entity.UnitOfMeasurement is { } unit ? $"{status.State} {unit}" : status.State;
+        ValueText = status.IsAvailable ? EntityVisuals.FormatState(entity, status.State) : Loc.Get("Entity_Unavailable");
         SourceText = EntityVisuals.FormatSource(status.Source);
         UpdatedText = status.UpdatedAt is { } updated ? updated.ToLocalTime().ToString("T", Loc.Culture) : "—";
     }

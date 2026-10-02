@@ -2,15 +2,26 @@
     x:Class="HADA.Tray.Views.Pages.ConnectionsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:HADA.Tray.Views.Controls"
     xmlns:l="clr-namespace:HADA.Tray.Localization"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="{l:Tr Nav_Connections}">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    Title="{l:Tr Nav_Connections}"
+    Style="{StaticResource HadaPage}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <controls:SaveBar Grid.Row="1" DataContext="{Binding Settings}" />
+        <ScrollViewer
+            Grid.Row="0"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="1000" Margin="28,8,28,28">
             <ui:TextBlock FontTypography="Title" Text="{l:Tr Connections_Title}" />
             <ui:TextBlock
                 Margin="0,4,0,16"
-                Appearance="Secondary"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{l:Tr Connections_Subtitle}"
                 TextWrapping="Wrap" />
 
@@ -35,7 +46,7 @@
                         VerticalAlignment="Center">
                         <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Settings_LockedTitle}" />
                         <ui:TextBlock
-                            Appearance="Secondary"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             Text="{l:Tr Settings_LockedMessage}"
                             TextWrapping="Wrap" />
                     </StackPanel>
@@ -53,13 +64,6 @@
             </ui:Card>
 
             <StackPanel DataContext="{Binding Settings}">
-                <ui:InfoBar
-                    Title="{Binding Feedback.Title}"
-                    Margin="0,0,0,12"
-                    IsOpen="{Binding Feedback.IsOpen, Mode=TwoWay}"
-                    Message="{Binding Feedback.Message}"
-                    Severity="{Binding Feedback.Severity}" />
-
                 <!--  MQTT  -->
                 <ui:Card Margin="0,0,0,12" Padding="20">
                     <StackPanel>
@@ -78,7 +82,7 @@
                                 VerticalAlignment="Center">
                                 <ui:TextBlock FontTypography="Subtitle" Text="MQTT" />
                                 <ui:TextBlock
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     Text="{l:Tr Mqtt_Description}"
                                     TextWrapping="Wrap" />
                             </StackPanel>
@@ -123,7 +127,7 @@
                             <StackPanel Grid.Row="0" Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_Host}" />
                                 <ui:TextBox PlaceholderText="homeassistant.local" Text="{Binding MqttHost, UpdateSourceTrigger=PropertyChanged}" />
@@ -140,7 +144,7 @@
                                 <StackPanel>
                                     <ui:TextBlock
                                         Margin="0,0,0,6"
-                                        Appearance="Secondary"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                         FontTypography="Caption"
                                         Text="{l:Tr Field_Port}" />
                                     <ui:NumberBox
@@ -153,7 +157,7 @@
                                 <StackPanel Grid.Column="1" Margin="20,0,0,0">
                                     <ui:TextBlock
                                         Margin="0,0,0,6"
-                                        Appearance="Secondary"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                         FontTypography="Caption"
                                         Text="{l:Tr Field_UseTls}" />
                                     <ui:ToggleSwitch
@@ -167,7 +171,7 @@
                             <StackPanel Grid.Row="1" Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_Username}" />
                                 <ui:TextBox Text="{Binding MqttUsername, UpdateSourceTrigger=PropertyChanged}" />
@@ -179,7 +183,7 @@
                                 Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_Password}" />
                                 <ui:PasswordBox Password="{Binding MqttPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding MqttPasswordPlaceholder}" />
@@ -193,7 +197,7 @@
                             <StackPanel Grid.Row="2" Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_DeviceId}" />
                                 <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding MqttDeviceId, UpdateSourceTrigger=PropertyChanged}" />
@@ -205,7 +209,7 @@
                                 Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_DeviceName}" />
                                 <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding MqttDeviceName, UpdateSourceTrigger=PropertyChanged}" />
@@ -224,7 +228,7 @@
                                     <StackPanel>
                                         <ui:TextBlock
                                             Margin="0,0,0,6"
-                                            Appearance="Secondary"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             FontTypography="Caption"
                                             Text="{l:Tr Field_DiscoveryPrefix}" />
                                         <ui:TextBox Text="{Binding MqttDiscoveryPrefix, UpdateSourceTrigger=PropertyChanged}" />
@@ -232,7 +236,7 @@
                                     <StackPanel Grid.Column="2">
                                         <ui:TextBlock
                                             Margin="0,0,0,6"
-                                            Appearance="Secondary"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             FontTypography="Caption"
                                             Text="{l:Tr Field_BaseTopic}" />
                                         <ui:TextBox Text="{Binding MqttBaseTopic, UpdateSourceTrigger=PropertyChanged}" />
@@ -261,7 +265,7 @@
                                 VerticalAlignment="Center">
                                 <ui:TextBlock FontTypography="Subtitle" Text="Home Assistant (WebSocket)" />
                                 <ui:TextBlock
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     Text="{l:Tr Ha_Description}"
                                     TextWrapping="Wrap" />
                             </StackPanel>
@@ -305,7 +309,7 @@
                             <StackPanel Grid.Row="0" Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_BaseUrl}" />
                                 <ui:TextBox PlaceholderText="http://homeassistant.local:8123" Text="{Binding HomeAssistantUrl, UpdateSourceTrigger=PropertyChanged}" />
@@ -317,7 +321,7 @@
                                 Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_AccessToken}" />
                                 <ui:PasswordBox Password="{Binding AccessToken, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding AccessTokenPlaceholder}" />
@@ -331,7 +335,7 @@
                             <StackPanel Grid.Row="1" Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_DeviceId}" />
                                 <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding HomeAssistantDeviceId, UpdateSourceTrigger=PropertyChanged}" />
@@ -343,7 +347,7 @@
                                 Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
-                                    Appearance="Secondary"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_DeviceName}" />
                                 <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding HomeAssistantDeviceName, UpdateSourceTrigger=PropertyChanged}" />
@@ -356,7 +360,7 @@
                                 <StackPanel Margin="0,12,0,0">
                                     <ui:TextBlock
                                         Margin="0,0,0,6"
-                                        Appearance="Secondary"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                         FontTypography="Caption"
                                         Text="{l:Tr Field_CommandEventType}" />
                                     <ui:TextBox Text="{Binding CommandEventType, UpdateSourceTrigger=PropertyChanged}" />
@@ -365,28 +369,8 @@
                         </Grid>
                     </StackPanel>
                 </ui:Card>
-
-                <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
-                    <ui:Button
-                        Appearance="Primary"
-                        Command="{Binding SaveCommand}"
-                        Content="{l:Tr Common_Save}">
-                        <ui:Button.Icon>
-                            <ui:SymbolIcon Symbol="Save24" />
-                        </ui:Button.Icon>
-                    </ui:Button>
-                    <ui:Button
-                        Margin="8,0,0,0"
-                        Command="{Binding RevertCommand}"
-                        Content="{l:Tr Common_Revert}" />
-                    <ui:TextBlock
-                        Margin="16,0,0,0"
-                        VerticalAlignment="Center"
-                        Appearance="Secondary"
-                        Text="{l:Tr Settings_Unsaved}"
-                        Visibility="{Binding IsDirty, Converter={StaticResource BooleanToVisibility}}" />
-                </StackPanel>
             </StackPanel>
         </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+    </Grid>
 </Page>

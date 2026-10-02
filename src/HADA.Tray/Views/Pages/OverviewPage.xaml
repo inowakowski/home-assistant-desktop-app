@@ -4,17 +4,22 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:l="clr-namespace:HADA.Tray.Localization"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="{l:Tr Nav_Overview}">
+    Title="{l:Tr Nav_Overview}"
+    Style="{StaticResource HadaPage}">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="28,8,16,28" DataContext="{Binding Overview}">
+        <StackPanel
+            MaxWidth="1000"
+            Margin="28,8,28,28"
+            DataContext="{Binding Overview}">
             <ui:TextBlock FontTypography="Title" Text="{l:Tr Overview_Title}" />
             <ui:TextBlock
                 Margin="0,4,0,20"
-                Appearance="Secondary"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{l:Tr Overview_Subtitle}"
                 TextWrapping="Wrap" />
 
-            <ItemsControl ItemsSource="{Binding Cards}">
+            <!--  The negative margin takes back the gap that the cards of the right column leave on their right.  -->
+            <ItemsControl Margin="0,0,-12,0" ItemsSource="{Binding Cards}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="2" />
@@ -22,7 +27,12 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ui:Card Margin="0,0,12,12" Padding="18">
+                        <!--  Stretched, so the cards of a row are equally tall whatever each one says.  -->
+                        <ui:Card
+                            Margin="0,0,12,12"
+                            Padding="18"
+                            VerticalAlignment="Stretch"
+                            VerticalContentAlignment="Top">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -39,7 +49,7 @@
                                     </StackPanel>
                                     <ui:TextBlock
                                         Margin="0,4,0,0"
-                                        Appearance="Secondary"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                         FontTypography="Caption"
                                         Text="{Binding Detail}"
                                         TextWrapping="Wrap" />
@@ -54,7 +64,7 @@
                 Margin="0,12,0,10"
                 FontTypography="Subtitle"
                 Text="{l:Tr Overview_Entities}" />
-            <ui:Card Margin="0,0,12,0" Padding="0">
+            <ui:Card Padding="0">
                 <StackPanel>
                     <Grid Margin="18,12">
                         <Grid.ColumnDefinitions>
@@ -64,22 +74,22 @@
                             <ColumnDefinition Width="110" />
                         </Grid.ColumnDefinitions>
                         <ui:TextBlock
-                            Appearance="Secondary"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             FontTypography="Caption"
                             Text="{l:Tr Column_Entity}" />
                         <ui:TextBlock
                             Grid.Column="1"
-                            Appearance="Secondary"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             FontTypography="Caption"
                             Text="{l:Tr Column_Value}" />
                         <ui:TextBlock
                             Grid.Column="2"
-                            Appearance="Secondary"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             FontTypography="Caption"
                             Text="{l:Tr Column_Source}" />
                         <ui:TextBlock
                             Grid.Column="3"
-                            Appearance="Secondary"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             FontTypography="Caption"
                             Text="{l:Tr Column_Updated}" />
                     </Grid>
@@ -102,7 +112,7 @@
                                             <StackPanel Margin="12,0,0,0">
                                                 <ui:TextBlock Text="{Binding Name}" />
                                                 <ui:TextBlock
-                                                    Appearance="Tertiary"
+                                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                     FontTypography="Caption"
                                                     Text="{Binding Caption}" />
                                             </StackPanel>
@@ -117,13 +127,13 @@
                                         <ui:TextBlock
                                             Grid.Column="2"
                                             VerticalAlignment="Center"
-                                            Appearance="Secondary"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             Text="{Binding SourceText}"
                                             TextTrimming="CharacterEllipsis" />
                                         <ui:TextBlock
                                             Grid.Column="3"
                                             VerticalAlignment="Center"
-                                            Appearance="Secondary"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             Text="{Binding UpdatedText}" />
                                     </Grid>
                                 </Border>
@@ -132,7 +142,7 @@
                     </ItemsControl>
                     <ui:TextBlock
                         Margin="18,4,18,16"
-                        Appearance="Secondary"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                         Text="{l:Tr Overview_NoEntities}"
                         Visibility="{Binding HasNoEntities, Converter={StaticResource BooleanToVisibility}}" />
                 </StackPanel>

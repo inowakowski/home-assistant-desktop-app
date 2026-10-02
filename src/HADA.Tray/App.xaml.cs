@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Threading;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Logging;
 using HADA.Core.Messaging;
 using HADA.Ipc;
 using HADA.Platform.Windows.Sensors;
@@ -12,6 +15,8 @@ using HADA.Tray.ViewModels;
 using HADA.Tray.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Wpf.Ui.Appearance;
 
 namespace HADA.Tray;
@@ -23,8 +28,12 @@ namespace HADA.Tray;
 /// <remarks>
 /// <c>--background</c> starts without opening the window (use it for sign-in startup).
 /// <c>--settings</c> opens only the window; it is used when relaunching elevated to edit settings.
-/// <c>--page overview|connections|entities|logs</c> chooses the page the window opens on.
+/// <c>--page overview|connections|entities|custom|logs</c> chooses the page the window opens on.
 /// </remarks>
+[SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "WPF owns the application object; everything is released in OnExit.")]
 public partial class App : Application
 {
     private const string BackgroundArgument = "--background";
@@ -35,20 +44,57 @@ public partial class App : Application
     private Mutex? _singleInstance;
     private EventWaitHandle? _showWindowSignal;
     private RegisteredWaitHandle? _showWindowRegistration;
+    private FileLoggerProvider? _fileLog;
+    private ILogger _logger = NullLogger.Instance;
     private IHost? _host;
     private TrayIcon? _trayIcon;
     private MainWindow? _mainWindow;
+    private bool _isShowingError;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        ApplyLanguage();
-        ApplicationThemeManager.ApplySystemTheme(true);
-        DispatcherUnhandledException += OnDispatcherUnhandledException;
 
+        // The elevated settings window runs next to the tray, so each writes its own file.
+        var isSettingsWindow = HasArgument(e, SettingsArgument);
+        _fileLog = new FileLoggerProvider(new FileLoggerOptions
+        {
+            FilePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "HADA",
+                "logs",
+                isSettingsWindow ? "settings-window.log" : "tray.log"),
+        });
+        _logger = _fileLog.CreateLogger(typeof(App).FullName!);
+
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => LogCrash(_logger, args.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            LogBackgroundFailure(_logger, args.Exception);
+            args.SetObserved();
+        };
+
+        try
+        {
+            ApplyLanguage();
+            ApplicationThemeManager.ApplySystemTheme(true);
+            await StartAsync(e, isSettingsWindow);
+        }
+        catch (Exception ex)
+        {
+            // Without this, a failed start would leave an invisible process behind: no icon, no window, no sensors.
+            LogStartFailed(_logger, ex);
+            System.Windows.MessageBox.Show(ex.Message, Loc.Get("Error_UnexpectedTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    private async Task StartAsync(StartupEventArgs e, bool isSettingsWindow)
+    {
         var initialPage = PageNames.Find(GetArgumentValue(e, PageArgument));
 
-        if (HasArgument(e, SettingsArgument))
+        if (isSettingsWindow)
         {
             // Elevated copy started from "Unlock editing": just the window, and exit when it closes.
             ShowMainWindow(exitOnClose: true, initialPage);
@@ -80,6 +126,12 @@ public partial class App : Application
             executeOnlyOnce: false);
 
         var builder = Host.CreateApplicationBuilder(e.Args);
+        builder.Logging.AddProvider(_fileLog!);
+
+        // A sensor that fails must not take the other sensors and the tray icon down with it.
+        builder.Services.Configure<HostOptions>(
+            options => options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
+
         builder.Services.AddSingleton<IEventBus, ChannelEventBus>();
         builder.Services.AddSingleton<IEntityRegistry, EntityRegistry>();
         builder.Services.Configure<IpcOptions>(options => options.ClientName = $"tray:{Environment.UserName}");
@@ -89,6 +141,9 @@ public partial class App : Application
         builder.Services.AddHostedService(services => services.GetRequiredService<IpcClient>());
         builder.Services.AddHostedService<ActiveWindowSensor>();
         builder.Services.AddHostedService<AudioVolumeSensor>();
+        builder.Services.AddHostedService<UserActivitySensor>();
+        builder.Services.AddHostedService<MediaCaptureSensor>();
+        builder.Services.AddHostedService<MicrophoneMuteSensor>();
         _host = builder.Build();
 
         // Started on the thread pool so hosted services never capture the dispatcher's synchronization context,
@@ -118,6 +173,7 @@ public partial class App : Application
         }
 
         _singleInstance?.Dispose();
+        _fileLog?.Dispose();
         base.OnExit(e);
     }
 
@@ -182,7 +238,36 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         // Keep the tray and its sensors alive; report the problem instead of crashing.
-        System.Windows.MessageBox.Show(e.Exception.Message, Loc.Get("Error_UnexpectedTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
+        LogUnhandled(_logger, e.Exception);
+
+        // One box at a time: a message box pumps messages, so a fault that repeats would otherwise stack boxes
+        // on top of each other until the process runs out of stack.
+        if (_isShowingError)
+        {
+            return;
+        }
+
+        _isShowingError = true;
+        try
+        {
+            System.Windows.MessageBox.Show(e.Exception.Message, Loc.Get("Error_UnexpectedTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _isShowingError = false;
+        }
     }
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "The tray app could not start.")]
+    private static partial void LogStartFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled error in the user interface.")]
+    private static partial void LogUnhandled(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "A background task failed without being observed.")]
+    private static partial void LogBackgroundFailure(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "The tray app is crashing.")]
+    private static partial void LogCrash(ILogger logger, Exception? exception);
 }

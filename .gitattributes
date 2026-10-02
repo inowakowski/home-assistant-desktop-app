@@ -11,6 +11,8 @@
 *.md      text
 *.yml     text
 *.yaml    text
+*.wxs     text
+*.wixproj text
 
 # Visual Studio can mis-parse solution files with LF endings.
 *.sln     text eol=crlf

@@ -92,7 +92,9 @@ public sealed class MqttEngineTests : IAsyncLifetime
             Assert.Equal("CPU load", root.GetProperty("name").GetString());
             Assert.Equal("hada_testpc_cpu_load", root.GetProperty("unique_id").GetString());
             Assert.Equal("hada/testpc/cpu_load/state", root.GetProperty("state_topic").GetString());
-            Assert.Equal("hada/testpc/availability", root.GetProperty("availability_topic").GetString());
+            Assert.Equal("hada/testpc/availability", root.GetProperty("availability")[0].GetProperty("topic").GetString());
+            Assert.Equal("hada/testpc/cpu_load/availability", root.GetProperty("availability")[1].GetProperty("topic").GetString());
+            Assert.Equal("all", root.GetProperty("availability_mode").GetString());
             Assert.Equal("%", root.GetProperty("unit_of_measurement").GetString());
             Assert.Equal("Test PC", root.GetProperty("device").GetProperty("name").GetString());
             Assert.Equal("hada_testpc", root.GetProperty("device").GetProperty("identifiers")[0].GetString());
@@ -131,6 +133,9 @@ public sealed class MqttEngineTests : IAsyncLifetime
         var attributes = await WaitForMessageAsync("hada/testpc/cpu_load/attributes");
         Assert.Equal("""{"cores":8}""", attributes.Payload);
         Assert.DoesNotContain(Snapshot(), m => m.Topic.Contains("unknown_sensor"));
+
+        // Retained, so Home Assistant still gets the value when it subscribes after processing the discovery config.
+        Assert.Equal("12.5", (await _broker.GetRetainedMessageAsync("hada/testpc/cpu_load/state"))?.ConvertPayloadToString());
     }
 
     [Fact]
@@ -153,6 +158,66 @@ public sealed class MqttEngineTests : IAsyncLifetime
         Assert.Equal("lock_screen", enumerator.Current.ActionId);
         Assert.Equal("mqtt", enumerator.Current.Origin);
         Assert.False(commands.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task Binary_sensors_are_discovered_as_binary_sensors_with_on_off_payloads()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        // Registered after connecting, like a tray sensor or a custom sensor added in the settings window.
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "display_on", Name = "Display", Kind = EntityKind.BinarySensor });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "display_on", State = BinaryState.On });
+
+        var discovery = await WaitForMessageAsync("homeassistant/binary_sensor/testpc/display_on/config");
+        using (var config = JsonDocument.Parse(discovery.Payload))
+        {
+            var root = config.RootElement;
+            Assert.Equal("hada/testpc/display_on/state", root.GetProperty("state_topic").GetString());
+            Assert.Equal("on", root.GetProperty("payload_on").GetString());
+            Assert.Equal("off", root.GetProperty("payload_off").GetString());
+        }
+
+        await WaitForMessageAsync("hada/testpc/display_on/state", "on");
+        Assert.False(JsonDocument.Parse((await WaitForMessageAsync("homeassistant/sensor/testpc/cpu_load/config")).Payload)
+            .RootElement.TryGetProperty("payload_on", out _));
+    }
+
+    [Fact]
+    public async Task An_entity_whose_source_is_away_is_reported_unavailable_until_it_returns()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitForMessageAsync("hada/testpc/cpu_load/availability", "online");
+
+        await _registry.SetAvailabilityAsync("cpu_load", isAvailable: false);
+        await WaitForMessageAsync("hada/testpc/cpu_load/availability", "offline");
+
+        // Retained, so it still holds after Home Assistant or this engine reconnects.
+        Assert.Equal("offline", (await _broker.GetRetainedMessageAsync("hada/testpc/cpu_load/availability"))?.ConvertPayloadToString());
+
+        await _registry.SetAvailabilityAsync("cpu_load", isAvailable: true);
+        await WaitUntilAsync(async () =>
+            (await _broker.GetRetainedMessageAsync("hada/testpc/cpu_load/availability"))?.ConvertPayloadToString() == "online");
+    }
+
+    [Fact]
+    public async Task Unregistered_entities_are_removed_from_home_assistant()
+    {
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitForMessageAsync("homeassistant/sensor/testpc/cpu_load/config");
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "12.5" });
+        await WaitForMessageAsync("hada/testpc/cpu_load/state", "12.5");
+
+        Assert.True(await _registry.UnregisterAsync("cpu_load"));
+
+        await WaitForMessageAsync("homeassistant/sensor/testpc/cpu_load/config", payload: string.Empty);
+        await WaitForMessageAsync("hada/testpc/cpu_load/state", payload: string.Empty);
+        Assert.Null(await _broker.GetRetainedMessageAsync("homeassistant/sensor/testpc/cpu_load/config"));
+        Assert.Null(await _broker.GetRetainedMessageAsync("hada/testpc/cpu_load/state"));
     }
 
     [Fact]
@@ -196,7 +261,7 @@ public sealed class MqttEngineTests : IAsyncLifetime
         await PublishAsync("hada/testpc/lock_screen/set", "PRESS");
         await Task.Delay(300);
 
-        Assert.DoesNotContain(Snapshot(), message => message.Topic == "hada/testpc/cpu_load/state");
+        Assert.DoesNotContain(Snapshot(), message => message.Topic == "hada/testpc/cpu_load/state" && message.Payload.Length > 0);
         Assert.DoesNotContain(Snapshot(), message =>
             message.Topic == "homeassistant/button/testpc/lock_screen/config" && message.Payload.Length > 0);
         Assert.False(commands.TryRead(out _));
@@ -266,6 +331,15 @@ public sealed class MqttEngineTests : IAsyncLifetime
             {
                 throw new TimeoutException($"No message on '{topic}' (payload '{payload ?? "*"}') within {Timeout}.");
             }
+        }
+    }
+
+    private static async Task WaitUntilAsync(Func<Task<bool>> condition)
+    {
+        using var timeout = new CancellationTokenSource(Timeout);
+        while (!await condition())
+        {
+            await Task.Delay(20, timeout.Token);
         }
     }
 

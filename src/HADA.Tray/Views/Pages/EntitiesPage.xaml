@@ -2,15 +2,26 @@
     x:Class="HADA.Tray.Views.Pages.EntitiesPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:HADA.Tray.Views.Controls"
     xmlns:l="clr-namespace:HADA.Tray.Localization"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="{l:Tr Nav_Entities}">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    Title="{l:Tr Nav_Entities}"
+    Style="{StaticResource HadaPage}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <controls:SaveBar Grid.Row="1" DataContext="{Binding Settings}" />
+        <ScrollViewer
+            Grid.Row="0"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
         <StackPanel MaxWidth="1000" Margin="28,8,28,28">
             <ui:TextBlock FontTypography="Title" Text="{l:Tr Entities_Title}" />
             <ui:TextBlock
                 Margin="0,4,0,16"
-                Appearance="Secondary"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{l:Tr Entities_Subtitle}"
                 TextWrapping="Wrap" />
 
@@ -35,7 +46,7 @@
                         VerticalAlignment="Center">
                         <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Settings_LockedTitle}" />
                         <ui:TextBlock
-                            Appearance="Secondary"
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             Text="{l:Tr Settings_LockedMessage}"
                             TextWrapping="Wrap" />
                     </StackPanel>
@@ -51,13 +62,6 @@
                     </ui:Button>
                 </Grid>
             </ui:Card>
-
-            <ui:InfoBar
-                Title="{Binding Settings.Feedback.Title}"
-                Margin="0,0,0,12"
-                IsOpen="{Binding Settings.Feedback.IsOpen, Mode=TwoWay}"
-                Message="{Binding Settings.Feedback.Message}"
-                Severity="{Binding Settings.Feedback.Severity}" />
 
             <ui:Card Padding="0">
                 <StackPanel>
@@ -83,12 +87,12 @@
                                             VerticalAlignment="Center">
                                             <ui:TextBlock FontTypography="BodyStrong" Text="{Binding Name}" />
                                             <ui:TextBlock
-                                                Appearance="Secondary"
+                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                 FontTypography="Caption"
                                                 Text="{Binding Caption}" />
                                             <ui:TextBlock
                                                 Margin="0,2,0,0"
-                                                Appearance="Tertiary"
+                                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                 FontTypography="Caption"
                                                 Text="{Binding Hint}"
                                                 TextWrapping="Wrap"
@@ -108,35 +112,12 @@
                     </ItemsControl>
                     <ui:TextBlock
                         Margin="18,16"
-                        Appearance="Secondary"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                         Text="{l:Tr Entities_Empty}"
                         Visibility="{Binding Entities.HasNoEntities, Converter={StaticResource BooleanToVisibility}}" />
                 </StackPanel>
             </ui:Card>
-
-            <StackPanel
-                Margin="0,16,0,0"
-                DataContext="{Binding Settings}"
-                Orientation="Horizontal">
-                <ui:Button
-                    Appearance="Primary"
-                    Command="{Binding SaveCommand}"
-                    Content="{l:Tr Common_Save}">
-                    <ui:Button.Icon>
-                        <ui:SymbolIcon Symbol="Save24" />
-                    </ui:Button.Icon>
-                </ui:Button>
-                <ui:Button
-                    Margin="8,0,0,0"
-                    Command="{Binding RevertCommand}"
-                    Content="{l:Tr Common_Revert}" />
-                <ui:TextBlock
-                    Margin="16,0,0,0"
-                    VerticalAlignment="Center"
-                    Appearance="Secondary"
-                    Text="{l:Tr Settings_Unsaved}"
-                    Visibility="{Binding IsDirty, Converter={StaticResource BooleanToVisibility}}" />
-            </StackPanel>
         </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+    </Grid>
 </Page>

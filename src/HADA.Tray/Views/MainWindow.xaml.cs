@@ -30,16 +30,26 @@ public partial class MainWindow : FluentWindow
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        // The watcher only reports changes made while a window is open, so catch up first: the system theme or
+        // accent colour may have changed since the tray started or the window was last closed.
+        ApplicationThemeManager.ApplySystemTheme(true);
         SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
         Navigation.Navigate(_initialPage, _viewModel);
         await _viewModel.StartAsync();
     }
 
-    private async void OnClosed(object? sender, EventArgs e)
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        SystemThemeWatcher.UnWatch(this);
-        await _viewModel.DisposeAsync();
+        base.OnClosing(e);
+
+        // Here and not in Closed: by then the window handle is gone, and UnWatch throws without one.
+        if (!e.Cancel)
+        {
+            SystemThemeWatcher.UnWatch(this);
+        }
     }
+
+    private async void OnClosed(object? sender, EventArgs e) => await _viewModel.DisposeAsync();
 
     /// <summary>Creates each page once, all sharing the window's view model, and reports which one is showing.</summary>
     private sealed class PageProvider(object dataContext, Action<Type> onShown) : INavigationViewPageProvider
@@ -69,6 +79,7 @@ internal static class PageNames
         ["overview"] = typeof(OverviewPage),
         ["connections"] = typeof(ConnectionsPage),
         ["entities"] = typeof(EntitiesPage),
+        ["custom"] = typeof(CustomSensorsPage),
         ["logs"] = typeof(LogsPage),
     };
 

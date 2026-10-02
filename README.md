@@ -5,20 +5,51 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 | Entity | Type | Provided by | Notes |
 |---|---|---|---|
 | `cpu_load` | sensor (%) | Service | System-wide CPU load, updated every 10 s |
+| `memory_usage` | sensor (%) | Service | Physical memory in use |
+| `display_on` | binary sensor | Service | On while the screen is on. `display_state` (`on`, `dimmed`, `off`) is an attribute. Reported the moment it changes |
+| `session_locked` | binary sensor | Service | On while Windows is locked or showing the sign-in screen |
+| `last_boot` | sensor (timestamp) | Service | When Windows was started |
+| `battery_level` | sensor (%) | Service | Only on computers with a battery |
+| `battery_charging` | binary sensor | Service | Only on computers with a battery |
+| `plugged_in` | binary sensor | Service | Only on computers with a battery |
+| `lid_open` | binary sensor | Service | Only on computers with a battery. Reported the moment it changes |
 | `lock_screen` | button | Service | Locks the interactive session |
 | `active_window` | sensor | Tray | Title of the focused window. The process name is an attribute |
 | `audio_volume` | sensor (%) | Tray | Default playback device volume. `muted` is an attribute |
+| `user_active` | binary sensor | Tray | On when the keyboard or mouse was used in the last 60 seconds |
+| `microphone_in_use` | binary sensor | Tray | On while an app uses the microphone. The apps are listed in the `apps` attribute |
+| `microphone_muted` | binary sensor | Tray | On while the default microphone is muted in Windows. `level` (input level, %) is an attribute. Muting only inside a call app is not seen |
+| `camera_in_use` | binary sensor | Tray | On while an app uses the camera. The apps are listed in the `apps` attribute |
 
-> **Privacy:** `active_window` sends window titles to Home Assistant. Titles can contain document names, e-mail subjects or web page titles. You can turn it off on the **Entities** page.
+Every entity can be turned off on the **Entities** page. You can add your own without code as [custom sensors](#custom-sensors), or [in code](#adding-entities-in-code).
+
+> **Privacy:** `active_window` sends window titles to Home Assistant. Titles can contain document names, e-mail subjects or web page titles. `microphone_in_use` and `camera_in_use` send the names of the apps using them.
+
+## Custom sensors
+
+On the **Custom sensors** page you define your own values to send to Home Assistant:
+
+| Type | Becomes | What you enter |
+|---|---|---|
+| **Fixed text** | sensor | A value that stays the same until you change it, e.g. the room the computer is in |
+| **Program is running** | binary sensor | A process name such as `chrome`. On while at least one such process runs; the count is in the `instances` attribute |
+| **PowerShell command** | sensor | A command; whatever it prints becomes the value. Example: `[math]::Round((Get-PSDrive C).Free / 1GB)` with the unit `GB` |
+
+- The **ID** is the entity ID. Leave it empty to derive it from the name (`Gra włączona` → `gra_wlaczona`).
+- Set a **unit** only for numbers. Home Assistant then treats the sensor as a measurement and draws a graph.
+- A program is looked for, and a command is run, every *n* seconds: at least 2, by default 30.
+- PowerShell commands are run by the service with Windows PowerShell 5.1, so as SYSTEM when installed. They cannot see your desktop or the files and settings of your user account. A command must finish within 30 seconds; if it fails or prints nothing, the sensor keeps its last value and the reason appears on the **Logs** page.
+- Removing a custom sensor also removes it from Home Assistant.
 
 ## Architecture
 
 ```
 ┌──────────── user session ────────────┐          ┌─────────────── session 0 ───────────────┐
 │ HADA.Tray (WPF, notification icon)   │  named   │ HADA.Service (Windows service, SYSTEM)  │
-│  • ActiveWindowSensor                │  pipe    │  • CpuLoadSensor, LockScreenAction      │
-│  • AudioVolumeSensor                 │ ───────► │  • IpcServer (sensors + control API)    │
-│  • IpcClient                         │          │  • EngineSupervisor                     │
+│  • Session sensors (window, volume,  │  pipe    │  • System sensors, custom sensors       │
+│    activity, microphone, camera)     │ ───────► │  • LockScreenAction                     │
+│  • IpcClient                         │          │  • IpcServer (sensors + control API)    │
+│                                      │          │  • EngineSupervisor                     │
 │  • Settings window                   │ ◄──────► │     • MqttEngine ──────► MQTT broker    │
 └──────────────────────────────────────┘          │     • HaWebSocketEngine ► Home Assistant│
                                                   └─────────────────────────────────────────┘
@@ -33,7 +64,7 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 
 | Project | Purpose |
 |---|---|
-| `HADA.Core` | Models, event bus, entity registry and filter, engine abstraction |
+| `HADA.Core` | Models, event bus, entity registry and filter, engine abstraction, file logging |
 | `HADA.Engine.Mqtt` | MQTT engine (MQTTnet) |
 | `HADA.Engine.WebSocket` | Home Assistant WebSocket + REST engine |
 | `HADA.Ipc` | Named pipe protocol: sensor stream and control API, server and clients |
@@ -41,6 +72,7 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 | `HADA.Service` | Worker service host, settings storage, engine supervisor |
 | `HADA.Tray` | Tray app host and settings window (WPF-UI, Polish and English) |
 | `HADA.Tests` | xUnit tests |
+| `installer` | WiX project that packs the published apps into an MSI. Built by `scripts\Publish-HADA.ps1`, not by the solution |
 
 ## Requirements
 
@@ -67,6 +99,7 @@ Open it by double-clicking the HADA tray icon, or choose **Open HADA** from its 
 | **Overview** | Whether the service is running, the state of both connections, whether the tray is connected, and every entity with its latest value |
 | **Connections** | MQTT and Home Assistant settings, each with a **Test connection** button |
 | **Entities** | A switch per entity to choose what is shared with Home Assistant. Disabled entities are removed from Home Assistant |
+| **Custom sensors** | Your own sensors: a fixed text, whether a program is running, or the output of a PowerShell command |
 | **Logs** | Recent service log entries, filterable by level, with copy to clipboard |
 
 **Changing settings requires administrator rights.** Anyone signed in can see status and logs, but the pages are read-only until you choose **Unlock editing**. That reopens the window as administrator (a UAC prompt). The service checks this itself, so a non-elevated client cannot save settings or run connection tests.
@@ -79,7 +112,7 @@ Settings saved in the window are stored in `%ProgramData%\HADA\settings.json`:
 
 - The folder is accessible only to SYSTEM, administrators and the account running the service.
 - Passwords and tokens in the file are additionally encrypted with Windows DPAPI.
-- Each section saved from the window (MQTT, Home Assistant, entities) replaces the same section of `appsettings.json`.
+- Each section saved from the window (MQTT, Home Assistant, entities, custom sensors) replaces the same section of `appsettings.json`.
 
 You can also configure the service without the window, through `appsettings.json` next to `HADA.Service.exe`:
 
@@ -103,13 +136,18 @@ You can also configure the service without the window, through `appsettings.json
   },
   "Entities": {
     "Disabled": [ "active_window" ]
+  },
+  "CustomSensors": {
+    "Items": [
+      { "Name": "Game running", "Type": "ProcessRunning", "Value": "game", "IntervalSeconds": 5 }
+    ]
   }
 }
 ```
 
 | Setting | Default | Description |
 |---|---|---|
-| `Mqtt:Host` | *(empty = MQTT engine off)* | Broker host name or IP |
+| `Mqtt:Host` | *(empty = MQTT engine off)* | Broker host name or IP. The window also accepts pasted addresses such as `mqtt://broker:1883` and splits them into host, port and TLS |
 | `Mqtt:Port` | `1883` | Usually `8883` with TLS |
 | `Mqtt:UseTls` | `false` | Use TLS for the broker connection |
 | `Mqtt:Username` / `Mqtt:Password` | – | Broker credentials. See [Secrets](#secrets) |
@@ -121,6 +159,7 @@ You can also configure the service without the window, through `appsettings.json
 | `*:DeviceId` | machine name | Used in topics and entity IDs. Lowercased, and anything other than letters and digits becomes `_` (`DESKTOP-01` → `desktop_01`) |
 | `*:DeviceName` | machine name | Device and friendly-name prefix shown in Home Assistant |
 | `Entities:Disabled` | *(none)* | Entity IDs not shared with Home Assistant |
+| `CustomSensors:Items` | *(none)* | [Custom sensors](#custom-sensors): `Name`, `Type` (`Text`, `ProcessRunning` or `PowerShell`), `Value`, and optionally `Id`, `Unit` and `IntervalSeconds` |
 
 > Configure **one** engine. With both configured, every sensor appears in Home Assistant twice.
 
@@ -169,14 +208,39 @@ Tray command-line options:
 | Option | Effect |
 |---|---|
 | `--background` | Start without opening the window, e.g. at sign-in |
-| `--page overview\|connections\|entities\|logs` | Open the window on a specific page |
+| `--page overview\|connections\|entities\|custom\|logs` | Open the window on a specific page |
 | `--settings` | Open only the window, without tray icon or sensors. Used when relaunching as administrator |
 
 ## Installing
 
+### With the installer
+
+Build the installers:
+
+```powershell
+.\scripts\Publish-HADA.ps1
+```
+
+This creates `artifacts\installer\HADA-<version>-x64.msi` and `HADA-<version>-arm64.msi`; either computer can build both. They are self-contained, so the target computer needs no .NET. The GitHub workflow in `.github/workflows/build.yml` builds the same two files and attaches them to each run.
+
+Double-click the installer that matches the computer and follow the three pages. It:
+
+- copies HADA to `C:\Program Files\HADA`
+- registers the `HADA` service (LocalSystem, starts with Windows, restarts a minute after a crash) and starts it
+- starts the tray app at sign-in for every user, and adds **HADA** to the Start menu
+- offers to open the HADA window on the last page, where you choose **Unlock editing** and set up a connection
+
+To update, run a newer installer; it replaces the old version and keeps the settings. To remove HADA, use **Settings → Apps → Installed apps**. Settings and logs in `%ProgramData%\HADA` are left in place; delete that folder to forget them.
+
+For unattended installation: `msiexec /i HADA-<version>-x64.msi /qn`. The tray app then starts at the next sign-in.
+
+> The installers are not code-signed, so Windows SmartScreen may warn before running them. Choose **More info → Run anyway**, or sign them with your own certificate.
+
+### By hand
+
 Steps 1 and 2 write to `C:\Program Files` and register a service, so run them in an **elevated** PowerShell.
 
-### 1. Publish
+#### 1. Publish
 
 Use `win-x64` or `win-arm64` to match the machine:
 
@@ -185,7 +249,7 @@ dotnet publish src/HADA.Service -c Release -r win-x64 --self-contained -o "C:\Pr
 dotnet publish src/HADA.Tray -c Release -r win-x64 --self-contained -o "C:\Program Files\HADA\tray"
 ```
 
-### 2. Register the service (elevated PowerShell)
+#### 2. Register the service (elevated PowerShell)
 
 ```powershell
 sc.exe create HADA binPath= "C:\Program Files\HADA\service\HADA.Service.exe" start= delayed-auto DisplayName= "Home Assistant Desktop App"
@@ -193,7 +257,7 @@ sc.exe failure HADA reset= 86400 actions= restart/60000/restart/60000/restart/60
 sc.exe start HADA
 ```
 
-The service runs as LocalSystem. It writes warnings and errors to the Windows Event Log (Application log, source `HADA.Service`); recent entries of every level are also on the window's **Logs** page.
+The service runs as LocalSystem. See [Logs](#logs) for where it reports problems.
 
 To remove it:
 
@@ -202,7 +266,7 @@ sc.exe stop HADA
 sc.exe delete HADA
 ```
 
-### 3. Start the tray at sign-in
+#### 3. Start the tray at sign-in
 
 ```powershell
 New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "HADA.Tray" -Value '"C:\Program Files\HADA\tray\HADA.Tray.exe" --background' -PropertyType String -Force
@@ -210,27 +274,42 @@ New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Na
 
 Only one tray instance runs per user session. Then open the window from the tray icon and configure a connection.
 
+## Logs
+
+| Where | What |
+|---|---|
+| **Logs** page of the window | Recent service entries of every level, since the service started |
+| `%ProgramData%\HADA\logs\service.log` | The service's entries from Information up. Readable by administrators |
+| `%LocalAppData%\HADA\logs\tray.log` | The tray app's entries, including errors it otherwise only shows in a message box |
+| `%LocalAppData%\HADA\logs\settings-window.log` | The same for the window opened with **Unlock editing** |
+| Windows Event Log, Application, source `HADA.Service` | The service's warnings and errors |
+
+Each file is limited to 2 MB; the three previous files are kept as `service.1.log` and so on.
+
+A sensor that fails is logged and stops, without taking the service or the other sensors with it.
+
 ## Using it in Home Assistant
 
 ### MQTT engine
 
 Entities show up automatically under **Settings → Devices & services → MQTT** as a device named after the PC. The lock screen button can be pressed from the dashboard or used in automations like any other `button` entity.
 
-If the service stops or loses its connection, all of the device's entities turn *unavailable*.
+If the service stops or loses its connection, all of the device's entities turn *unavailable*. The tray app's sensors also turn *unavailable* while the tray app is not running, for example when nobody is signed in, so an automation never acts on a value from an hour ago.
 
 Topics, with `{device}` being `DeviceId`:
 
 | Topic | Content |
 |---|---|
-| `homeassistant/{sensor\|button}/{device}/{entity}/config` | Discovery config (retained; emptied when the entity is disabled) |
+| `homeassistant/{sensor\|binary_sensor\|button}/{device}/{entity}/config` | Discovery config (retained; emptied when the entity is disabled or removed) |
 | `hada/{device}/availability` | `online` / `offline` (retained, last will) |
-| `hada/{device}/{entity}/state` | Sensor state |
-| `hada/{device}/{entity}/attributes` | Sensor attributes as JSON |
+| `hada/{device}/{entity}/availability` | `online` / `offline` (retained). `offline` while the entity's source is away, e.g. the tray app's sensors after sign-out |
+| `hada/{device}/{entity}/state` | Sensor state (retained). Binary sensors report `on` / `off` |
+| `hada/{device}/{entity}/attributes` | Sensor attributes as JSON (retained) |
 | `hada/{device}/{entity}/set` | Button command, payload `PRESS` |
 
 ### WebSocket engine
 
-Sensors appear as `sensor.{device}_{entity}`, e.g. `sensor.desktop_01_cpu_load`. Commands are sent by firing the command event, for example from a script:
+Sensors appear as `sensor.{device}_{entity}`, e.g. `sensor.desktop_01_cpu_load`, and binary sensors as `binary_sensor.{device}_{entity}`. Commands are sent by firing the command event, for example from a script:
 
 ```yaml
 action: event
@@ -249,15 +328,123 @@ event_data:
 - On a graceful stop, sensors are set to `unavailable`. After a crash or power loss, the last states remain.
 - If Home Assistant rejects the token, the engine stops retrying until its settings change or the service restarts, so repeated failed logins don't get the PC's IP banned.
 
+## Adding entities in code
+
+For a value a PowerShell command can print, a [custom sensor](#custom-sensors) is enough and needs no build. Write code when the value needs a Windows API, has to be reported the moment it changes, or should ship with HADA.
+
+### A sensor
+
+**1. Decide where it runs.**
+
+| Runs in | Choose it when | Registered in |
+|---|---|---|
+| Service | The value is the same for the whole computer and should be reported with nobody signed in: hardware, power, disks, network | `src/HADA.Service/Program.cs` |
+| Tray | The value belongs to the signed-in user's desktop: windows, audio devices, keyboard and mouse, per-user registry | `src/HADA.Tray/App.xaml.cs` |
+
+A tray sensor turns *unavailable* in Home Assistant while the tray app is not running. The tray may register sensors and binary sensors only.
+
+**2. Add a class** to `src/HADA.Platform.Windows/Sensors`. A sensor is a `BackgroundService` that registers its entity once and then publishes readings:
+
+```csharp
+using System.Globalization;
+using HADA.Core.Abstractions;
+using HADA.Core.Entities;
+using HADA.Core.Messaging;
+using Microsoft.Extensions.Hosting;
+
+namespace HADA.Platform.Windows.Sensors;
+
+/// <summary>Publishes the free space on the system drive.</summary>
+public sealed class DiskFreeSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+{
+    public const string EntityId = "disk_free";
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await registry.RegisterAsync(
+            new EntityDescriptor
+            {
+                Id = EntityId,
+                Name = "Free disk space",
+                Kind = EntityKind.Sensor,
+                Icon = "mdi:harddisk",
+                UnitOfMeasurement = "GB",
+                StateClass = "measurement",
+            },
+            stoppingToken);
+
+        var publisher = new ChangeOnlyPublisher(bus);
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        do
+        {
+            var freeGigabytes = new DriveInfo("C").AvailableFreeSpace / 1_000_000_000;
+            await publisher.PublishAsync(
+                EntityId, freeGigabytes.ToString(CultureInfo.InvariantCulture), cancellationToken: stoppingToken);
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+}
+```
+
+- `Id` is the entity ID: lowercase letters, digits and underscores, unique on this computer.
+- `Kind` is `Sensor` for text and numbers or `BinarySensor` for on/off; a binary sensor publishes `BinaryState.On` or `BinaryState.Off` (`BinaryState.From(bool)`).
+- `UnitOfMeasurement`, `StateClass` and `DeviceClass` are passed to Home Assistant as they are. Set a unit only for numbers, and format numbers with `CultureInfo.InvariantCulture`.
+- `ChangeOnlyPublisher` sends a reading only when the state or the attributes changed, so polling every second costs nothing in Home Assistant. Pass attributes as its third argument.
+- States are text of at most 255 characters.
+- A sensor never touches MQTT or the WebSocket API. It publishes to the event bus, and whichever engine is configured delivers the reading.
+
+**3. Register it** next to the other sensors, in the file from step 1:
+
+```csharp
+builder.Services.AddHostedService<DiskFreeSensor>();
+```
+
+In the service, keep it above `CustomSensorHost`.
+
+**4. Reserve the ID.** Add `DiskFreeSensor.EntityId` to `BuiltInIds` in `src/HADA.Service/CustomSensors/CustomSensorRules.cs`, so that a custom sensor cannot take the same ID.
+
+**5. Optional polish** for the settings window, in `src/HADA.Tray`:
+
+- an icon: a line in `EntityVisuals.SymbolFor` in `ViewModels/Support.cs`
+- a hint under the entity's name: `EntityHint_disk_free` in both `Localization/Strings.resx` and `Localization/Strings.pl.resx`
+
+**6. Try it.** Run `dotnet test`, then start the service and the tray as described under [Running during development](#running-during-development). The entity appears on the **Overview** page with its value, and in Home Assistant under the device.
+
+Existing sensors to copy from: `MemoryUsageSensor` (polling, the shortest), `BatterySensor` (several entities from one reading, registered only when the hardware is there), `PowerStateSensor` (reports changes from a Windows notification instead of polling), `MicrophoneMuteSensor` (a tray sensor with an attribute).
+
+### A button
+
+A button is something Home Assistant can press, such as `lock_screen`. Buttons run in the service only. Register an entity with `Kind = EntityKind.Button`, and react to the commands the engines publish:
+
+```csharp
+// Subscribe before registering, so a press arriving right after discovery is not missed.
+await using var commands = bus.Subscribe<ActionCommand>();
+await registry.RegisterAsync(new EntityDescriptor { Id = EntityId, Name = "Sleep", Kind = EntityKind.Button }, stoppingToken);
+
+await foreach (var command in commands.ReadAllAsync(stoppingToken))
+{
+    if (command.ActionId == EntityId)
+    {
+        // Do it.
+    }
+}
+```
+
+`src/HADA.Platform.Windows/Actions/LockScreenAction.cs` is the complete example. Anyone who can press the button in Home Assistant can trigger the action, so think about what it lets them do to the computer.
+
 ## Security notes
 
 - **Pipe access:** `HADA.Session` accepts only local interactive users and denies network access. Only SYSTEM, administrators or the service account can create it. Clients refuse to talk to a pipe with any other owner, and connect at identification level, so the service can check who they are but cannot act as them.
 - **What the tray may send:** the service accepts only sensors from the tray. The tray can't replace entities the service registered, and can't report values for them.
 - **Control API:** any local interactive user can read status, non-secret settings and logs. Saving settings and testing connections require an elevated administrator, because a connection test may send a saved password to the address being tested.
 - **Commands:** anyone in Home Assistant who can press the button, publish to the command topic or fire the command event can lock the PC.
+- **Custom PowerShell sensors:** their commands run with the service's rights, which is SYSTEM when installed. Only an elevated administrator can define them, in the window or in `appsettings.json`, and an administrator can already run anything as SYSTEM, so this grants nothing new. Still, treat `%ProgramData%\HADA\settings.json` and `appsettings.json` as files that can run code.
 
 ## Known limitations
 
 - **Lock screen from the service:** as a service in session 0, the lock action disconnects the active console session, which returns Windows to the lock screen. This hasn't been verified on every Windows edition. Run from a user session, it uses `LockWorkStation`.
 - **Several users signed in:** with fast user switching, every signed-in user's tray reports under the same entity IDs.
-- **Tray exits:** when the tray exits, its sensors keep their last value until it reconnects.
+- **Tray sensors after a crash of the service:** when the tray exits, its sensors turn unavailable. If the service itself is killed while the tray is connected, e.g. by a power cut, and Windows then starts without anyone signing in, they show their last value until the tray connects again.
+- **Screen off on Modern Standby devices:** many laptops, most ARM64 ones included, go to sleep within seconds of the screen turning off and drop the network. `display_on` is sent as `off` first, but if the connection is already gone, Home Assistant shows the device as unavailable instead.
+- **Microphone and camera:** detection reads the usage history Windows keeps for its privacy settings. Apps that bypass it are not seen, and an app that crashed while using the device may be reported as still using it until Windows restarts.
+- **Lists in `appsettings.json`:** a list saved from the window (disabled entities, custom sensors) overrides the file's list entry by entry, so entries beyond the saved list's length still apply. Keep such lists in one place.

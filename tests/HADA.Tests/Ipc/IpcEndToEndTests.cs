@@ -73,6 +73,24 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Entities_of_a_tray_that_went_away_become_unavailable_until_it_reconnects()
+    {
+        var (serviceBus, serviceRegistry) = CreateServiceSide();
+        await StartServerAsync(serviceBus, serviceRegistry);
+        var client = await StartClientAsync();
+        await _trayRegistry.RegisterAsync(Sensor("user_active"));
+        await WaitUntilAsync(() => serviceRegistry.TryGet("user_active", out _));
+        Assert.True(serviceRegistry.IsAvailable("user_active"));
+
+        // The tray exits, e.g. because the user signed out.
+        await client.StopAsync(CancellationToken.None);
+        await WaitUntilAsync(() => !serviceRegistry.IsAvailable("user_active"));
+
+        await StartClientAsync();
+        await WaitUntilAsync(() => serviceRegistry.IsAvailable("user_active"));
+    }
+
+    [Fact]
     public async Task Client_replays_entities_and_latest_reading_after_service_restart()
     {
         var (firstBus, firstRegistry) = CreateServiceSide();

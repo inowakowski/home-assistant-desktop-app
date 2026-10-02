@@ -1,9 +1,3 @@
-<!--
-    WPF-UI's NavigationView can host a page inside its own scroll viewer, which gives the log list unlimited height:
-    the list stops virtualizing and the whole page, header included, scrolls instead. Sizing the page to that scroll
-    viewer's viewport keeps the header in place and lets the list scroll by itself. When there is no such scroll
-    viewer the binding finds nothing and the page simply fills the frame.
--->
 <Page
     x:Class="HADA.Tray.Views.Pages.LogsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -11,7 +5,7 @@
     xmlns:l="clr-namespace:HADA.Tray.Localization"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     Title="{l:Tr Nav_Logs}"
-    Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+    Style="{StaticResource HadaPage}">
     <Grid Margin="28,8,28,28">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -23,7 +17,7 @@
             <ui:TextBlock FontTypography="Title" Text="{l:Tr Logs_Title}" />
             <ui:TextBlock
                 Margin="0,4,0,16"
-                Appearance="Secondary"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{l:Tr Logs_Subtitle}"
                 TextWrapping="Wrap" />
         </StackPanel>
@@ -41,7 +35,7 @@
             </Grid.ColumnDefinitions>
             <ui:TextBlock
                 VerticalAlignment="Center"
-                Appearance="Secondary"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="{l:Tr Logs_Level}" />
             <ComboBox
                 Grid.Column="1"
@@ -111,8 +105,11 @@
                                     <ColumnDefinition Width="160" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
+                                <!--  Smaller than the message: monospaced digits look heavier than the text font at the same size.  -->
                                 <TextBlock
+                                    Margin="0,2,0,0"
                                     FontFamily="Cascadia Mono, Consolas, Courier New"
+                                    FontSize="12"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     Text="{Binding Time}" />
                                 <Border
@@ -153,7 +150,7 @@
                 </ItemsControl>
                 <ui:TextBlock
                     Margin="18,16"
-                    Appearance="Secondary"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                     Text="{l:Tr Logs_Empty}"
                     Visibility="{Binding HasNoEntries, Converter={StaticResource BooleanToVisibility}}" />
             </Grid>

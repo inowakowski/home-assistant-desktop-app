@@ -5,6 +5,7 @@ using HADA.Core.Models;
 using HADA.Engine.Mqtt;
 using HADA.Engine.WebSocket;
 using HADA.Ipc;
+using HADA.Service.CustomSensors;
 using HADA.Service.Logging;
 using HADA.Service.Settings;
 using Microsoft.Extensions.Options;
@@ -21,6 +22,7 @@ public sealed partial class ServiceControl(
     IOptionsMonitor<MqttOptions> mqttOptions,
     IOptionsMonitor<HaWebSocketOptions> homeAssistantOptions,
     IOptionsMonitor<EntityOptions> entityOptions,
+    IOptionsMonitor<CustomSensorOptions> customSensorOptions,
     LogBuffer logs,
     ILogger<ServiceControl> logger) : IServiceControl
 {
@@ -37,12 +39,15 @@ public sealed partial class ServiceControl(
     public Task<ServiceStatus> GetStatusAsync(CancellationToken cancellationToken)
     {
         var disabled = entityOptions.CurrentValue.Disabled.ToHashSet(StringComparer.Ordinal);
+        var custom = CurrentCustomSensors().Select(sensor => sensor.Id).ToHashSet(StringComparer.Ordinal);
         var entities = registry.Entities
             .OrderBy(entity => entity.Name, StringComparer.CurrentCultureIgnoreCase)
             .Select(entity =>
             {
                 telemetry.TryGet(entity.Id, out var reading);
-                return new EntityStatus(entity, !disabled.Contains(entity.Id), reading?.Source ?? "service", reading?.State, reading?.Timestamp);
+                var source = custom.Contains(entity.Id) ? CustomSensorHost.Source : reading?.Source ?? "service";
+                return new EntityStatus(
+                    entity, !disabled.Contains(entity.Id), source, reading?.State, reading?.Timestamp, registry.IsAvailable(entity.Id));
             })
             .ToArray();
 
@@ -71,7 +76,8 @@ public sealed partial class ServiceControl(
                 homeAssistant.DeviceName ?? string.Empty,
                 homeAssistant.CommandEventType),
             !string.IsNullOrEmpty(homeAssistant.AccessToken),
-            [.. entityOptions.CurrentValue.Disabled]));
+            [.. entityOptions.CurrentValue.Disabled],
+            CurrentCustomSensors()));
     }
 
     public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
@@ -88,6 +94,7 @@ public sealed partial class ServiceControl(
             HomeAssistant = Normalize(settings.HomeAssistant),
             AccessToken = ProtectOrNull(ResolveSecret(settings.AccessToken, homeAssistantOptions.CurrentValue.AccessToken)),
             DisabledEntities = [.. settings.DisabledEntities.Distinct(StringComparer.Ordinal)],
+            CustomSensors = [.. settings.CustomSensors.Select(sensor => sensor.Normalize())],
         };
 
         try
@@ -109,7 +116,7 @@ public sealed partial class ServiceControl(
     public async Task<OperationResult> TestConnectionAsync(
         ConnectionTarget target, SettingsUpdate settings, CancellationToken cancellationToken)
     {
-        if (Validate(settings) is { } error)
+        if (Validate(settings, target) is { } error)
         {
             return new OperationResult(false, error);
         }
@@ -133,22 +140,47 @@ public sealed partial class ServiceControl(
         logs.GetAfter(afterSequence, Math.Clamp(maxCount, 1, MaxLogEntriesPerRequest));
 
     /// <summary>Server-side checks; the window validates too, but must not be trusted to.</summary>
-    public static string? Validate(SettingsUpdate settings)
+    /// <param name="target">
+    /// The connection being tested, so a test is not refused over settings it does not use;
+    /// <see langword="null"/> to check everything before saving.
+    /// </param>
+    public static string? Validate(SettingsUpdate settings, ConnectionTarget? target = null)
     {
-        var mqtt = settings.Mqtt;
-        var homeAssistant = settings.HomeAssistant;
+        if (target is null or ConnectionTarget.Mqtt && ValidateMqtt(settings) is { } mqttError)
+        {
+            return mqttError;
+        }
 
-        string?[] texts =
-        [
-            mqtt.Host, mqtt.Username, mqtt.DeviceId, mqtt.DeviceName, mqtt.DiscoveryPrefix, mqtt.BaseTopic,
-            homeAssistant.BaseUrl, homeAssistant.DeviceId, homeAssistant.DeviceName, homeAssistant.CommandEventType,
-        ];
+        if (target is null or ConnectionTarget.HomeAssistant && ValidateHomeAssistant(settings) is { } homeAssistantError)
+        {
+            return homeAssistantError;
+        }
+
+        if (target is not null)
+        {
+            return null;
+        }
+
+        if (settings.DisabledEntities.Count > MaxDisabledEntities)
+        {
+            return "Too many disabled entities.";
+        }
+
+        return CustomSensorRules.Validate([.. settings.CustomSensors.Select(sensor => sensor.Normalize())]);
+    }
+
+    private static string? ValidateMqtt(SettingsUpdate settings)
+    {
+        // Checked as it will be used: a pasted "mqtt://broker:1883" is split into host and port first.
+        var mqtt = MqttAddress.Apply(settings.Mqtt);
+
+        string?[] texts = [settings.Mqtt.Host, mqtt.Username, mqtt.DeviceId, mqtt.DeviceName, mqtt.DiscoveryPrefix, mqtt.BaseTopic];
         if (texts.Any(text => text is null || text.Length > MaxTextLength))
         {
             return $"Text settings must be at most {MaxTextLength} characters long.";
         }
 
-        if ((settings.MqttPassword.Value?.Length ?? 0) > MaxSecretLength || (settings.AccessToken.Value?.Length ?? 0) > MaxSecretLength)
+        if ((settings.MqttPassword.Value?.Length ?? 0) > MaxSecretLength)
         {
             return $"Secrets must be at most {MaxSecretLength} characters long.";
         }
@@ -158,14 +190,29 @@ public sealed partial class ServiceControl(
             return "The MQTT port must be between 1 and 65535.";
         }
 
-        if (mqtt.Host.Trim() is { Length: > 0 } host && Uri.CheckHostName(host) == UriHostNameType.Unknown)
+        if (mqtt.Host.Length > 0 && Uri.CheckHostName(mqtt.Host) == UriHostNameType.Unknown)
         {
-            return $"'{host}' is not a valid host name or IP address.";
+            return $"'{mqtt.Host}' is not a valid host name or IP address.";
         }
 
-        if (!IsTopicPrefix(mqtt.DiscoveryPrefix) || !IsTopicPrefix(mqtt.BaseTopic))
+        return IsTopicPrefix(mqtt.DiscoveryPrefix) && IsTopicPrefix(mqtt.BaseTopic)
+            ? null
+            : "MQTT topic prefixes must not be empty or contain spaces, '+' or '#'.";
+    }
+
+    private static string? ValidateHomeAssistant(SettingsUpdate settings)
+    {
+        var homeAssistant = settings.HomeAssistant;
+
+        string?[] texts = [homeAssistant.BaseUrl, homeAssistant.DeviceId, homeAssistant.DeviceName, homeAssistant.CommandEventType];
+        if (texts.Any(text => text is null || text.Length > MaxTextLength))
         {
-            return "MQTT topic prefixes must not be empty or contain spaces, '+' or '#'.";
+            return $"Text settings must be at most {MaxTextLength} characters long.";
+        }
+
+        if ((settings.AccessToken.Value?.Length ?? 0) > MaxSecretLength)
+        {
+            return $"Secrets must be at most {MaxSecretLength} characters long.";
         }
 
         if (homeAssistant.BaseUrl.Trim() is { Length: > 0 } baseUrl
@@ -174,20 +221,19 @@ public sealed partial class ServiceControl(
             return "The Home Assistant URL must be an absolute http:// or https:// address.";
         }
 
-        if (string.IsNullOrWhiteSpace(homeAssistant.CommandEventType) || homeAssistant.CommandEventType.Trim().Any(char.IsWhiteSpace))
-        {
-            return "The command event type must not be empty or contain spaces.";
-        }
-
-        return settings.DisabledEntities.Count > MaxDisabledEntities ? "Too many disabled entities." : null;
+        return string.IsNullOrWhiteSpace(homeAssistant.CommandEventType) || homeAssistant.CommandEventType.Trim().Any(char.IsWhiteSpace)
+            ? "The command event type must not be empty or contain spaces."
+            : null;
     }
+
+    private CustomSensorDefinition[] CurrentCustomSensors() =>
+        [.. customSensorOptions.CurrentValue.Items.Select(sensor => sensor.Normalize())];
 
     private static bool IsTopicPrefix(string value) =>
         value.Trim().Trim('/').Length > 0 && !value.Trim().Any(c => char.IsWhiteSpace(c) || c is '+' or '#');
 
-    private static MqttSettings Normalize(MqttSettings settings) => settings with
+    private static MqttSettings Normalize(MqttSettings settings) => MqttAddress.Apply(settings) with
     {
-        Host = settings.Host.Trim(),
         Username = settings.Username.Trim(),
         DeviceId = settings.DeviceId.Trim(),
         DeviceName = settings.DeviceName.Trim(),

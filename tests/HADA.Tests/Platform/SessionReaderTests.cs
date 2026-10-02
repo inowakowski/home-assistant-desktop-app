@@ -31,4 +31,15 @@ public class SessionReaderTests
             Assert.Equal(first, second);
         }
     }
+
+    [Fact]
+    public void Default_microphone_reads_level_in_range_or_reports_no_device()
+    {
+        using var endpoint = new DefaultAudioEndpoint(AudioDevice.Microphone);
+
+        if (endpoint.TryRead() is { } microphone)
+        {
+            Assert.InRange(microphone.VolumePercent, 0, 100);
+        }
+    }
 }

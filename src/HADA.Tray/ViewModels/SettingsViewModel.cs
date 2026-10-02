@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using HADA.Ipc;
@@ -21,6 +22,7 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly RelayCommand _revertCommand;
     private readonly AsyncCommand _testMqttCommand;
     private readonly AsyncCommand _testHomeAssistantCommand;
+    private readonly RelayCommand _addCustomSensorCommand;
 
     private SettingsSnapshot? _snapshot;
     private bool _isApplying;
@@ -54,6 +56,9 @@ public sealed class SettingsViewModel : ObservableObject
         _revertCommand = new RelayCommand(Revert, () => IsDirty && !IsBusy);
         _testMqttCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.Mqtt), () => CanEdit && !IsBusy);
         _testHomeAssistantCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.HomeAssistant), () => CanEdit && !IsBusy);
+        _addCustomSensorCommand = new RelayCommand(
+            () => AddCustomSensor(new CustomSensorDefinition()),
+            () => CanEdit && !IsBusy);
     }
 
     public event EventHandler? DisabledEntitiesChanged;
@@ -157,6 +162,12 @@ public sealed class SettingsViewModel : ObservableObject
     public ICommand TestMqttCommand => _testMqttCommand;
 
     public ICommand TestHomeAssistantCommand => _testHomeAssistantCommand;
+
+    public ICommand AddCustomSensorCommand => _addCustomSensorCommand;
+
+    public ObservableCollection<CustomSensorViewModel> CustomSensors { get; } = [];
+
+    public bool HasNoCustomSensors => CustomSensors.Count == 0;
 
     public bool IsEntityDisabled(string entityId) => _disabledEntities.Contains(entityId);
 
@@ -278,6 +289,11 @@ public sealed class SettingsViewModel : ObservableObject
             CommandEventType = snapshot.HomeAssistant.CommandEventType;
             _disabledEntities.Clear();
             _disabledEntities.UnionWith(snapshot.DisabledEntities);
+            CustomSensors.Clear();
+            foreach (var sensor in snapshot.CustomSensors)
+            {
+                AddCustomSensor(sensor);
+            }
         }
         finally
         {
@@ -290,21 +306,23 @@ public sealed class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(HasAccessToken));
         OnPropertyChanged(nameof(MqttPasswordPlaceholder));
         OnPropertyChanged(nameof(AccessTokenPlaceholder));
+        OnPropertyChanged(nameof(HasNoCustomSensors));
         DisabledEntitiesChanged?.Invoke(this, EventArgs.Empty);
         UpdateDirty();
         RefreshCommands();
     }
 
     private SettingsUpdate BuildUpdate() => new(
-        new MqttSettings(
-            MqttHost.Trim(),
+        // A pasted "mqtt://broker:1883" is split into host and port, as the service will store it.
+        MqttAddress.Apply(new MqttSettings(
+            MqttHost,
             (int)Math.Round(MqttPort ?? DefaultMqttPort),
             MqttUseTls,
             MqttUsername.Trim(),
             MqttDeviceId.Trim(),
             MqttDeviceName.Trim(),
             MqttDiscoveryPrefix.Trim().Trim('/'),
-            MqttBaseTopic.Trim().Trim('/')),
+            MqttBaseTopic.Trim().Trim('/'))),
         SecretUpdateFor(MqttPassword, ClearMqttPassword),
         new HomeAssistantSettings(
             HomeAssistantUrl.Trim(),
@@ -312,7 +330,32 @@ public sealed class SettingsViewModel : ObservableObject
             HomeAssistantDeviceName.Trim(),
             CommandEventType.Trim()),
         SecretUpdateFor(AccessToken, ClearAccessToken),
-        [.. _disabledEntities.Order(StringComparer.Ordinal)]);
+        [.. _disabledEntities.Order(StringComparer.Ordinal)],
+        [.. PendingCustomSensors()]);
+
+    /// <summary>The custom sensors as they would be saved. A row nothing was typed into is not a sensor yet.</summary>
+    private IEnumerable<CustomSensorDefinition> PendingCustomSensors() =>
+        CustomSensors.Select(sensor => sensor.ToDefinition()).Where(sensor => sensor.Name.Length > 0 || sensor.Value.Length > 0);
+
+    private void AddCustomSensor(CustomSensorDefinition definition)
+    {
+        CustomSensors.Add(new CustomSensorViewModel(definition, UpdateDirty, RemoveCustomSensor));
+        OnCustomSensorsChanged();
+    }
+
+    private void RemoveCustomSensor(CustomSensorViewModel sensor)
+    {
+        if (CanEdit && CustomSensors.Remove(sensor))
+        {
+            OnCustomSensorsChanged();
+        }
+    }
+
+    private void OnCustomSensorsChanged()
+    {
+        OnPropertyChanged(nameof(HasNoCustomSensors));
+        UpdateDirty();
+    }
 
     private static SecretUpdate SecretUpdateFor(string typed, bool clear) =>
         typed.Length > 0 ? new SecretUpdate(SecretChange.Replace, typed)
@@ -324,7 +367,7 @@ public sealed class SettingsViewModel : ObservableObject
     {
         if (target is null or ConnectionTarget.Mqtt)
         {
-            var host = MqttHost.Trim();
+            var host = MqttAddress.Parse(MqttHost).Host;
             if (target == ConnectionTarget.Mqtt && host.Length == 0)
             {
                 return Loc.Get("Validation_HostRequired");
@@ -367,6 +410,23 @@ public sealed class SettingsViewModel : ObservableObject
             }
         }
 
+        // The service checks custom sensors in full; these two are the mistakes an unfinished row makes.
+        if (target is null)
+        {
+            foreach (var sensor in PendingCustomSensors())
+            {
+                if (sensor.Name.Length == 0)
+                {
+                    return Loc.Get("Validation_CustomName");
+                }
+
+                if (sensor.Value.Length == 0)
+                {
+                    return Loc.Format("Validation_CustomValue", sensor.Name);
+                }
+            }
+        }
+
         return null;
     }
 
@@ -397,7 +457,8 @@ public sealed class SettingsViewModel : ObservableObject
         && update.HomeAssistant == snapshot.HomeAssistant
         && update.MqttPassword.Change == SecretChange.Keep
         && update.AccessToken.Change == SecretChange.Keep
-        && update.DisabledEntities.SequenceEqual(snapshot.DisabledEntities.Order(StringComparer.Ordinal));
+        && update.DisabledEntities.SequenceEqual(snapshot.DisabledEntities.Order(StringComparer.Ordinal))
+        && update.CustomSensors.SequenceEqual(snapshot.CustomSensors);
 
     private void SetTesting(ConnectionTarget target, bool isTesting)
     {
@@ -417,5 +478,6 @@ public sealed class SettingsViewModel : ObservableObject
         _revertCommand.RaiseCanExecuteChanged();
         _testMqttCommand.RaiseCanExecuteChanged();
         _testHomeAssistantCommand.RaiseCanExecuteChanged();
+        _addCustomSensorCommand.RaiseCanExecuteChanged();
     }
 }

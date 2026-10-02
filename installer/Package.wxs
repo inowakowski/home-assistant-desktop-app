@@ -1,0 +1,139 @@
+<Wix
+    xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+    xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+    <!--
+        The UpgradeCode identifies HADA across versions and must never change: it is how a newer installer finds
+        and replaces an older installation.
+    -->
+    <Package
+        Name="HADA – Home Assistant Desktop App"
+        Manufacturer="Ignacy Nowakowski"
+        Version="$(var.ProductVersion)"
+        UpgradeCode="6C0C1B5E-3C1B-4E57-9B0B-7C2B3F0D9A41"
+        Scope="perMachine"
+        Compressed="yes">
+
+        <!-- Installing again replaces what is there, also with the same version, which makes test builds easy to update. -->
+        <MajorUpgrade
+            AllowSameVersionUpgrades="yes"
+            DowngradeErrorMessage="A newer version of HADA is already installed. Remove it first to install this older one." />
+        <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+        <!-- The .exe ending is required for the icon of an advertised shortcut to an .exe. -->
+        <Icon Id="HadaIcon.exe" SourceFile="$(var.IconFile)" />
+        <Property Id="ARPPRODUCTICON" Value="HadaIcon.exe" />
+        <Property Id="ARPURLINFOABOUT" Value="https://github.com/inowakowski/home-assistant-desktop-app" />
+
+        <StandardDirectory Id="ProgramFiles6432Folder">
+            <Directory Id="INSTALLFOLDER" Name="HADA">
+                <Directory Id="ServiceFolder" Name="service" />
+                <Directory Id="TrayFolder" Name="tray" />
+            </Directory>
+        </StandardDirectory>
+        <StandardDirectory Id="ProgramMenuFolder" />
+
+        <Feature Id="Main" Title="HADA">
+            <ComponentGroupRef Id="ServiceFiles" />
+            <ComponentGroupRef Id="TrayFiles" />
+        </Feature>
+
+        <ComponentGroup Id="ServiceFiles" Directory="ServiceFolder">
+            <Component Id="ServiceExe">
+                <File Id="ServiceExeFile" Source="$(var.ServiceDir)\HADA.Service.exe" KeyPath="yes" />
+
+                <!-- Runs as LocalSystem and starts with Windows, so the computer shows up in Home Assistant before anyone signs in. -->
+                <ServiceInstall
+                    Id="HadaService"
+                    Name="HADA"
+                    DisplayName="Home Assistant Desktop App"
+                    Description="Reports this computer to Home Assistant and runs its commands."
+                    Type="ownProcess"
+                    Start="auto"
+                    ErrorControl="normal"
+                    Account="LocalSystem">
+                    <!-- Restart a minute after a crash; the failure count starts over each day. -->
+                    <util:ServiceConfig
+                        FirstFailureActionType="restart"
+                        SecondFailureActionType="restart"
+                        ThirdFailureActionType="restart"
+                        RestartServiceDelayInSeconds="60"
+                        ResetPeriodInDays="1" />
+                </ServiceInstall>
+                <ServiceControl
+                    Id="HadaServiceControl"
+                    Name="HADA"
+                    Start="install"
+                    Stop="both"
+                    Remove="uninstall"
+                    Wait="yes" />
+            </Component>
+
+            <Files Include="$(var.ServiceDir)\**">
+                <Exclude Files="$(var.ServiceDir)\HADA.Service.exe" />
+            </Files>
+        </ComponentGroup>
+
+        <ComponentGroup Id="TrayFiles" Directory="TrayFolder">
+            <Component Id="TrayExe">
+                <File Id="TrayExeFile" Source="$(var.TrayDir)\HADA.Tray.exe" KeyPath="yes">
+                    <Shortcut
+                        Id="StartMenuShortcut"
+                        Directory="ProgramMenuFolder"
+                        Name="HADA"
+                        Description="Home Assistant Desktop App: status and settings"
+                        WorkingDirectory="TrayFolder"
+                        Icon="HadaIcon.exe"
+                        Advertise="yes" />
+                </File>
+
+                <!-- Starts the tray app, without its window, when any user signs in. -->
+                <RegistryValue
+                    Root="HKLM"
+                    Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                    Name="HADA.Tray"
+                    Type="string"
+                    Value="&quot;[#TrayExeFile]&quot; --background" />
+            </Component>
+
+            <Files Include="$(var.TrayDir)\**">
+                <Exclude Files="$(var.TrayDir)\HADA.Tray.exe" />
+            </Files>
+        </ComponentGroup>
+
+        <!-- The tray app and its settings window hold files open; close them before files are replaced or removed. -->
+        <util:CloseApplication
+            Id="CloseTray"
+            Target="HADA.Tray.exe"
+            CloseMessage="no"
+            RebootPrompt="no"
+            TerminateProcess="0" />
+
+        <!-- Welcome, folder, install. The licence page of the stock dialog set is skipped: there is no licence text to show. -->
+        <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+        <UI>
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="99" Condition="NOT Installed" />
+            <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="99" />
+
+            <!--
+                Offered on the last page. The action runs in the installer's user interface process, so the tray
+                starts as the signed-in user and not with the installer's administrator rights.
+            -->
+            <Publish
+                Dialog="ExitDialog"
+                Control="Finish"
+                Event="DoAction"
+                Value="LaunchTray"
+                Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+        </UI>
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Start HADA and open its window" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+        <Property Id="WixShellExecTarget" Value="[#TrayExeFile]" />
+        <CustomAction
+            Id="LaunchTray"
+            BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+            DllEntry="WixShellExec"
+            Impersonate="yes" />
+    </Package>
+</Wix>

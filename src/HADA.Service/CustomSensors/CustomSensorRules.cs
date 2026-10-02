@@ -1,0 +1,155 @@
+using System.Buffers;
+using System.Collections.Frozen;
+using System.Text.RegularExpressions;
+using HADA.Core.Entities;
+using HADA.Ipc;
+using HADA.Platform.Windows.Actions;
+using HADA.Platform.Windows.Sensors;
+
+namespace HADA.Service.CustomSensors;
+
+/// <summary>What a custom sensor definition must look like, and how it maps to a Home Assistant entity.</summary>
+public static partial class CustomSensorRules
+{
+    public const int MaxSensors = 64;
+
+    private const int MaxIdLength = 64;
+    private const int MaxNameLength = 100;
+    private const int MaxTextLength = 255;
+    private const int MaxProcessNameLength = 260;
+    private const int MaxCommandLength = 4096;
+    private const int MaxUnitLength = 32;
+
+    private static readonly SearchValues<char> PathCharacters = SearchValues.Create("\\/:*?\"<>|");
+
+    /// <summary>Ids of the built-in entities, including those the tray registers later and those absent on this computer.</summary>
+    public static FrozenSet<string> BuiltInIds { get; } = new[]
+    {
+        CpuLoadSensor.EntityId,
+        MemoryUsageSensor.EntityId,
+        BatterySensor.LevelEntityId,
+        BatterySensor.ChargingEntityId,
+        BatterySensor.PluggedInEntityId,
+        PowerStateSensor.DisplayEntityId,
+        PowerStateSensor.LidEntityId,
+        SessionLockSensor.EntityId,
+        LastBootSensor.EntityId,
+        LockScreenAction.EntityId,
+        ActiveWindowSensor.EntityId,
+        AudioVolumeSensor.EntityId,
+        UserActivitySensor.EntityId,
+        MediaCaptureSensor.MicrophoneEntityId,
+        MediaCaptureSensor.CameraEntityId,
+        MicrophoneMuteSensor.EntityId,
+    }.ToFrozenSet(StringComparer.Ordinal);
+
+    /// <summary>Checks one normalized definition. Returns an error message, or <see langword="null"/> when it is valid.</summary>
+    public static string? Validate(CustomSensorDefinition sensor)
+    {
+        var label = sensor.Name.Length > 0 ? sensor.Name : sensor.Id;
+
+        if (sensor.Name.Length is 0 or > MaxNameLength)
+        {
+            return $"A custom sensor needs a name of at most {MaxNameLength} characters.";
+        }
+
+        if (sensor.Id.Length > MaxIdLength || !IdPattern().IsMatch(sensor.Id))
+        {
+            return $"The ID of custom sensor '{label}' must contain only lowercase letters, digits and underscores.";
+        }
+
+        if (BuiltInIds.Contains(sensor.Id))
+        {
+            return $"The ID '{sensor.Id}' of custom sensor '{label}' is already used by a built-in entity.";
+        }
+
+        if (!Enum.IsDefined(sensor.Type))
+        {
+            return $"Custom sensor '{label}' has an unknown type.";
+        }
+
+        if (sensor.Value.Length == 0)
+        {
+            return sensor.Type switch
+            {
+                CustomSensorType.ProcessRunning => $"Custom sensor '{label}' needs a process name.",
+                CustomSensorType.PowerShell => $"Custom sensor '{label}' needs a PowerShell command.",
+                _ => $"Custom sensor '{label}' needs a value.",
+            };
+        }
+
+        var maxValueLength = sensor.Type switch
+        {
+            CustomSensorType.ProcessRunning => MaxProcessNameLength,
+            CustomSensorType.PowerShell => MaxCommandLength,
+            _ => MaxTextLength,
+        };
+        if (sensor.Value.Length > maxValueLength)
+        {
+            return $"The value of custom sensor '{label}' must be at most {maxValueLength} characters long.";
+        }
+
+        if (sensor.Type == CustomSensorType.ProcessRunning && sensor.Value.AsSpan().ContainsAny(PathCharacters))
+        {
+            return $"Custom sensor '{label}' needs a process name such as 'chrome', not a path.";
+        }
+
+        if (sensor.Unit.Length > MaxUnitLength)
+        {
+            return $"The unit of custom sensor '{label}' must be at most {MaxUnitLength} characters long.";
+        }
+
+        if (sensor.Type != CustomSensorType.Text
+            && sensor.IntervalSeconds is < CustomSensorDefinition.MinIntervalSeconds or > CustomSensorDefinition.MaxIntervalSeconds)
+        {
+            return $"The interval of custom sensor '{label}' must be between {CustomSensorDefinition.MinIntervalSeconds} and {CustomSensorDefinition.MaxIntervalSeconds} seconds.";
+        }
+
+        return null;
+    }
+
+    /// <summary>Checks a whole list of normalized definitions, including that their ids are unique.</summary>
+    public static string? Validate(IReadOnlyList<CustomSensorDefinition> sensors)
+    {
+        if (sensors.Count > MaxSensors)
+        {
+            return $"At most {MaxSensors} custom sensors are supported.";
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var sensor in sensors)
+        {
+            if (Validate(sensor) is { } error)
+            {
+                return error;
+            }
+
+            if (!ids.Add(sensor.Id))
+            {
+                return $"Two custom sensors share the ID '{sensor.Id}'.";
+            }
+        }
+
+        return null;
+    }
+
+    public static EntityDescriptor ToEntity(CustomSensorDefinition sensor) => new()
+    {
+        Id = sensor.Id,
+        Name = sensor.Name,
+        Kind = sensor.Type == CustomSensorType.ProcessRunning ? EntityKind.BinarySensor : EntityKind.Sensor,
+        Icon = sensor.Type switch
+        {
+            CustomSensorType.ProcessRunning => "mdi:application-cog-outline",
+            CustomSensorType.PowerShell => "mdi:powershell",
+            _ => "mdi:form-textbox",
+        },
+        UnitOfMeasurement = sensor.Unit.Length > 0 ? sensor.Unit : null,
+
+        // A unit tells Home Assistant the value is a number; as a measurement it also gets a history graph.
+        StateClass = sensor.Unit.Length > 0 ? "measurement" : null,
+    };
+
+    [GeneratedRegex("^[a-z0-9_]+$")]
+    private static partial Regex IdPattern();
+}

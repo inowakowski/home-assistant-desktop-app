@@ -5,22 +5,34 @@ namespace HADA.Platform.Windows.Sensors;
 
 public readonly record struct AudioVolumeInfo(int VolumePercent, bool IsMuted);
 
-/// <summary>Reads the master volume of the default playback device through Core Audio.</summary>
-public sealed class DefaultAudioEndpoint : IDisposable
+public enum AudioDevice
+{
+    /// <summary>The default playback device.</summary>
+    Speakers,
+
+    /// <summary>The default recording device for calls, which is what a hardware microphone-mute key acts on.</summary>
+    Microphone,
+}
+
+/// <summary>Reads the volume and mute state of a default audio device through Core Audio.</summary>
+public sealed class DefaultAudioEndpoint(AudioDevice device = AudioDevice.Speakers) : IDisposable
 {
     private const uint ClassContextAll = 0x17;
 
     private IMMDeviceEnumerator? _enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorComObject();
 
     /// <summary>
-    /// Returns <see langword="null"/> when there is no active playback device.
-    /// The default device is looked up on every call, so switching to headphones is picked up.
+    /// Returns <see langword="null"/> when there is no such device, e.g. no microphone is connected.
+    /// The default device is looked up on every call, so switching to a headset is picked up.
     /// </summary>
     public AudioVolumeInfo? TryRead()
     {
         ObjectDisposedException.ThrowIf(_enumerator is null, this);
 
-        if (_enumerator.GetDefaultAudioEndpoint(EDataFlow.Render, ERole.Multimedia, out var device) != 0 || device is null)
+        var (flow, role) = device == AudioDevice.Microphone
+            ? (EDataFlow.Capture, ERole.Communications)
+            : (EDataFlow.Render, ERole.Multimedia);
+        if (_enumerator.GetDefaultAudioEndpoint(flow, role, out var endpoint) != 0 || endpoint is null)
         {
             return null;
         }
@@ -29,7 +41,7 @@ public sealed class DefaultAudioEndpoint : IDisposable
         try
         {
             var iid = typeof(IAudioEndpointVolume).GUID;
-            if (device.Activate(ref iid, ClassContextAll, 0, out activated) != 0 || activated is not IAudioEndpointVolume volume)
+            if (endpoint.Activate(ref iid, ClassContextAll, 0, out activated) != 0 || activated is not IAudioEndpointVolume volume)
             {
                 return null;
             }
@@ -48,7 +60,7 @@ public sealed class DefaultAudioEndpoint : IDisposable
                 Marshal.ReleaseComObject(activated);
             }
 
-            Marshal.ReleaseComObject(device);
+            Marshal.ReleaseComObject(endpoint);
         }
     }
 
