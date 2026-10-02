@@ -8,7 +8,9 @@ namespace HADA.Tray.Session;
 
 /// <summary>A notification to show: its texts, and optionally a picture and buttons.</summary>
 /// <param name="ImageUrl">An <c>http</c> or <c>https</c> address, or <see langword="null"/>.</param>
-public sealed record NotificationRequest(string Title, string Message, string? ImageUrl, IReadOnlyList<NotificationButton> Buttons);
+/// <param name="Origin">The engine the notification came through, which its buttons answer to.</param>
+public sealed record NotificationRequest(
+    string Title, string Message, string? ImageUrl, IReadOnlyList<NotificationButton> Buttons, string? Origin = null);
 
 /// <summary>Where notifications from Home Assistant are shown; the tray plugs itself in once it is ready.</summary>
 public sealed class NotificationPresenter
@@ -47,7 +49,8 @@ public sealed partial class NotificationAction(
                 command.GetParameter(NotificationContent.Title) is { Length: > 0 } title ? title : DefaultTitle,
                 command.Value,
                 command.GetParameter(NotificationContent.Image),
-                NotificationContent.ParseButtons(command.GetParameter(NotificationContent.Actions))));
+                NotificationContent.ParseButtons(command.GetParameter(NotificationContent.Actions)),
+                command.Origin));
 
             // Not the text: what Home Assistant tells the user is none of the log's business.
             LogShown(Logger, command.Origin);

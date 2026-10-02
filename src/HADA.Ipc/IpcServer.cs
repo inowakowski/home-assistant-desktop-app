@@ -362,7 +362,7 @@ public sealed partial class IpcServer(
                 CheckForUpdateRequest => new UpdateCheckResponse(
                     request.RequestId, await control.CheckForUpdateAsync(cancellationToken).ConfigureAwait(false)),
                 TestConnectionRequest test => new OperationResponse(
-                    request.RequestId, await control.TestConnectionAsync(test.Target, test.Settings, cancellationToken).ConfigureAwait(false)),
+                    request.RequestId, await control.TestConnectionAsync(test.Target, test.Settings, test.ServerId, cancellationToken).ConfigureAwait(false)),
                 _ => new ErrorResponse(request.RequestId, IpcError.NotSupported, $"Unsupported request '{request.GetType().Name}'."),
             };
         }

@@ -19,6 +19,8 @@ In Home Assistant you need the [MQTT integration](https://www.home-assistant.io/
 
 The **Overview** page should now show MQTT as *Connected*.
 
+To report to more than one Home Assistant, choose **Add a server** and do the same for each; see [Several Home Assistants at once](../home-assistant/mqtt.md#several-home-assistants-at-once). If the broker is found by its IP address but not by its name, see [The broker's address](../home-assistant/mqtt.md#the-brokers-address).
+
 ## In Home Assistant
 
 Open **Settings → Devices & services → MQTT**. The computer is there as a device named after it, with all its entities.

@@ -469,6 +469,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             await foreach (var deviceEvent in events.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 var isExposed = deviceEvent.IsWellFormed
+                    && deviceEvent.IsFor(Name)
                     && (deviceEvent.Name != DeviceEvent.QuickAction
                         || (TryGetExposed(deviceEvent.Value, out var trigger) && trigger.Kind == EntityKind.Trigger));
                 if (!isExposed || _connection is not { } connection || _state != EngineConnectionState.Connected)

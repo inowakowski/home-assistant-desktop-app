@@ -21,6 +21,7 @@ public sealed partial class ServiceControl(
     SettingsStore store,
     StoredSettingsConfigurationProvider storedSettings,
     IOptionsMonitor<MqttOptions> mqttOptions,
+    IOptionsMonitor<MqttServersOptions> mqttServers,
     IOptionsMonitor<HaWebSocketOptions> homeAssistantOptions,
     IOptionsMonitor<EntityOptions> entityOptions,
     IOptionsMonitor<CustomSensorOptions> customSensorOptions,
@@ -33,6 +34,10 @@ public sealed partial class ServiceControl(
     private const int MaxTextLength = 256;
     private const int MaxSecretLength = 4096;
     private const int MaxDisabledEntities = 256;
+    private const int MaxServerNameLength = 64;
+
+    /// <summary>More Home Assistants than anyone has; a limit so that a request cannot make the service open hundreds of connections.</summary>
+    public const int MaxMqttServers = 8;
 
     private static readonly string Version =
         typeof(ServiceControl).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
@@ -61,19 +66,9 @@ public sealed partial class ServiceControl(
 
     public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken)
     {
-        var mqtt = mqttOptions.CurrentValue;
         var homeAssistant = homeAssistantOptions.CurrentValue;
         return Task.FromResult(new SettingsSnapshot(
-            new MqttSettings(
-                mqtt.Host ?? string.Empty,
-                mqtt.Port,
-                mqtt.UseTls,
-                mqtt.Username ?? string.Empty,
-                mqtt.DeviceId ?? string.Empty,
-                mqtt.DeviceName ?? string.Empty,
-                mqtt.DiscoveryPrefix,
-                mqtt.BaseTopic),
-            !string.IsNullOrEmpty(mqtt.Password),
+            [.. CurrentMqttServers().Select(mqtt => new MqttServerSnapshot(ToSettings(mqtt), !string.IsNullOrEmpty(mqtt.Password)))],
             new HomeAssistantSettings(
                 homeAssistant.BaseUrl ?? string.Empty,
                 homeAssistant.DeviceId ?? string.Empty,
@@ -93,10 +88,16 @@ public sealed partial class ServiceControl(
             return Task.FromResult(new OperationResult(false, error));
         }
 
+        // A server keeps its password for as long as it keeps its id, whatever else about it changes.
+        var passwords = CurrentMqttServers().ToDictionary(server => server.Id!, server => server.Password, StringComparer.Ordinal);
         var stored = new StoredSettings
         {
-            Mqtt = Normalize(settings.Mqtt),
-            MqttPassword = ProtectOrNull(ResolveSecret(settings.MqttPassword, mqttOptions.CurrentValue.Password)),
+            MqttServers =
+            [
+                .. settings.MqttServers.Select(server => new StoredMqttServer(
+                    Normalize(server.Settings),
+                    ProtectOrNull(ResolveSecret(server.Password, passwords.GetValueOrDefault(server.Settings.Id))))),
+            ],
             HomeAssistant = Normalize(settings.HomeAssistant),
             AccessToken = ProtectOrNull(ResolveSecret(settings.AccessToken, homeAssistantOptions.CurrentValue.AccessToken)),
             DisabledEntities = [.. settings.DisabledEntities.Distinct(StringComparer.Ordinal)],
@@ -122,18 +123,16 @@ public sealed partial class ServiceControl(
     }
 
     public async Task<OperationResult> TestConnectionAsync(
-        ConnectionTarget target, SettingsUpdate settings, CancellationToken cancellationToken)
+        ConnectionTarget target, SettingsUpdate settings, string? serverId, CancellationToken cancellationToken)
     {
-        if (Validate(settings, target) is { } error)
+        if (Validate(settings, target, serverId) is { } error)
         {
             return new OperationResult(false, error);
         }
 
         var result = target switch
         {
-            ConnectionTarget.Mqtt => await MqttEngine.TestConnectionAsync(
-                ToOptions(Normalize(settings.Mqtt), ResolveSecret(settings.MqttPassword, mqttOptions.CurrentValue.Password)),
-                cancellationToken).ConfigureAwait(false),
+            ConnectionTarget.Mqtt => await TestMqttAsync(FindServer(settings, serverId), cancellationToken).ConfigureAwait(false),
             ConnectionTarget.HomeAssistant => await HaWebSocketEngine.TestConnectionAsync(
                 ToOptions(Normalize(settings.HomeAssistant), ResolveSecret(settings.AccessToken, homeAssistantOptions.CurrentValue.AccessToken)),
                 cancellationToken).ConfigureAwait(false),
@@ -156,9 +155,21 @@ public sealed partial class ServiceControl(
     /// The connection being tested, so a test is not refused over settings it does not use;
     /// <see langword="null"/> to check everything before saving.
     /// </param>
-    public static string? Validate(SettingsUpdate settings, ConnectionTarget? target = null)
+    /// <param name="serverId">The MQTT server being tested; the first one when <see langword="null"/>.</param>
+    public static string? Validate(SettingsUpdate settings, ConnectionTarget? target = null, string? serverId = null)
     {
-        if (target is null or ConnectionTarget.Mqtt && ValidateMqtt(settings) is { } mqttError)
+        if (settings.MqttServers is null || settings.MqttServers.Any(server => server?.Settings is null || server.Password is null))
+        {
+            return "The MQTT servers are missing.";
+        }
+
+        var mqttError = target switch
+        {
+            null => ValidateMqttServers(settings.MqttServers),
+            ConnectionTarget.Mqtt => FindServer(settings, serverId) is { } server ? ValidateMqtt(server) : "There is no such MQTT server.",
+            _ => null,
+        };
+        if (mqttError is not null)
         {
             return mqttError;
         }
@@ -186,18 +197,69 @@ public sealed partial class ServiceControl(
         return CustomSensorRules.Validate([.. settings.CustomSensors.Select(sensor => sensor.Normalize())]);
     }
 
-    private static string? ValidateMqtt(SettingsUpdate settings)
+    /// <summary>Each server by itself, and then what they must not have in common.</summary>
+    private static string? ValidateMqttServers(IReadOnlyList<MqttServerUpdate> servers)
+    {
+        if (servers.Count > MaxMqttServers)
+        {
+            return $"There can be at most {MaxMqttServers} MQTT servers.";
+        }
+
+        if (servers.Select(ValidateMqtt).FirstOrDefault(error => error is not null) is { } serverError)
+        {
+            return serverError;
+        }
+
+        var settings = servers.Select(server => Normalize(server.Settings)).ToArray();
+        if (settings.Select(server => server.Id).Distinct(StringComparer.Ordinal).Count() != settings.Length)
+        {
+            return "Two MQTT servers have the same id.";
+        }
+
+        if (settings.Length > 1 && settings.Any(server => server.Name.Length == 0))
+        {
+            return "Give each MQTT server a name, to tell them apart.";
+        }
+
+        if (settings.Select(server => server.Name).Distinct(StringComparer.CurrentCultureIgnoreCase).Count() != settings.Length)
+        {
+            return "Two MQTT servers have the same name.";
+        }
+
+        // The same computer twice on one broker: the two connections would throw each other off in turns.
+        var twice = settings
+            .Where(server => server.Host.Length > 0)
+            .GroupBy(
+                server => (server.Host, server.Port, DeviceId: server.DeviceId.Length > 0 ? server.DeviceId : Environment.MachineName),
+                ServerKeyComparer.Instance)
+            .FirstOrDefault(group => group.Count() > 1);
+        return twice is null
+            ? null
+            : $"'{twice.First().Name}' and '{twice.Last().Name}' are the same broker with the same Device ID. Remove one, or give them different Device IDs.";
+    }
+
+    private static string? ValidateMqtt(MqttServerUpdate server)
     {
         // Checked as it will be used: a pasted "mqtt://broker:1883" is split into host and port first.
-        var mqtt = MqttAddress.Apply(settings.Mqtt);
+        var mqtt = MqttAddress.Apply(server.Settings);
 
-        string?[] texts = [settings.Mqtt.Host, mqtt.Username, mqtt.DeviceId, mqtt.DeviceName, mqtt.DiscoveryPrefix, mqtt.BaseTopic];
+        string?[] texts = [server.Settings.Host, mqtt.Username, mqtt.DeviceId, mqtt.DeviceName, mqtt.DiscoveryPrefix, mqtt.BaseTopic, mqtt.Name];
         if (texts.Any(text => text is null || text.Length > MaxTextLength))
         {
             return $"Text settings must be at most {MaxTextLength} characters long.";
         }
 
-        if ((settings.MqttPassword.Value?.Length ?? 0) > MaxSecretLength)
+        if (mqtt.Name.Trim().Length > MaxServerNameLength)
+        {
+            return $"The name of an MQTT server must be at most {MaxServerNameLength} characters long.";
+        }
+
+        if (mqtt.Id is not { Length: > 0 and <= 32 } || mqtt.Id.Any(c => !char.IsAsciiLetterLower(c) && !char.IsAsciiDigit(c)))
+        {
+            return "The id of an MQTT server must consist of lowercase letters and digits.";
+        }
+
+        if ((server.Password.Value?.Length ?? 0) > MaxSecretLength)
         {
             return $"Secrets must be at most {MaxSecretLength} characters long.";
         }
@@ -249,8 +311,43 @@ public sealed partial class ServiceControl(
     private static bool IsTopicPrefix(string value) =>
         value.Trim().Trim('/').Length > 0 && !value.Trim().Any(c => char.IsWhiteSpace(c) || c is '+' or '#');
 
+    private IReadOnlyList<MqttOptions> CurrentMqttServers() =>
+        MqttServersOptions.Resolve(mqttServers.CurrentValue, mqttOptions.CurrentValue);
+
+    private static MqttServerUpdate? FindServer(SettingsUpdate settings, string? serverId) =>
+        serverId is null
+            ? (settings.MqttServers.Count > 0 ? settings.MqttServers[0] : null)
+            : settings.MqttServers.FirstOrDefault(server => server.Settings.Id == serverId);
+
+    private Task<ConnectionTestResult> TestMqttAsync(MqttServerUpdate? server, CancellationToken cancellationToken)
+    {
+        if (server is null)
+        {
+            return Task.FromResult(new ConnectionTestResult(false, "There is no such MQTT server."));
+        }
+
+        var saved = CurrentMqttServers().FirstOrDefault(current => current.Id == server.Settings.Id);
+        return MqttEngine.TestConnectionAsync(
+            ToOptions(Normalize(server.Settings), ResolveSecret(server.Password, saved?.Password)), cancellationToken);
+    }
+
+    private static MqttSettings ToSettings(MqttOptions mqtt) => new(
+        mqtt.Host ?? string.Empty,
+        mqtt.Port,
+        mqtt.UseTls,
+        mqtt.Username ?? string.Empty,
+        mqtt.DeviceId ?? string.Empty,
+        mqtt.DeviceName ?? string.Empty,
+        mqtt.DiscoveryPrefix,
+        mqtt.BaseTopic)
+    {
+        Id = mqtt.Id ?? string.Empty,
+        Name = mqtt.Name ?? string.Empty,
+    };
+
     private static MqttSettings Normalize(MqttSettings settings) => MqttAddress.Apply(settings) with
     {
+        Name = settings.Name.Trim(),
         Username = settings.Username.Trim(),
         DeviceId = settings.DeviceId.Trim(),
         DeviceName = settings.DeviceName.Trim(),
@@ -268,6 +365,8 @@ public sealed partial class ServiceControl(
 
     private static MqttOptions ToOptions(MqttSettings settings, string? password) => new()
     {
+        Id = settings.Id,
+        Name = settings.Name,
         Host = settings.Host,
         Port = settings.Port,
         UseTls = settings.UseTls,
@@ -302,6 +401,20 @@ public sealed partial class ServiceControl(
     {
         using var process = Process.GetCurrentProcess();
         return new DateTimeOffset(process.StartTime);
+    }
+
+    /// <summary>Two entries are the same connection when broker, port and device id agree, however they are capitalised.</summary>
+    private sealed class ServerKeyComparer : IEqualityComparer<(string Host, int Port, string DeviceId)>
+    {
+        public static ServerKeyComparer Instance { get; } = new();
+
+        public bool Equals((string Host, int Port, string DeviceId) x, (string Host, int Port, string DeviceId) y) =>
+            x.Port == y.Port
+            && string.Equals(x.Host, y.Host, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.DeviceId, y.DeviceId, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((string Host, int Port, string DeviceId) key) =>
+            HashCode.Combine(key.Port, key.Host.ToUpperInvariant(), key.DeviceId.ToUpperInvariant());
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Settings saved to {Path}.")]

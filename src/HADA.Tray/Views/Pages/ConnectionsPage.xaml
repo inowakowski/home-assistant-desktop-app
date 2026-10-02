@@ -64,7 +64,7 @@
             </ui:Card>
 
             <StackPanel DataContext="{Binding Settings}">
-                <!--  MQTT  -->
+                <!--  MQTT: one server per Home Assistant, all connected at once; the form shows the selected one.  -->
                 <ui:Card
                     x:Name="MqttCard"
                     Margin="0,0,0,12"
@@ -107,6 +107,66 @@
                             </StackPanel>
                         </Grid>
 
+                        <!--  The servers, as tabs; with only one there is nothing to choose, just the way to add another.  -->
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ListBox
+                                x:Name="MqttServerList"
+                                Margin="0,0,16,0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ItemsSource="{Binding MqttServers}"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                SelectedItem="{Binding SelectedMqttServer}"
+                                Visibility="{Binding HasSeveralMqttServers, Converter={StaticResource BooleanToVisibility}}">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="4,2" Orientation="Horizontal">
+                                            <ui:SymbolIcon
+                                                Margin="0,0,8,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="16"
+                                                Symbol="Home24" />
+                                            <ui:TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <ui:TextBlock
+                                VerticalAlignment="Center"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                Text="{l:Tr Mqtt_OneServer}"
+                                TextWrapping="Wrap"
+                                Visibility="{Binding HasOneMqttServer, Converter={StaticResource BooleanToVisibility}}" />
+                            <StackPanel
+                                Grid.Column="1"
+                                VerticalAlignment="Top"
+                                Orientation="Horizontal">
+                                <ui:Button Command="{Binding AddMqttServerCommand}" Content="{l:Tr Mqtt_AddServer}">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="Add24" />
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                                <ui:Button
+                                    Margin="8,0,0,0"
+                                    Command="{Binding RemoveMqttServerCommand}"
+                                    Content="{l:Tr Mqtt_RemoveServer}"
+                                    Visibility="{Binding HasSeveralMqttServers, Converter={StaticResource BooleanToVisibility}}">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="Delete24" />
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                            </StackPanel>
+                        </Grid>
+
                         <ui:InfoBar
                             Title="{Binding MqttTest.Title}"
                             Margin="0,16,0,0"
@@ -114,13 +174,17 @@
                             Message="{Binding MqttTest.Message}"
                             Severity="{Binding MqttTest.Severity}" />
 
-                        <Grid Margin="0,18,0,0" IsEnabled="{Binding CanEdit}">
+                        <Grid
+                            Margin="0,18,0,0"
+                            DataContext="{Binding SelectedMqttServer}"
+                            IsEnabled="{Binding DataContext.CanEdit, ElementName=MqttCard}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="20" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -132,12 +196,31 @@
                                     Margin="0,0,0,6"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
+                                    Text="{l:Tr Field_ServerName}" />
+                                <ui:TextBox PlaceholderText="{l:Tr Placeholder_ServerName}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <ui:TextBlock
+                                Grid.Row="0"
+                                Grid.Column="2"
+                                Margin="0,22,0,14"
+                                VerticalAlignment="Center"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                FontTypography="Caption"
+                                Text="{l:Tr Mqtt_ServerNameHint}"
+                                TextWrapping="Wrap" />
+
+                            <StackPanel Grid.Row="1" Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    FontTypography="Caption"
                                     Text="{l:Tr Field_Host}" />
-                                <ui:TextBox PlaceholderText="homeassistant.local" Text="{Binding MqttHost, UpdateSourceTrigger=PropertyChanged}" />
+                                <ui:TextBox PlaceholderText="homeassistant.local" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
 
                             <Grid
-                                Grid.Row="0"
+                                Grid.Row="1"
                                 Grid.Column="2"
                                 Margin="0,0,0,14">
                                 <Grid.ColumnDefinitions>
@@ -155,7 +238,7 @@
                                         Maximum="65535"
                                         Minimum="1"
                                         SpinButtonPlacementMode="Hidden"
-                                        Value="{Binding MqttPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                        Value="{Binding Port, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="20,0,0,0">
                                     <ui:TextBlock
@@ -165,45 +248,19 @@
                                         Text="{l:Tr Field_UseTls}" />
                                     <ui:ToggleSwitch
                                         Margin="0,6,0,0"
-                                        IsChecked="{Binding MqttUseTls}"
+                                        IsChecked="{Binding UseTls}"
                                         OffContent="{l:Tr Common_Off}"
                                         OnContent="{l:Tr Common_On}" />
                                 </StackPanel>
                             </Grid>
-
-                            <StackPanel Grid.Row="1" Margin="0,0,0,14">
-                                <ui:TextBlock
-                                    Margin="0,0,0,6"
-                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                    FontTypography="Caption"
-                                    Text="{l:Tr Field_Username}" />
-                                <ui:TextBox Text="{Binding MqttUsername, UpdateSourceTrigger=PropertyChanged}" />
-                            </StackPanel>
-
-                            <StackPanel
-                                Grid.Row="1"
-                                Grid.Column="2"
-                                Margin="0,0,0,14">
-                                <ui:TextBlock
-                                    Margin="0,0,0,6"
-                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                    FontTypography="Caption"
-                                    Text="{l:Tr Field_Password}" />
-                                <ui:PasswordBox Password="{Binding MqttPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding MqttPasswordPlaceholder}" />
-                                <CheckBox
-                                    Margin="0,6,0,0"
-                                    Content="{l:Tr Field_ClearSecret}"
-                                    IsChecked="{Binding ClearMqttPassword}"
-                                    Visibility="{Binding HasMqttPassword, Converter={StaticResource BooleanToVisibility}}" />
-                            </StackPanel>
 
                             <StackPanel Grid.Row="2" Margin="0,0,0,14">
                                 <ui:TextBlock
                                     Margin="0,0,0,6"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
-                                    Text="{l:Tr Field_DeviceId}" />
-                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding MqttDeviceId, UpdateSourceTrigger=PropertyChanged}" />
+                                    Text="{l:Tr Field_Username}" />
+                                <ui:TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
 
                             <StackPanel
@@ -214,12 +271,38 @@
                                     Margin="0,0,0,6"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
+                                    Text="{l:Tr Field_Password}" />
+                                <ui:PasswordBox Password="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding PasswordPlaceholder}" />
+                                <CheckBox
+                                    Margin="0,6,0,0"
+                                    Content="{l:Tr Field_ClearSecret}"
+                                    IsChecked="{Binding ClearPassword}"
+                                    Visibility="{Binding HasPassword, Converter={StaticResource BooleanToVisibility}}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Field_DeviceId}" />
+                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding DeviceId, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Row="3"
+                                Grid.Column="2"
+                                Margin="0,0,0,14">
+                                <ui:TextBlock
+                                    Margin="0,0,0,6"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    FontTypography="Caption"
                                     Text="{l:Tr Field_DeviceName}" />
-                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding MqttDeviceName, UpdateSourceTrigger=PropertyChanged}" />
+                                <ui:TextBox PlaceholderText="{Binding MachineNamePlaceholder}" Text="{Binding DeviceName, UpdateSourceTrigger=PropertyChanged}" />
                             </StackPanel>
 
                             <Expander
-                                Grid.Row="3"
+                                Grid.Row="4"
                                 Grid.ColumnSpan="3"
                                 Header="{l:Tr Field_Advanced}">
                                 <Grid Margin="0,12,0,0">
@@ -234,7 +317,7 @@
                                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             FontTypography="Caption"
                                             Text="{l:Tr Field_DiscoveryPrefix}" />
-                                        <ui:TextBox Text="{Binding MqttDiscoveryPrefix, UpdateSourceTrigger=PropertyChanged}" />
+                                        <ui:TextBox Text="{Binding DiscoveryPrefix, UpdateSourceTrigger=PropertyChanged}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
                                         <ui:TextBlock
@@ -242,7 +325,7 @@
                                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             FontTypography="Caption"
                                             Text="{l:Tr Field_BaseTopic}" />
-                                        <ui:TextBox Text="{Binding MqttBaseTopic, UpdateSourceTrigger=PropertyChanged}" />
+                                        <ui:TextBox Text="{Binding BaseTopic, UpdateSourceTrigger=PropertyChanged}" />
                                     </StackPanel>
                                 </Grid>
                             </Expander>

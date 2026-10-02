@@ -482,19 +482,85 @@ public sealed class MqttEngineTests : IAsyncLifetime
         Assert.False(string.IsNullOrWhiteSpace(result.Message));
     }
 
-    private MqttEngine CreateEngine(IEntityFilter? filter = null) => new(
+    [Fact]
+    public async Task TestConnectionAsync_finds_the_broker_by_name()
+    {
+        // localhost stands for ::1 and 127.0.0.1, like a .local name for its IPv6 and IPv4 addresses.
+        var result = await MqttEngine.TestConnectionAsync(new MqttOptions { Host = "localhost", Port = _port }, CancellationToken.None);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Contains("localhost", result.Message);
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_says_when_a_name_is_not_found()
+    {
+        var result = await MqttEngine.TestConnectionAsync(
+            new MqttOptions { Host = "no-such-broker.invalid", Port = _port }, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Contains("could not be looked up", result.Message);
+    }
+
+    [Fact]
+    public async Task A_name_that_stands_for_several_addresses_reaches_the_one_the_broker_listens_on()
+    {
+        // 127.0.0.2 is this computer too, but the broker listens on 127.0.0.1 only.
+        var locator = new BrokerLocator((_, _) => Task.FromResult(new[] { IPAddress.Parse("127.0.0.2"), IPAddress.Loopback }));
+        await using var engine = CreateEngine(host: "broker.test", locator: locator);
+        await engine.StartAsync(CancellationToken.None);
+
+        await WaitForMessageAsync("hada/testpc/availability", "online");
+    }
+
+    [Fact]
+    public async Task Each_server_answers_only_the_notifications_it_sent()
+    {
+        await using var engine = CreateEngine(serverName: "Flat");
+        Assert.Equal("mqtt (Flat)", engine.Name);
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = "for_the_office", Target = "mqtt (Office)" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = "for_the_flat", Target = "mqtt (Flat)" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = "for_everyone" });
+
+        await WaitForMessageAsync("hada/testpc/event/notification_action", "for_the_flat");
+        await WaitForMessageAsync("hada/testpc/event/notification_action", "for_everyone");
+        Assert.DoesNotContain(Snapshot(), message => message.Payload == "for_the_office");
+    }
+
+    [Fact]
+    public async Task Commands_say_which_server_they_came_from()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "mute", Name = "Mute", Kind = EntityKind.Button });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine(serverName: "Flat");
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        await PublishAsync("hada/testpc/mute/set", "PRESS");
+
+        await using var enumerator = commands.ReadAllAsync(new CancellationTokenSource(Timeout).Token).GetAsyncEnumerator();
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal("mqtt (Flat)", enumerator.Current.Origin);
+    }
+
+    private MqttEngine CreateEngine(IEntityFilter? filter = null, string host = "127.0.0.1", string? serverName = null, BrokerLocator? locator = null) => new(
         _bus,
         _registry,
         Options.Create(new MqttOptions
         {
-            Host = "127.0.0.1",
+            Host = host,
             Port = _port,
+            Name = serverName,
             DeviceId = "TestPC",
             DeviceName = "Test PC",
             MinReconnectDelay = TimeSpan.FromMilliseconds(100),
         }),
         NullLogger<MqttEngine>.Instance,
-        filter);
+        filter,
+        locator);
 
     private MqttClientOptions ClientOptions(string clientId) => new MqttClientOptionsBuilder()
         .WithTcpServer("127.0.0.1", _port, AddressFamily.Unspecified)

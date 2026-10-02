@@ -15,6 +15,7 @@ public sealed record DeviceEvent
     public const string NotificationAction = "notification_action";
 
     private const int MaxValueLength = 64;
+    private const int MaxTargetLength = 300;
 
     /// <summary>What kind of thing happened: lowercase letters, digits and underscores, as it becomes part of an MQTT topic.</summary>
     public required string Name { get; init; }
@@ -25,7 +26,16 @@ public sealed record DeviceEvent
     /// <summary>Process that produced the event (e.g. the tray app), if known.</summary>
     public string? Source { get; init; }
 
+    /// <summary>
+    /// The engine that should pass the event on, by its name: the button of a notification answers the Home
+    /// Assistant the notification came from, and no other. <see langword="null"/> for every engine.
+    /// </summary>
+    public string? Target { get; init; }
+
     public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Whether the engine of that name should pass the event on.</summary>
+    public bool IsFor(string engineName) => string.IsNullOrEmpty(Target) || Target == engineName;
 
     /// <summary>
     /// Whether name and value are of the shape described above. Events arrive from the tray app, which the service
@@ -34,6 +44,7 @@ public sealed record DeviceEvent
     public bool IsWellFormed =>
         Name is QuickAction or NotificationAction
         && Value.Length is > 0 and <= MaxValueLength
+        && (Target?.Length ?? 0) <= MaxTargetLength
         && !Value.AsSpan().ContainsAnyExcept(IdCharacters);
 
     private static System.Buffers.SearchValues<char> IdCharacters { get; } =

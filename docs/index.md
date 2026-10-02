@@ -17,7 +17,7 @@ HADA connects a Windows computer to [Home Assistant](https://www.home-assistant.
 
 - **A Windows service and a small tray app.** The service keeps the connection to Home Assistant and works with nobody signed in. The tray app adds what only a signed-in user's desktop can tell.
 - **Light.** About 15 MB for the service and 20 to 25 MB for the tray app. The window is a separate process that only exists while it is open.
-- **MQTT discovery.** The computer shows up in Home Assistant as a device with all its entities; nothing to write in YAML. A direct WebSocket connection works too, with [limits](home-assistant/websocket.md#limitations).
+- **MQTT discovery.** The computer shows up in Home Assistant as a device with all its entities; nothing to write in YAML. It can report to several Home Assistants at once. A direct WebSocket connection works too, with [limits](home-assistant/websocket.md#limitations).
 - **Yours to control.** Every entity has a switch. The buttons that switch the computer off stay off until you turn them on. Settings can only be changed by an administrator.
 - **x64 and ARM64**, Windows 10 (1809 or newer) and Windows 11. Polish and English.
 

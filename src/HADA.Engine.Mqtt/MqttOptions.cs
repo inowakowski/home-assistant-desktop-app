@@ -4,6 +4,17 @@ public sealed class MqttOptions
 {
     public const string SectionName = "Mqtt";
 
+    /// <summary>
+    /// Tells this server apart from the others the computer is connected to: lowercase letters and digits, given
+    /// once and never changed. The server of the <c>Mqtt</c> section has <see cref="DefaultId"/>.
+    /// </summary>
+    public string? Id { get; set; }
+
+    /// <summary>What the user calls this server, e.g. the place it is in. Shown in the window and in the log.</summary>
+    public string? Name { get; set; }
+
+    public const string DefaultId = "default";
+
     /// <summary>Broker host name or IP address. The engine stays idle while this is empty.</summary>
     public string? Host { get; set; }
 

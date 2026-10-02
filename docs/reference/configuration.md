@@ -4,7 +4,7 @@ Settings saved in the window are stored in `%ProgramData%\HADA\settings.json`:
 
 - The folder is accessible only to SYSTEM, administrators and the account running the service.
 - Passwords and tokens in the file are additionally encrypted with Windows DPAPI.
-- Each section saved from the window (MQTT, Home Assistant, entities, custom sensors and buttons, updates) replaces the same section of `appsettings.json`.
+- Each section saved from the window (the MQTT servers, Home Assistant, entities, custom sensors and buttons, updates) replaces the same section of `appsettings.json`.
 - Your personal settings (start with Windows, language, dashboard address, activity threshold) are not in that file but under `HKCU\Software\HADA`, one set per user.
 
 You can also configure the service without the window, through `appsettings.json` next to `HADA.Service.exe`:
@@ -59,7 +59,24 @@ You can also configure the service without the window, through `appsettings.json
 | `Updates:IncludePrereleases` | `false` | Whether versions marked as pre-release count as newer versions |
 | `CustomSensors:Items` | *(none)* | [Custom sensors and buttons](../features/custom-entities.md): `Name`, `Type` (`Text`, `ProcessRunning`, `PowerShell`, `DeviceConnected`, `CommandButton`, `LaunchButton`, `KeysButton` or `QuickAction`), `Value`, and optionally `Id`, `Unit` and `IntervalSeconds` |
 
-> Configure **one** engine. With both configured, every sensor appears in Home Assistant twice.
+> For each Home Assistant, configure **one** engine. With both connected to the same Home Assistant, every sensor appears there twice.
+
+### Several MQTT servers
+
+`Mqtt` describes one server. For [several Home Assistants at once](../home-assistant/mqtt.md#several-home-assistants-at-once), list them under `MqttServers:Items` instead; each takes the settings of `Mqtt`, plus a `Name`, and an `Id` that never changes (lowercase letters and digits; without one, a server is named after its place in the list):
+
+```json
+{
+  "MqttServers": {
+    "Items": [
+      { "Id": "home", "Name": "Home", "Host": "192.168.1.20", "Username": "hada" },
+      { "Id": "office", "Name": "Office", "Host": "office.example.com", "Port": 8883, "UseTls": true, "Username": "laptop" }
+    ]
+  }
+}
+```
+
+Passwords go in `MqttServers:Items:0:Password` and so on, kept out of `appsettings.json` as described under [Secrets](#secrets). Once servers are saved from the window, the saved list replaces both `MqttServers` and `Mqtt` of `appsettings.json`, down to there being none. Settings saved by a version before 1.2 hold one server; it becomes the first of the list.
 
 ## Secrets
 

@@ -4,8 +4,14 @@ Installers are on the [releases page](https://github.com/inowakowski/home-assist
 
 ## 1.2.0 (pre-release)
 
+- **Several Home Assistants at once:** any number of MQTT servers, up to eight, each with a name of its own, connected at the same time. Each has its own card on the Overview page; the buttons of a notification answer the Home Assistant that sent it.
+- **Broker names that stand for several addresses**, as `.local` names do, are tried address by address, IPv4 first, and the one that answered is remembered. The log says what a name stands for, and why a name could not be found.
+- A server that cannot be reached is mentioned in the log once, not at every retry.
 - **Portable version:** a ZIP to unpack and run, without installing and without administrator rights. It keeps everything in its own folder and can run next to an installed HADA.
 - `HADA.Tray.exe --exit` tells the running tray app to exit.
+- **Security:** the service checks who owns `%ProgramData%\HADA` before reading anything from it. A folder someone other than an administrator made is set aside instead of trusted. See [Security](reference/security.md#passwords-and-tokens).
+
+Settings saved by earlier versions are taken over: their one MQTT server becomes the first of the list, with its password. The tray app and the service of 1.2.0 work only with each other.
 
 ## 1.1.0 (pre-release)
 
