@@ -92,6 +92,7 @@ public static class ServiceHost
         builder.Services.Configure<HaWebSocketOptions>(builder.Configuration.GetSection(HaWebSocketOptions.SectionName));
         builder.Services.Configure<EntityOptions>(builder.Configuration.GetSection(EntityOptions.SectionName));
         builder.Services.Configure<CustomSensorOptions>(builder.Configuration.GetSection(CustomSensorOptions.SectionName));
+        builder.Services.Configure<UpdateOptions>(builder.Configuration.GetSection(UpdateOptions.SectionName));
 
         builder.Services.AddSingleton<TelemetryCache>();
         builder.Services.AddSingleton<EngineSupervisor>();

@@ -13,6 +13,7 @@
   <data name="Nav_Entities" xml:space="preserve"><value>Entities</value></data>
   <data name="Nav_Logs" xml:space="preserve"><value>Logs</value></data>
   <data name="Nav_CustomSensors" xml:space="preserve"><value>Custom entities</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>Settings</value></data>
 
   <data name="Common_On" xml:space="preserve"><value>On</value></data>
   <data name="Common_Off" xml:space="preserve"><value>Off</value></data>
@@ -37,13 +38,40 @@
   <data name="Update_Downloading" xml:space="preserve"><value>Downloading… {0:0} %</value></data>
   <data name="Update_Started" xml:space="preserve"><value>The installer was started; carry on in its window. HADA closes while it is being replaced.</value></data>
   <data name="Update_Failed" xml:space="preserve"><value>The download did not work: {0} You can also get the installer from the release page.</value></data>
+  <data name="Update_NotChecked" xml:space="preserve"><value>Not checked yet.</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>Checking…</value></data>
+  <data name="Update_UpToDate" xml:space="preserve"><value>This is the newest version. Checked {0:g}.</value></data>
+  <data name="Update_Found" xml:space="preserve"><value>Version {0} is available. Checked {1:g}.</value></data>
+  <data name="Update_Hidden" xml:space="preserve"><value>There is nothing to compare with: GitHub does not show HADA's releases without signing in, which is so while the repository is private. Checked {0:g}.</value></data>
+  <data name="Update_CheckFailed" xml:space="preserve"><value>The check did not work: {0}</value></data>
+  <data name="Preferences_Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="Preferences_Subtitle" xml:space="preserve"><value>Updates, and how HADA behaves for you on this computer.</value></data>
+  <data name="Preferences_Updates" xml:space="preserve"><value>Updates</value></data>
+  <data name="Preferences_InstalledVersion" xml:space="preserve"><value>Installed version: {0}</value></data>
+  <data name="Preferences_CheckNow" xml:space="preserve"><value>Check now</value></data>
+  <data name="Preferences_AutoCheck" xml:space="preserve"><value>Check for updates automatically</value></data>
+  <data name="Preferences_AutoCheckDetail" xml:space="preserve"><value>Once a day the service asks GitHub whether a newer version was released. Nothing is downloaded until you ask for it.</value></data>
+  <data name="Preferences_Prereleases" xml:space="preserve"><value>Offer test versions too</value></data>
+  <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Versions marked as pre-release (preview). So far every version of HADA is one.</value></data>
+  <data name="Preferences_LockedMessage" xml:space="preserve"><value>Changing how updates are checked requires administrator rights. Checking now, and your personal settings below, do not.</value></data>
+  <data name="Preferences_Personal" xml:space="preserve"><value>For you</value></data>
+  <data name="Preferences_PersonalDetail" xml:space="preserve"><value>These apply to your account only, take effect at once and need no administrator rights.</value></data>
+  <data name="Preferences_PersonalElevated" xml:space="preserve"><value>These are your personal settings. Change them in the HADA window opened from the tray icon, not in this administrator window.</value></data>
+  <data name="Preferences_Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Preferences_LanguageDetail" xml:space="preserve"><value>Of this window and the tray icon's menu.</value></data>
+  <data name="Preferences_LanguageRestart" xml:space="preserve"><value>The window shows the new language when it is opened again; the tray icon's menu after the tray app is restarted.</value></data>
+  <data name="Preferences_LanguageAuto" xml:space="preserve"><value>Same as Windows</value></data>
+  <data name="Preferences_Idle" xml:space="preserve"><value>Activity threshold</value></data>
+  <data name="Preferences_IdleDetail" xml:space="preserve"><value>How many seconds after the last keyboard or mouse input the "User active" sensor turns off.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Start with Windows</value></data>
-  <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors, when you sign in. The HADA service always starts with Windows.</value></data>
-  <data name="Autostart_Elevated" xml:space="preserve"><value>This is your personal setting. Change it in the HADA window opened from the tray icon, not in this administrator window.</value></data>
+  <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors and controls, when you sign in. The HADA service always starts with Windows.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>HADA service</value></data>
   <data name="Card_Mqtt" xml:space="preserve"><value>MQTT</value></data>
   <data name="Card_HomeAssistant" xml:space="preserve"><value>Home Assistant (WebSocket)</value></data>
   <data name="Card_Tray" xml:space="preserve"><value>Session sensors</value></data>
+  <data name="Card_OpenLogs" xml:space="preserve"><value>Open the logs</value></data>
+  <data name="Card_OpenConnections" xml:space="preserve"><value>Open the connection settings</value></data>
+  <data name="Card_OpenEntities" xml:space="preserve"><value>Open the entities</value></data>
   <data name="Status_Running" xml:space="preserve"><value>Running</value></data>
   <data name="Status_NotRunning" xml:space="preserve"><value>Not running</value></data>
   <data name="Status_NotRunningDetail" xml:space="preserve"><value>Start the HADA service to see live data.</value></data>
@@ -126,7 +154,7 @@
   <data name="EntityHint_lock_screen" xml:space="preserve"><value>Lets Home Assistant lock this computer.</value></data>
   <data name="EntityHint_display_on" xml:space="preserve"><value>On while the screen is on, including when it is dimmed.</value></data>
   <data name="EntityHint_session_locked" xml:space="preserve"><value>On while Windows is locked or showing the sign-in screen.</value></data>
-  <data name="EntityHint_user_active" xml:space="preserve"><value>On when the keyboard or mouse was used in the last 60 seconds.</value></data>
+  <data name="EntityHint_user_active" xml:space="preserve"><value>On when the keyboard or mouse was used lately: within the last minute, or the time you set on the Settings page.</value></data>
   <data name="EntityHint_microphone_in_use" xml:space="preserve"><value>On while an app is using the microphone. The app names are sent as an attribute.</value></data>
   <data name="EntityHint_microphone_muted" xml:space="preserve"><value>On while the microphone is muted in Windows. Muting inside a call app only is not seen.</value></data>
   <data name="EntityHint_external_display" xml:space="preserve"><value>On while a monitor other than the built-in one is connected. A monitor without power is not seen; to know whether the computer is docked, add a "Device is connected" custom sensor for the dock.</value></data>
@@ -138,7 +166,7 @@
   <data name="EntityHint_audio_device" xml:space="preserve"><value>The name of the default playback device, so an automation can tell headphones from speakers. The default microphone is an attribute.</value></data>
   <data name="EntityHint_do_not_disturb" xml:space="preserve"><value>On while Windows holds notifications back (Do not disturb).</value></data>
   <data name="EntityHint_media_playback" xml:space="preserve"><value>Whether media is playing. Sends the title, artist, album and app as attributes.</value></data>
-  <data name="EntityHint_update_available" xml:space="preserve"><value>On when a newer HADA was released. To find out, the service asks GitHub once a day; switching this off stops that.</value></data>
+  <data name="EntityHint_update_available" xml:space="preserve"><value>On when a newer HADA was released. The service asks GitHub once a day, unless that is turned off on the Settings page.</value></data>
   <data name="EntityHint_sleep" xml:space="preserve"><value>Lets Home Assistant put this computer to sleep. Off until you turn it on.</value></data>
   <data name="EntityHint_hibernate" xml:space="preserve"><value>Lets Home Assistant hibernate this computer. Off until you turn it on.</value></data>
   <data name="EntityHint_shutdown" xml:space="preserve"><value>Lets Home Assistant shut this computer down. Apps with unsaved work can still object. Off until you turn it on.</value></data>

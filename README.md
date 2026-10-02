@@ -21,7 +21,7 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 | `lid_open` | binary sensor | Service | Only on computers with a battery. Reported the moment it changes |
 | `update_available` | binary sensor | Service | On when a newer HADA was released; the Overview page then offers to download and install it. `installed_version`, `latest_version` and `release_url` are attributes. See [Updates](#updates) |
 | `active_window` | sensor | Tray | Title of the focused window. The process name is an attribute |
-| `user_active` | binary sensor | Tray | On when the keyboard or mouse was used in the last 60 seconds |
+| `user_active` | binary sensor | Tray | On when the keyboard or mouse was used in the last 60 seconds. Each user can change that time on the **Settings** page |
 | `audio_volume` | sensor (%) | Tray | Default playback device volume. `muted` is an attribute |
 | `audio_device` | sensor | Tray | Name of the default playback device, e.g. to tell headphones from speakers. The default microphone is the `microphone` attribute |
 | `media_playback` | sensor | Tray | `playing`, `paused`, `stopped` or `idle`: what Windows' own media controls show. `title`, `artist`, `album` and `app` are attributes |
@@ -129,16 +129,20 @@ Every signed-in user's tray app connects to the service, and they all offer the 
 
 ## Updates
 
-Once a day the service asks GitHub whether a newer HADA was released: one request to `api.github.com`, which carries the installed version and nothing else. If there is one, `update_available` turns on and the **Overview** page shows it, with two buttons:
+Once a day the service asks GitHub whether a newer HADA was released: one request to `api.github.com`, which carries the installed version and nothing else. If there is one, `update_available` turns on and the **Overview** and **Settings** pages show it, with two buttons:
 
 - **What is new** opens the release page in your browser.
 - **Download and install** downloads the installer for this computer (x64 or ARM64) to `%LocalAppData%\HADA\updates`, compares it with the checksum published with the release, and starts it. From there it is the ordinary installer: you click through it, and Windows asks for administrator rights. A download that does not match its checksum is deleted and not started.
 
 Nothing is downloaded or installed unless you press that button. It is offered in the window opened from the tray icon, not in the administrator window opened with **Unlock editing**: an installer started from there would run as administrator throughout, and so would the tray app it starts at the end.
 
-Switching `update_available` off on the **Entities** page also stops the daily request.
+On the **Settings** page:
 
-The check sees only what GitHub shows without signing in. While the repository is private there is nothing to compare with, and `update_available` stays off.
+- **Check now** asks GitHub at once and says what it found. Anyone signed in may use it; pressing it again within half a minute repeats the last answer instead of asking again.
+- **Check for updates automatically** turns the daily request off or on. **Check now** works either way.
+- **Offer test versions too** decides whether versions marked as pre-release count. So far every version of HADA is one, so with this off nothing is offered.
+
+The check sees only what GitHub shows without signing in. While the repository is private there is nothing to compare with; **Check now** says so, and `update_available` stays off.
 
 The checksum protects against a damaged or incomplete download. It is not a signature: it comes from the same place as the installer, so it cannot prove who built it.
 
@@ -194,14 +198,15 @@ dotnet test
 
 ## The settings window
 
-Open it by double-clicking the HADA tray icon, or choose **Open HADA** from its menu. Starting `HADA.Tray.exe` again while it is already running also brings the window up. The window follows the Windows light or dark theme, and shows Polish text when Windows' display language is Polish, English otherwise.
+Open it by double-clicking the HADA tray icon, or choose **Open HADA** from its menu. Starting `HADA.Tray.exe` again while it is already running also brings the window up. The window follows the Windows light or dark theme, and shows Polish text when Windows' display language is Polish, English otherwise, unless you choose a language on the **Settings** page.
 
 | Page | What it shows |
 |---|---|
-| **Overview** | Whether the service is running, the state of both connections, whether the tray is connected, the **Start with Windows** switch, a notice when a newer version is available, and every entity with its latest value |
+| **Overview** | Whether the service is running, the state of both connections and whether the tray is connected, a notice when a newer version is available, and every entity with its latest value. Each status card is a button: the service's opens **Logs**, the connections' open their settings on **Connections**, the tray's opens **Entities** |
 | **Connections** | MQTT and Home Assistant settings, each with a **Test connection** button |
 | **Entities** | A switch per entity to choose what is shared with Home Assistant and what Home Assistant may do. Disabled entities are removed from Home Assistant. The power buttons start switched off |
 | **Custom entities** | Your own sensors (a fixed text, whether a program is running or a device is connected, the output of a PowerShell command) and buttons (run a PowerShell command, start a program) |
+| **Settings** | [Updates](#updates): the installed version, **Check now**, and whether to check by itself. And three settings of your own, which need no administrator rights: **Start with Windows**, the language of the window (Polish, English, or as Windows), and how long without input until `user_active` turns off |
 | **Logs** | Recent service log entries, filterable by level, with copy to clipboard |
 
 **Changing settings requires administrator rights.** Anyone signed in can see status and logs, but the pages are read-only until you choose **Unlock editing**. That reopens the window as administrator (a UAC prompt). The service checks this itself, so a non-elevated client cannot save settings or run connection tests.
@@ -214,7 +219,8 @@ Settings saved in the window are stored in `%ProgramData%\HADA\settings.json`:
 
 - The folder is accessible only to SYSTEM, administrators and the account running the service.
 - Passwords and tokens in the file are additionally encrypted with Windows DPAPI.
-- Each section saved from the window (MQTT, Home Assistant, entities, custom sensors and buttons) replaces the same section of `appsettings.json`.
+- Each section saved from the window (MQTT, Home Assistant, entities, custom sensors and buttons, updates) replaces the same section of `appsettings.json`.
+- Your personal settings (start with Windows, language, activity threshold) are not in that file but under `HKCU\Software\HADA`, one set per user.
 
 You can also configure the service without the window, through `appsettings.json` next to `HADA.Service.exe`:
 
@@ -263,6 +269,8 @@ You can also configure the service without the window, through `appsettings.json
 | `*:DeviceName` | machine name | Device and friendly-name prefix shown in Home Assistant |
 | `Entities:Disabled` | *(none)* | Entity IDs not shared with Home Assistant |
 | `Entities:Enabled` | *(none)* | IDs of the entities that are off unless listed here: `sleep`, `hibernate`, `shutdown`, `restart` |
+| `Updates:CheckAutomatically` | `true` | Whether the service asks GitHub for a newer version once a day |
+| `Updates:IncludePrereleases` | `true` | Whether versions marked as pre-release count as newer versions |
 | `CustomSensors:Items` | *(none)* | [Custom sensors and buttons](#custom-sensors-and-buttons): `Name`, `Type` (`Text`, `ProcessRunning`, `PowerShell`, `DeviceConnected`, `CommandButton` or `LaunchButton`), `Value`, and optionally `Id`, `Unit` and `IntervalSeconds` |
 
 > Configure **one** engine. With both configured, every sensor appears in Home Assistant twice.
@@ -315,7 +323,7 @@ Tray command-line options:
 |---|---|
 | `--background` | Start without opening the window, e.g. at sign-in |
 | `--autostart` | Marks a start made by Windows at sign-in. The tray exits again if the user turned **Start with Windows** off |
-| `--page overview\|connections\|entities\|custom\|logs` | Open the window on a specific page (`custom` is **Custom entities**) |
+| `--page overview\|connections\|entities\|custom\|settings\|logs` | Open the window on a specific page (`custom` is **Custom entities**) |
 | `--settings` | Run as the window, without tray icon or sensors. This is how the tray opens the window, and how **Unlock editing** reopens it as administrator |
 
 ## Installing
@@ -334,7 +342,7 @@ Double-click the installer that matches the computer and follow the three pages.
 
 - copies HADA to `C:\Program Files\HADA`
 - registers the `HADA` service (LocalSystem, starts with Windows, restarts a minute after a crash) and starts it
-- starts the tray app at sign-in for every user, and adds **HADA** to the Start menu. Each user can turn this off with **Start with Windows** on the Overview page; the service itself always starts with Windows
+- starts the tray app at sign-in for every user, and adds **HADA** to the Start menu. Each user can turn this off with **Start with Windows** on the Settings page; the service itself always starts with Windows
 - offers to open the HADA window on the last page, where you choose **Unlock editing** and set up a connection
 
 To update, run a newer installer, or use **Download and install** on the Overview page when it offers a newer version; either replaces the old version and keeps the settings. To remove HADA, use **Settings → Apps → Installed apps**. Settings and logs in `%ProgramData%\HADA` are left in place; delete that folder to forget them.
@@ -605,7 +613,7 @@ Start with the **Logs** page, or `%ProgramData%\HADA\logs\service.log`.
 - **Control API:** any local interactive user can read status, non-secret settings and logs. Saving settings and testing connections require an elevated administrator, because a connection test may send a saved password to the address being tested.
 - **Commands:** anyone in Home Assistant who can press a button, publish to a command topic or fire the command event can do what the enabled entities allow: lock the PC, change the volume, turn the screen off, show a notification, press a custom button. Shutting down, restarting, sleeping and hibernating are possible only after an administrator switched those buttons on. A command carries nothing but a value the entity accepts: `on` or `off`, a number in range, or a message; never a program or command line.
 - **Custom buttons:** what a button runs is fixed in settings, which only an elevated administrator can change. PowerShell buttons run with the service's rights (SYSTEM when installed); program buttons run as the signed-in user. The tray starts programs only when the service asks it to, and talks to the service only through a pipe created by SYSTEM, an administrator or the user themself.
-- **Updates:** the daily update check, and a download you start yourself, are the only connections HADA makes to anything other than your broker or Home Assistant. The installer is fetched over HTTPS from this project's releases only, and the file cannot be replaced between the checksum check and the installer starting. See [Updates](#updates).
+- **Updates:** the update check, daily or when someone presses **Check now**, and a download you start yourself, are the only connections HADA makes to anything other than your broker or Home Assistant. The installer is fetched over HTTPS from this project's releases only, and the file cannot be replaced between the checksum check and the installer starting. See [Updates](#updates).
 - **Running the service from a console:** a development copy started by an account other than SYSTEM does not change the permissions of an existing `%ProgramData%\HADA`; only the installed service protects that folder. When it creates the folder, or saves settings, it does add its own account, as the service account needs access.
 - **Custom PowerShell sensors and buttons:** their commands run with the service's rights, which is SYSTEM when installed. Only an elevated administrator can define them, in the window or in `appsettings.json`, and an administrator can already run anything as SYSTEM, so this grants nothing new. Still, treat `%ProgramData%\HADA\settings.json` and `appsettings.json` as files that can run code.
 

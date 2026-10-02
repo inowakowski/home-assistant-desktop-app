@@ -72,6 +72,18 @@ public sealed class IpcControlTests : IAsyncDisposable
         Assert.Equal("broker.local", settings.Mqtt.Host);
         Assert.Equal(FakeServiceControl.CustomSensor, Assert.Single(settings.CustomSensors));
         Assert.Equal("hello", Assert.Single(logs).Message);
+        Assert.False(settings.Updates.IncludePrereleases);
+    }
+
+    [Fact]
+    public async Task Looking_for_an_update_needs_no_elevation()
+    {
+        await _server.StartAsync(CancellationToken.None);
+
+        var result = await _client.CheckForUpdateAsync();
+
+        Assert.Equal(UpdateCheckOutcome.UpdateAvailable, result.Outcome);
+        Assert.Equal("9.9.9", result.LatestVersion);
     }
 
     [Fact]
@@ -79,7 +91,7 @@ public sealed class IpcControlTests : IAsyncDisposable
     {
         await _server.StartAsync(CancellationToken.None);
         var update = new SettingsUpdate(
-            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], []);
+            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
 
         if (IsElevatedAdministrator())
         {
@@ -143,7 +155,7 @@ public sealed class IpcControlTests : IAsyncDisposable
                 [.. registry.Entities.Select(entity => new EntityStatus(entity, true, "service", null, null))]));
 
         public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor], []));
+            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor], [], new UpdateSettings(IncludePrereleases: false)));
 
         public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
         {
@@ -159,5 +171,8 @@ public sealed class IpcControlTests : IAsyncDisposable
 
         public IReadOnlyList<LogEntry> GetLogs(long afterSequence, int maxCount) =>
             [new LogEntry(1, DateTimeOffset.Now, LogLevel.Information, "Test", "hello", null)];
+
+        public Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(new UpdateCheckResult(UpdateCheckOutcome.UpdateAvailable, DateTimeOffset.Now, "9.9.9", "https://example.com/v9.9.9"));
     }
 }

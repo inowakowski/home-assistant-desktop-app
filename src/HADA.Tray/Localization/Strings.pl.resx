@@ -13,6 +13,7 @@
   <data name="Nav_Entities" xml:space="preserve"><value>Encje</value></data>
   <data name="Nav_Logs" xml:space="preserve"><value>Logi</value></data>
   <data name="Nav_CustomSensors" xml:space="preserve"><value>Własne encje</value></data>
+  <data name="Nav_Settings" xml:space="preserve"><value>Ustawienia</value></data>
 
   <data name="Common_On" xml:space="preserve"><value>Wł.</value></data>
   <data name="Common_Off" xml:space="preserve"><value>Wył.</value></data>
@@ -37,13 +38,40 @@
   <data name="Update_Downloading" xml:space="preserve"><value>Pobieranie… {0:0}%</value></data>
   <data name="Update_Started" xml:space="preserve"><value>Instalator został uruchomiony; dokończ w jego oknie. HADA zamknie się na czas wymiany plików.</value></data>
   <data name="Update_Failed" xml:space="preserve"><value>Pobieranie nie powiodło się: {0} Instalator możesz też pobrać ze strony wydania.</value></data>
+  <data name="Update_NotChecked" xml:space="preserve"><value>Jeszcze nie sprawdzano.</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>Sprawdzanie…</value></data>
+  <data name="Update_UpToDate" xml:space="preserve"><value>Masz najnowszą wersję. Sprawdzono {0:g}.</value></data>
+  <data name="Update_Found" xml:space="preserve"><value>Dostępna jest wersja {0}. Sprawdzono {1:g}.</value></data>
+  <data name="Update_Hidden" xml:space="preserve"><value>Nie ma z czym porównać: GitHub nie pokazuje wydań HADA bez logowania, a tak jest, dopóki repozytorium jest prywatne. Sprawdzono {0:g}.</value></data>
+  <data name="Update_CheckFailed" xml:space="preserve"><value>Sprawdzanie nie powiodło się: {0}</value></data>
+  <data name="Preferences_Title" xml:space="preserve"><value>Ustawienia</value></data>
+  <data name="Preferences_Subtitle" xml:space="preserve"><value>Aktualizacje oraz to, jak HADA zachowuje się u Ciebie na tym komputerze.</value></data>
+  <data name="Preferences_Updates" xml:space="preserve"><value>Aktualizacje</value></data>
+  <data name="Preferences_InstalledVersion" xml:space="preserve"><value>Zainstalowana wersja: {0}</value></data>
+  <data name="Preferences_CheckNow" xml:space="preserve"><value>Sprawdź teraz</value></data>
+  <data name="Preferences_AutoCheck" xml:space="preserve"><value>Sprawdzaj aktualizacje automatycznie</value></data>
+  <data name="Preferences_AutoCheckDetail" xml:space="preserve"><value>Raz dziennie usługa pyta GitHub, czy wydano nowszą wersję. Nic nie jest pobierane, dopóki o to nie poprosisz.</value></data>
+  <data name="Preferences_Prereleases" xml:space="preserve"><value>Proponuj także wersje testowe</value></data>
+  <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Wersje oznaczone jako pre-release (preview). Na razie każda wersja HADA jest taka.</value></data>
+  <data name="Preferences_LockedMessage" xml:space="preserve"><value>Zmiana sposobu sprawdzania aktualizacji wymaga uprawnień administratora. Samo sprawdzenie i Twoje ustawienia osobiste poniżej – nie.</value></data>
+  <data name="Preferences_Personal" xml:space="preserve"><value>Dla Ciebie</value></data>
+  <data name="Preferences_PersonalDetail" xml:space="preserve"><value>Dotyczą tylko Twojego konta, działają od razu i nie wymagają uprawnień administratora.</value></data>
+  <data name="Preferences_PersonalElevated" xml:space="preserve"><value>To Twoje ustawienia osobiste. Zmień je w oknie HADA otwartym z ikony w zasobniku, a nie w tym oknie administratora.</value></data>
+  <data name="Preferences_Language" xml:space="preserve"><value>Język</value></data>
+  <data name="Preferences_LanguageDetail" xml:space="preserve"><value>Tego okna i menu ikony w zasobniku.</value></data>
+  <data name="Preferences_LanguageRestart" xml:space="preserve"><value>Okno pokaże nowy język po ponownym otwarciu, a menu ikony w zasobniku po ponownym uruchomieniu aplikacji Tray.</value></data>
+  <data name="Preferences_LanguageAuto" xml:space="preserve"><value>Zgodnie z Windows</value></data>
+  <data name="Preferences_Idle" xml:space="preserve"><value>Próg aktywności</value></data>
+  <data name="Preferences_IdleDetail" xml:space="preserve"><value>Po ilu sekundach od ostatniego użycia klawiatury lub myszy sensor „User active” się wyłącza.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Uruchamiaj z systemem Windows</value></data>
-  <data name="Autostart_Detail" xml:space="preserve"><value>Uruchamia aplikację Tray, a z nią sensory sesji, po zalogowaniu. Usługa HADA zawsze startuje razem z Windows.</value></data>
-  <data name="Autostart_Elevated" xml:space="preserve"><value>To ustawienie osobiste. Zmień je w oknie HADA otwartym z ikony w zasobniku, a nie w tym oknie administratora.</value></data>
+  <data name="Autostart_Detail" xml:space="preserve"><value>Uruchamia aplikację Tray, a z nią sensory i sterowanie sesji, po zalogowaniu. Usługa HADA zawsze startuje razem z Windows.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>Usługa HADA</value></data>
   <data name="Card_Mqtt" xml:space="preserve"><value>MQTT</value></data>
   <data name="Card_HomeAssistant" xml:space="preserve"><value>Home Assistant (WebSocket)</value></data>
   <data name="Card_Tray" xml:space="preserve"><value>Sensory sesji</value></data>
+  <data name="Card_OpenLogs" xml:space="preserve"><value>Otwórz logi</value></data>
+  <data name="Card_OpenConnections" xml:space="preserve"><value>Otwórz ustawienia połączeń</value></data>
+  <data name="Card_OpenEntities" xml:space="preserve"><value>Otwórz encje</value></data>
   <data name="Status_Running" xml:space="preserve"><value>Działa</value></data>
   <data name="Status_NotRunning" xml:space="preserve"><value>Nie działa</value></data>
   <data name="Status_NotRunningDetail" xml:space="preserve"><value>Uruchom usługę HADA, aby zobaczyć bieżące dane.</value></data>
@@ -126,7 +154,7 @@
   <data name="EntityHint_lock_screen" xml:space="preserve"><value>Pozwala Home Assistant zablokować ten komputer.</value></data>
   <data name="EntityHint_display_on" xml:space="preserve"><value>Włączony, gdy ekran jest włączony, także gdy jest przyciemniony.</value></data>
   <data name="EntityHint_session_locked" xml:space="preserve"><value>Włączony, gdy Windows jest zablokowany lub pokazuje ekran logowania.</value></data>
-  <data name="EntityHint_user_active" xml:space="preserve"><value>Włączony, gdy w ciągu ostatnich 60 sekund użyto klawiatury lub myszy.</value></data>
+  <data name="EntityHint_user_active" xml:space="preserve"><value>Włączony, gdy niedawno użyto klawiatury lub myszy: w ciągu ostatniej minuty albo czasu ustawionego na stronie Ustawienia.</value></data>
   <data name="EntityHint_microphone_in_use" xml:space="preserve"><value>Włączony, gdy jakaś aplikacja używa mikrofonu. Nazwy aplikacji są wysyłane jako atrybut.</value></data>
   <data name="EntityHint_microphone_muted" xml:space="preserve"><value>Włączony, gdy mikrofon jest wyciszony w Windows. Wyciszenie tylko w aplikacji do rozmów nie jest widoczne.</value></data>
   <data name="EntityHint_external_display" xml:space="preserve"><value>Włączony, gdy podłączony jest monitor inny niż wbudowany. Monitor bez zasilania nie jest widoczny; aby wiedzieć, czy komputer jest w stacji dokującej, dodaj własny sensor „Urządzenie jest podłączone” dla stacji.</value></data>
@@ -138,7 +166,7 @@
   <data name="EntityHint_audio_device" xml:space="preserve"><value>Nazwa domyślnego urządzenia odtwarzającego, dzięki czemu automatyzacja odróżni słuchawki od głośników. Domyślny mikrofon jest atrybutem.</value></data>
   <data name="EntityHint_do_not_disturb" xml:space="preserve"><value>Włączony, gdy Windows wstrzymuje powiadomienia (Nie przeszkadzać).</value></data>
   <data name="EntityHint_media_playback" xml:space="preserve"><value>Informuje, czy coś jest odtwarzane. Wysyła tytuł, wykonawcę, album i aplikację jako atrybuty.</value></data>
-  <data name="EntityHint_update_available" xml:space="preserve"><value>Włączony, gdy wydano nowszą wersję HADA. Aby to sprawdzić, usługa raz dziennie pyta GitHub; wyłączenie tej encji to zatrzymuje.</value></data>
+  <data name="EntityHint_update_available" xml:space="preserve"><value>Włączony, gdy wydano nowszą wersję HADA. Usługa raz dziennie pyta GitHub, chyba że wyłączysz to na stronie Ustawienia.</value></data>
   <data name="EntityHint_sleep" xml:space="preserve"><value>Pozwala Home Assistant uśpić ten komputer. Wyłączony, dopóki go nie włączysz.</value></data>
   <data name="EntityHint_hibernate" xml:space="preserve"><value>Pozwala Home Assistant zahibernować ten komputer. Wyłączony, dopóki go nie włączysz.</value></data>
   <data name="EntityHint_shutdown" xml:space="preserve"><value>Pozwala Home Assistant wyłączyć ten komputer. Aplikacje z niezapisaną pracą nadal mogą się sprzeciwić. Wyłączony, dopóki go nie włączysz.</value></data>

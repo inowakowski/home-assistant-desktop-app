@@ -23,6 +23,21 @@ public class UpdateTests
         Assert.Equal((new Version(0, 10, 1), "https://example.com/v0.10.1"), latest);
     }
 
+    [Fact]
+    public void Test_versions_can_be_left_out()
+    {
+        const string Json = """
+            [
+              { "tag_name": "v0.5.0", "html_url": "https://example.com/v0.5.0", "draft": false, "prerelease": true },
+              { "tag_name": "v0.4.0", "html_url": "https://example.com/v0.4.0", "draft": false, "prerelease": false }
+            ]
+            """;
+
+        Assert.Equal(new Version(0, 5, 0), ReleaseFeed.FindLatest(Json)?.Version);
+        Assert.Equal(new Version(0, 4, 0), ReleaseFeed.FindLatest(Json, includePrereleases: false)?.Version);
+        Assert.Null(ReleaseFeed.FindLatest(Json.Replace("\"prerelease\": false", "\"prerelease\": true"), includePrereleases: false));
+    }
+
     [Theory]
     [InlineData("[]")]
     [InlineData("""{ "message": "API rate limit exceeded" }""")]

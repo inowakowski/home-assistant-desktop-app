@@ -1,4 +1,5 @@
 using System.Globalization;
+using HADA.Ipc;
 
 namespace HADA.Service.Settings;
 
@@ -78,6 +79,12 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
                 data[prefix + nameof(sensor.Unit)] = sensor.Unit;
                 data[prefix + nameof(sensor.IntervalSeconds)] = sensor.IntervalSeconds.ToString(CultureInfo.InvariantCulture);
             }
+        }
+
+        if (settings.Updates is { } updates)
+        {
+            data[$"{UpdateOptions.SectionName}:{nameof(UpdateOptions.CheckAutomatically)}"] = updates.CheckAutomatically ? "true" : "false";
+            data[$"{UpdateOptions.SectionName}:{nameof(UpdateOptions.IncludePrereleases)}"] = updates.IncludePrereleases ? "true" : "false";
         }
 
         return data;

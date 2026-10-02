@@ -12,7 +12,8 @@ public class ServiceControlValidationTests
         SecretUpdate.Unchanged,
         [],
         [ProcessSensor],
-        []);
+        [],
+        new UpdateSettings());
 
     private static CustomSensorDefinition ProcessSensor => new()
     {

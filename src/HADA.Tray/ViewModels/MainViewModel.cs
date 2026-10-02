@@ -23,7 +23,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _client = client;
         IsElevated = isElevated;
         WindowTitle = Loc.Get(isElevated ? "App_TitleElevated" : "App_Title");
-        Overview = new OverviewViewModel(isElevated);
+        Overview = new OverviewViewModel(target => NavigationRequested?.Invoke(target));
+        Updates = new UpdateViewModel(client, isElevated);
+        Preferences = new PreferencesViewModel(isElevated);
         Settings = new SettingsViewModel(client, isElevated);
         Entities = new EntitiesViewModel(Settings);
         Logs = new LogsViewModel(client);
@@ -51,7 +53,17 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         private set => SetProperty(ref _isServiceReachable, value);
     }
 
+    /// <summary>
+    /// Asks the window to show a page, optionally at one of its sections: <c>connections</c>,
+    /// <c>connections#ha</c>, <c>entities</c>, <c>logs</c>.
+    /// </summary>
+    public event Action<string>? NavigationRequested;
+
     public OverviewViewModel Overview { get; }
+
+    public UpdateViewModel Updates { get; }
+
+    public PreferencesViewModel Preferences { get; }
 
     public SettingsViewModel Settings { get; }
 
@@ -86,6 +98,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
             var status = await _client.GetStatusAsync();
             IsServiceReachable = true;
             Overview.Update(status);
+            Updates.Update(status);
             Entities.Update(status);
             Logs.OnServiceStarted(status.StartedAt);
 

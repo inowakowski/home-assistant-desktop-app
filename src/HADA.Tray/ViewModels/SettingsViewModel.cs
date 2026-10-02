@@ -9,7 +9,7 @@ using Wpf.Ui.Controls;
 namespace HADA.Tray.ViewModels;
 
 /// <summary>
-/// Editable copy of the service's settings, shared by the Connections and Entities pages so one save covers both.
+/// Editable copy of the service's settings, shared by every page that edits them, so one save covers them all.
 /// Secrets are never shown: an empty password or token field keeps the saved value.
 /// </summary>
 public sealed class SettingsViewModel : ObservableObject
@@ -48,6 +48,8 @@ public sealed class SettingsViewModel : ObservableObject
     private string _homeAssistantDeviceId = string.Empty;
     private string _homeAssistantDeviceName = string.Empty;
     private string _commandEventType = "hada_command";
+    private bool _checkUpdatesAutomatically = true;
+    private bool _includePrereleases = true;
 
     public SettingsViewModel(ServiceControlClient client, bool isElevated)
     {
@@ -155,6 +157,10 @@ public sealed class SettingsViewModel : ObservableObject
     public string HomeAssistantDeviceName { get => _homeAssistantDeviceName; set => SetSetting(ref _homeAssistantDeviceName, value); }
 
     public string CommandEventType { get => _commandEventType; set => SetSetting(ref _commandEventType, value); }
+
+    public bool CheckUpdatesAutomatically { get => _checkUpdatesAutomatically; set => SetSetting(ref _checkUpdatesAutomatically, value); }
+
+    public bool IncludePrereleases { get => _includePrereleases; set => SetSetting(ref _includePrereleases, value); }
 
     public ICommand SaveCommand => _saveCommand;
 
@@ -297,6 +303,8 @@ public sealed class SettingsViewModel : ObservableObject
             _disabledEntities.UnionWith(snapshot.DisabledEntities);
             _enabledEntities.Clear();
             _enabledEntities.UnionWith(snapshot.EnabledEntities);
+            CheckUpdatesAutomatically = snapshot.Updates.CheckAutomatically;
+            IncludePrereleases = snapshot.Updates.IncludePrereleases;
             CustomSensors.Clear();
             foreach (var sensor in snapshot.CustomSensors)
             {
@@ -340,7 +348,8 @@ public sealed class SettingsViewModel : ObservableObject
         SecretUpdateFor(AccessToken, ClearAccessToken),
         [.. _disabledEntities.Order(StringComparer.Ordinal)],
         [.. PendingCustomSensors()],
-        [.. _enabledEntities.Order(StringComparer.Ordinal)]);
+        [.. _enabledEntities.Order(StringComparer.Ordinal)],
+        new UpdateSettings(CheckUpdatesAutomatically, IncludePrereleases));
 
     /// <summary>The custom sensors as they would be saved. A row nothing was typed into is not a sensor yet.</summary>
     private IEnumerable<CustomSensorDefinition> PendingCustomSensors() =>
@@ -468,6 +477,7 @@ public sealed class SettingsViewModel : ObservableObject
         && update.AccessToken.Change == SecretChange.Keep
         && update.DisabledEntities.SequenceEqual(snapshot.DisabledEntities.Order(StringComparer.Ordinal))
         && update.EnabledEntities.SequenceEqual(snapshot.EnabledEntities.Order(StringComparer.Ordinal))
+        && update.Updates == snapshot.Updates
         && update.CustomSensors.SequenceEqual(snapshot.CustomSensors);
 
     private void SetTesting(ConnectionTarget target, bool isTesting)

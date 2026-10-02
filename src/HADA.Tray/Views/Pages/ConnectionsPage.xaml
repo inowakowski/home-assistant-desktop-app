@@ -65,7 +65,10 @@
 
             <StackPanel DataContext="{Binding Settings}">
                 <!--  MQTT  -->
-                <ui:Card Margin="0,0,0,12" Padding="20">
+                <ui:Card
+                    x:Name="MqttCard"
+                    Margin="0,0,0,12"
+                    Padding="20">
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -248,7 +251,10 @@
                 </ui:Card>
 
                 <!--  Home Assistant WebSocket  -->
-                <ui:Card Margin="0,0,0,12" Padding="20">
+                <ui:Card
+                    x:Name="HomeAssistantCard"
+                    Margin="0,0,0,12"
+                    Padding="20">
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>

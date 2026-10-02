@@ -41,6 +41,10 @@ public sealed class ServiceControlClient(IpcOptions? options = null) : IAsyncDis
     public async Task<IReadOnlyList<LogEntry>> GetLogsAsync(long afterSequence, CancellationToken cancellationToken = default) =>
         Expect<LogsResponse>(await SendAsync(new GetLogsRequest(Guid.NewGuid(), afterSequence), cancellationToken).ConfigureAwait(false)).Entries;
 
+    /// <summary>Makes the service look for a newer version now; the answer is also part of the status from then on.</summary>
+    public async Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken = default) =>
+        Expect<UpdateCheckResponse>(await SendAsync(new CheckForUpdateRequest(Guid.NewGuid()), cancellationToken).ConfigureAwait(false)).Result;
+
     public async ValueTask DisposeAsync()
     {
         _disposed = true;

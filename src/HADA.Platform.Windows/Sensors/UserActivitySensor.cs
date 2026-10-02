@@ -6,17 +6,22 @@ using Microsoft.Extensions.Hosting;
 namespace HADA.Platform.Windows.Sensors;
 
 /// <summary>
-/// Publishes whether someone used the keyboard or mouse in the last minute. Must run in the user's session (the tray app).
+/// Publishes whether someone used the keyboard or mouse lately: within the last minute, unless the user chose
+/// another threshold. Must run in the user's session (the tray app).
 /// </summary>
 /// <remarks>
-/// A short, fixed window keeps the sensor responsive; "idle for 10 minutes" is better expressed in Home Assistant
+/// A short window keeps the sensor responsive; "idle for 10 minutes" can also be expressed in Home Assistant
 /// with a <c>for:</c> condition on the off state.
 /// </remarks>
-public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+/// <param name="activeWindow">
+/// How long after the last input the user still counts as active. Asked on every reading, so a changed setting
+/// takes effect at once.
+/// </param>
+public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, Func<TimeSpan>? activeWindow = null) : BackgroundService
 {
     public const string EntityId = "user_active";
 
-    public static readonly TimeSpan ActiveWindow = TimeSpan.FromSeconds(60);
+    public static readonly TimeSpan DefaultActiveWindow = TimeSpan.FromSeconds(60);
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 
@@ -38,7 +43,8 @@ public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry) 
         {
             if (UserInput.TryReadIdleTime() is { } idle)
             {
-                await publisher.PublishAsync(EntityId, BinaryState.From(idle < ActiveWindow), cancellationToken: stoppingToken);
+                await publisher.PublishAsync(
+                    EntityId, BinaryState.From(idle < (activeWindow?.Invoke() ?? DefaultActiveWindow)), cancellationToken: stoppingToken);
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));

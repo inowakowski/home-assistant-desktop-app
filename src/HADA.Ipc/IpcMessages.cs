@@ -18,6 +18,8 @@ namespace HADA.Ipc;
 [JsonDerivedType(typeof(OperationResponse), "operation")]
 [JsonDerivedType(typeof(GetLogsRequest), "getLogs")]
 [JsonDerivedType(typeof(LogsResponse), "logs")]
+[JsonDerivedType(typeof(CheckForUpdateRequest), "checkForUpdate")]
+[JsonDerivedType(typeof(UpdateCheckResponse), "updateCheck")]
 [JsonDerivedType(typeof(ErrorResponse), "error")]
 public abstract record IpcMessage;
 
@@ -59,6 +61,11 @@ public sealed record OperationResponse(Guid RequestId, OperationResult Result) :
 public sealed record GetLogsRequest(Guid RequestId, long AfterSequence) : IpcRequest(RequestId);
 
 public sealed record LogsResponse(Guid RequestId, IReadOnlyList<LogEntry> Entries) : IpcResponse(RequestId);
+
+/// <summary>Asks the service to look for a newer version now. Needs no administrator rights.</summary>
+public sealed record CheckForUpdateRequest(Guid RequestId) : IpcRequest(RequestId);
+
+public sealed record UpdateCheckResponse(Guid RequestId, UpdateCheckResult Result) : IpcResponse(RequestId);
 
 public enum IpcError
 {

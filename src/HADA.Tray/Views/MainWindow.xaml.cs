@@ -11,6 +11,7 @@ public partial class MainWindow : FluentWindow
 {
     private readonly MainViewModel _viewModel;
     private readonly Type _initialPage;
+    private readonly PageProvider _pages;
 
     /// <param name="initialPage">Page to open first; the overview when <see langword="null"/>.</param>
     public MainWindow(MainViewModel viewModel, Type? initialPage = null)
@@ -20,7 +21,9 @@ public partial class MainWindow : FluentWindow
         CurrentPage = _initialPage;
         DataContext = viewModel;
         InitializeComponent();
-        Navigation.SetPageProviderService(new PageProvider(viewModel, page => CurrentPage = page));
+        _pages = new PageProvider(viewModel, page => CurrentPage = page);
+        Navigation.SetPageProviderService(_pages);
+        viewModel.NavigationRequested += ShowPage;
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -36,6 +39,22 @@ public partial class MainWindow : FluentWindow
         SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
         Navigation.Navigate(_initialPage, _viewModel);
         await _viewModel.StartAsync();
+    }
+
+    /// <param name="target">A page name as <c>--page</c> takes it, optionally followed by <c>#</c> and a section of that page.</param>
+    private void ShowPage(string target)
+    {
+        var parts = target.Split('#', 2);
+        if (PageNames.Find(parts[0]) is not { } page)
+        {
+            return;
+        }
+
+        Navigation.Navigate(page, _viewModel);
+        if (parts.Length > 1 && _pages.GetPage(page) is ConnectionsPage connections)
+        {
+            connections.ShowSection(parts[1]);
+        }
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -80,6 +99,7 @@ internal static class PageNames
         ["connections"] = typeof(ConnectionsPage),
         ["entities"] = typeof(EntitiesPage),
         ["custom"] = typeof(CustomSensorsPage),
+        ["settings"] = typeof(SettingsPage),
         ["logs"] = typeof(LogsPage),
     };
 

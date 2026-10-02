@@ -36,7 +36,7 @@ namespace HADA.Tray;
 /// <c>--background</c> starts the tray without opening the window (use it for sign-in startup).
 /// <c>--autostart</c> marks a start made by Windows at sign-in; the tray then exits if the user turned autostart off.
 /// <c>--settings</c> runs as the window, without tray icon or sensors.
-/// <c>--page overview|connections|entities|custom|logs</c> chooses the page the window opens on.
+/// <c>--page overview|connections|entities|custom|settings|logs</c> chooses the page the window opens on.
 /// </para>
 /// </remarks>
 [SuppressMessage(

@@ -15,17 +15,47 @@ public enum IpcClientRole
 }
 
 /// <param name="Update">A newer version of HADA, when the service found one.</param>
+/// <param name="LastUpdateCheck">How the last look for a newer version went; <see langword="null"/> before the first one.</param>
 public sealed record ServiceStatus(
     string Version,
     DateTimeOffset StartedAt,
     IReadOnlyList<EngineStatus> Engines,
     IReadOnlyList<string> SensorClients,
     IReadOnlyList<EntityStatus> Entities,
-    UpdateInfo? Update = null);
+    UpdateInfo? Update = null,
+    UpdateCheckResult? LastUpdateCheck = null);
 
 /// <param name="Version">E.g. <c>0.4.1</c>.</param>
 /// <param name="Url">The page to download it from.</param>
 public sealed record UpdateInfo(string Version, string Url);
+
+public enum UpdateCheckOutcome
+{
+    /// <summary>This is the newest version published.</summary>
+    UpToDate,
+
+    UpdateAvailable,
+
+    /// <summary>GitHub shows no releases without signing in, as for a private repository; there is nothing to compare with.</summary>
+    ReleasesHidden,
+
+    /// <summary>GitHub could not be reached, or did not answer properly.</summary>
+    Failed,
+}
+
+/// <param name="LatestVersion">The newest version published, when one was found.</param>
+/// <param name="Url">Its release page.</param>
+/// <param name="Message">Why the check failed.</param>
+public sealed record UpdateCheckResult(
+    UpdateCheckOutcome Outcome,
+    DateTimeOffset CheckedAt,
+    string? LatestVersion = null,
+    string? Url = null,
+    string? Message = null);
+
+/// <param name="CheckAutomatically">Whether the service asks GitHub for a newer version once a day.</param>
+/// <param name="IncludePrereleases">Whether versions marked as pre-releases count as newer versions.</param>
+public sealed record UpdateSettings(bool CheckAutomatically = true, bool IncludePrereleases = true);
 
 public sealed record EngineStatus(string Name, bool IsConfigured, EngineConnectionState State);
 
@@ -64,7 +94,8 @@ public sealed record SettingsSnapshot(
     bool HasAccessToken,
     IReadOnlyList<string> DisabledEntities,
     IReadOnlyList<CustomSensorDefinition> CustomSensors,
-    IReadOnlyList<string> EnabledEntities);
+    IReadOnlyList<string> EnabledEntities,
+    UpdateSettings Updates);
 
 public enum SecretChange
 {
@@ -88,7 +119,8 @@ public sealed record SettingsUpdate(
     SecretUpdate AccessToken,
     IReadOnlyList<string> DisabledEntities,
     IReadOnlyList<CustomSensorDefinition> CustomSensors,
-    IReadOnlyList<string> EnabledEntities);
+    IReadOnlyList<string> EnabledEntities,
+    UpdateSettings Updates);
 
 public enum ConnectionTarget
 {
@@ -119,4 +151,7 @@ public interface IServiceControl
     Task<OperationResult> TestConnectionAsync(ConnectionTarget target, SettingsUpdate settings, CancellationToken cancellationToken);
 
     IReadOnlyList<LogEntry> GetLogs(long afterSequence, int maxCount);
+
+    /// <summary>Looks for a newer version now. Open to every signed-in user, so implementations must not let it be used to flood anyone.</summary>
+    Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken);
 }

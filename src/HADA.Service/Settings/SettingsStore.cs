@@ -26,6 +26,8 @@ public sealed record StoredSettings
     public IReadOnlyList<string>? EnabledEntities { get; init; }
 
     public IReadOnlyList<CustomSensorDefinition>? CustomSensors { get; init; }
+
+    public UpdateSettings? Updates { get; init; }
 }
 
 /// <summary>

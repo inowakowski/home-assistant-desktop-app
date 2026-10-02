@@ -28,7 +28,10 @@ public static class SessionServices
         // What Home Assistant gets to know about this session.
         services.AddHostedService<ActiveWindowSensor>();
         services.AddHostedService<AudioVolumeSensor>();
-        services.AddHostedService<UserActivitySensor>();
+        services.AddHostedService(provider => new UserActivitySensor(
+            provider.GetRequiredService<IEventBus>(),
+            provider.GetRequiredService<IEntityRegistry>(),
+            () => TimeSpan.FromSeconds(UserPreferences.IdleSeconds)));
         services.AddHostedService<MediaCaptureSensor>();
         services.AddHostedService<MicrophoneMuteSensor>();
         services.AddHostedService<ExternalDisplaySensor>();

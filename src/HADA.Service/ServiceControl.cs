@@ -24,6 +24,7 @@ public sealed partial class ServiceControl(
     IOptionsMonitor<HaWebSocketOptions> homeAssistantOptions,
     IOptionsMonitor<EntityOptions> entityOptions,
     IOptionsMonitor<CustomSensorOptions> customSensorOptions,
+    IOptionsMonitor<UpdateOptions> updateOptions,
     LogBuffer logs,
     ILogger<ServiceControl> logger,
     UpdateChecker? updates = null) : IServiceControl
@@ -54,7 +55,8 @@ public sealed partial class ServiceControl(
             .ToArray();
 
         // The IPC server fills in the connected tray clients and which entities they own.
-        return Task.FromResult(new ServiceStatus(Version, StartedAt, engines.GetStatus(), [], entities, updates?.Available));
+        return Task.FromResult(
+            new ServiceStatus(Version, StartedAt, engines.GetStatus(), [], entities, updates?.Available, updates?.LastCheck));
     }
 
     public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken)
@@ -80,7 +82,8 @@ public sealed partial class ServiceControl(
             !string.IsNullOrEmpty(homeAssistant.AccessToken),
             [.. entityOptions.CurrentValue.Disabled],
             CurrentCustomSensors(),
-            [.. entityOptions.CurrentValue.Enabled]));
+            [.. entityOptions.CurrentValue.Enabled],
+            new UpdateSettings(updateOptions.CurrentValue.CheckAutomatically, updateOptions.CurrentValue.IncludePrereleases)));
     }
 
     public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
@@ -99,6 +102,7 @@ public sealed partial class ServiceControl(
             DisabledEntities = [.. settings.DisabledEntities.Distinct(StringComparer.Ordinal)],
             EnabledEntities = [.. settings.EnabledEntities.Distinct(StringComparer.Ordinal)],
             CustomSensors = [.. settings.CustomSensors.Select(sensor => sensor.Normalize())],
+            Updates = settings.Updates,
         };
 
         try
@@ -143,6 +147,10 @@ public sealed partial class ServiceControl(
     public IReadOnlyList<LogEntry> GetLogs(long afterSequence, int maxCount) =>
         logs.GetAfter(afterSequence, Math.Clamp(maxCount, 1, MaxLogEntriesPerRequest));
 
+    public Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken) =>
+        updates?.CheckAsync(cancellationToken)
+        ?? Task.FromResult(new UpdateCheckResult(UpdateCheckOutcome.Failed, DateTimeOffset.UtcNow, Message: "This service cannot check for updates."));
+
     /// <summary>Server-side checks; the window validates too, but must not be trusted to.</summary>
     /// <param name="target">
     /// The connection being tested, so a test is not refused over settings it does not use;
@@ -163,6 +171,11 @@ public sealed partial class ServiceControl(
         if (target is not null)
         {
             return null;
+        }
+
+        if (settings.Updates is null)
+        {
+            return "The update settings are missing.";
         }
 
         if (settings.DisabledEntities.Count > MaxDisabledEntities || settings.EnabledEntities.Count > MaxDisabledEntities)

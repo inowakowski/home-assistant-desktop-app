@@ -21,7 +21,8 @@
             <ui:Card
                 Margin="0,0,0,12"
                 Padding="18,14"
-                Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibility}}">
+                DataContext="{Binding DataContext.Updates, RelativeSource={RelativeSource AncestorType=Page}}"
+                Visibility="{Binding IsAvailable, Converter={StaticResource BooleanToVisibility}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -38,32 +39,32 @@
                         Grid.Column="1"
                         Margin="14,0,16,0"
                         VerticalAlignment="Center">
-                        <ui:TextBlock FontTypography="BodyStrong" Text="{Binding UpdateTitle}" />
+                        <ui:TextBlock FontTypography="BodyStrong" Text="{Binding Title}" />
                         <ui:TextBlock
                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             FontTypography="Caption"
-                            Text="{Binding UpdateDetail}"
+                            Text="{Binding Detail}"
                             TextWrapping="Wrap" />
                         <ProgressBar
                             Height="4"
                             Margin="0,8,0,0"
                             Maximum="1"
-                            Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BooleanToVisibility}}"
-                            Value="{Binding UpdateProgress, Mode=OneWay}" />
+                            Visibility="{Binding IsDownloading, Converter={StaticResource BooleanToVisibility}}"
+                            Value="{Binding Progress, Mode=OneWay}" />
                     </StackPanel>
                     <ui:Button
                         Grid.Column="2"
                         VerticalAlignment="Center"
-                        Command="{Binding OpenUpdateCommand}"
+                        Command="{Binding OpenReleasePageCommand}"
                         Content="{l:Tr Update_Open}" />
                     <ui:Button
                         Grid.Column="3"
                         Margin="8,0,0,0"
                         VerticalAlignment="Center"
                         Appearance="Primary"
-                        Command="{Binding InstallUpdateCommand}"
+                        Command="{Binding InstallCommand}"
                         Content="{l:Tr Update_Install}"
-                        Visibility="{Binding CanInstallUpdate, Converter={StaticResource BooleanToVisibility}}" />
+                        Visibility="{Binding CanInstall, Converter={StaticResource BooleanToVisibility}}" />
                 </Grid>
             </ui:Card>
 
@@ -76,12 +77,17 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <!--  Stretched, so the cards of a row are equally tall whatever each one says.  -->
-                        <ui:Card
+                        <!--
+                            Each card leads to where what it shows is set up or explained.
+                            Stretched, so the cards of a row are equally tall whatever each one says.
+                        -->
+                        <ui:CardAction
                             Margin="0,0,12,12"
                             Padding="18"
                             VerticalAlignment="Stretch"
-                            VerticalContentAlignment="Top">
+                            VerticalContentAlignment="Top"
+                            Command="{Binding OpenCommand}"
+                            ToolTip="{Binding ActionText}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -104,44 +110,13 @@
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
-                        </ui:Card>
+                        </ui:CardAction>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <ui:Card Padding="18,14">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Border VerticalAlignment="Center" Style="{StaticResource IconTile}">
-                        <ui:SymbolIcon FontSize="22" Symbol="Power24" />
-                    </Border>
-                    <StackPanel
-                        Grid.Column="1"
-                        Margin="14,0,16,0"
-                        VerticalAlignment="Center">
-                        <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Autostart_Title}" />
-                        <ui:TextBlock
-                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                            FontTypography="Caption"
-                            Text="{Binding AutostartDetail}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-                    <ui:ToggleSwitch
-                        Grid.Column="2"
-                        VerticalAlignment="Center"
-                        IsChecked="{Binding StartWithWindows}"
-                        IsEnabled="{Binding CanChangeAutostart}"
-                        OffContent="{l:Tr Common_Off}"
-                        OnContent="{l:Tr Common_On}" />
-                </Grid>
-            </ui:Card>
-
             <ui:TextBlock
-                Margin="0,24,0,10"
+                Margin="0,12,0,10"
                 FontTypography="Subtitle"
                 Text="{l:Tr Overview_Entities}" />
             <ui:Card Padding="0">

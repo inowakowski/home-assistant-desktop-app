@@ -335,6 +335,8 @@ public sealed partial class IpcServer(
                 GetLogsRequest logs => new LogsResponse(
                     request.RequestId, control.GetLogs(logs.AfterSequence, MaxLogEntriesPerResponse)),
                 SaveSettingsRequest save => await SaveSettingsAsync(save, clientName, cancellationToken).ConfigureAwait(false),
+                CheckForUpdateRequest => new UpdateCheckResponse(
+                    request.RequestId, await control.CheckForUpdateAsync(cancellationToken).ConfigureAwait(false)),
                 TestConnectionRequest test => new OperationResponse(
                     request.RequestId, await control.TestConnectionAsync(test.Target, test.Settings, cancellationToken).ConfigureAwait(false)),
                 _ => new ErrorResponse(request.RequestId, IpcError.NotSupported, $"Unsupported request '{request.GetType().Name}'."),
