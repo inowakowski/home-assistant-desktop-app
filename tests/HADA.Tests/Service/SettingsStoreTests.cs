@@ -90,13 +90,18 @@ public sealed class SettingsStoreTests : IDisposable
         File.WriteAllText(Path.Combine(_folder, "settings.json"), """{ "customSensors": [ { "name": "Theirs", "type": "PowerShell", "value": "whoami" } ] }""");
         var store = new SettingsStore(_folder);
 
+        // Whoever runs the tests: the user, or the Administrators group when elevated, as on a build server.
+        var owner = (System.Security.Principal.SecurityIdentifier)new DirectoryInfo(_folder)
+            .GetAccessControl(System.Security.AccessControl.AccessControlSections.Owner)
+            .GetOwner(typeof(System.Security.Principal.SecurityIdentifier))!;
+
         var check = store.SecureFolder(isTrustedOwner: _ => false, takeOwnership: false);
 
         try
         {
             Assert.NotNull(check.SetAsidePath);
             Assert.True(File.Exists(Path.Combine(check.SetAsidePath, "settings.json")));
-            Assert.Contains(System.Security.Principal.WindowsIdentity.GetCurrent().User!.Value, check.Owner);
+            Assert.Contains(owner.Value, check.Owner);
             Assert.True(Directory.Exists(_folder));
             Assert.Empty(Directory.EnumerateFileSystemEntries(_folder));
             Assert.Null(store.Load().CustomSensors);
