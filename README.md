@@ -56,7 +56,7 @@ On the **Custom sensors** page you define your own values to send to Home Assist
 ```
 
 - **HADA.Service** runs as a Windows service. It holds the connections to Home Assistant, owns the settings, and runs anything that doesn't need the user's desktop.
-- **HADA.Tray** runs in the logged-in user's session. It reads things a service can't see, such as the focused window and the audio device, and streams them to the service over the `HADA.Session` named pipe. Its settings window uses the same pipe to read status and logs and to change settings.
+- **HADA.Tray** runs in the logged-in user's session. It reads things a service can't see, such as the focused window and the audio device, and streams them to the service over the `HADA.Session` named pipe. Its settings window uses the same pipe to read status and logs and to change settings. The window is the same program started as a second process, which exits when the window is closed: a window costs far more memory than the tray icon and the sensors, and this way that memory is only used while the window is open.
 - Sensors, actions and engines talk only through an in-process event bus (`HADA.Core`). Sensors never reference MQTT or WebSocket code.
 - There are two **communication engines**. Each stays idle until it is configured, and restarts by itself when its settings change:
   - **MQTT** (recommended). Uses MQTT discovery, so entities appear automatically with unique IDs, a device, and availability tracking through a last will.
@@ -210,7 +210,7 @@ Tray command-line options:
 | `--background` | Start without opening the window, e.g. at sign-in |
 | `--autostart` | Marks a start made by Windows at sign-in. The tray exits again if the user turned **Start with Windows** off |
 | `--page overview\|connections\|entities\|custom\|logs` | Open the window on a specific page |
-| `--settings` | Open only the window, without tray icon or sensors. Used when relaunching as administrator |
+| `--settings` | Run as the window, without tray icon or sensors. This is how the tray opens the window, and how **Unlock editing** reopens it as administrator |
 
 ## Installing
 
@@ -275,6 +275,18 @@ New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Na
 
 Only one tray instance runs per user session. Then open the window from the tray icon and configure a connection.
 
+## Memory use
+
+Measured on Windows 11 ARM64 (private memory):
+
+| Process | Memory |
+|---|---|
+| Service | about 15 MB |
+| Tray app | about 20 MB |
+| Settings window, while it is open | about 125 MB |
+
+The window draws with the CPU instead of the graphics card. On some graphics drivers, setting up hardware rendering alone takes more than 200 MB, and these pages have nothing that needs it.
+
 ## Logs
 
 | Where | What |
@@ -282,7 +294,7 @@ Only one tray instance runs per user session. Then open the window from the tray
 | **Logs** page of the window | Recent service entries of every level, since the service started |
 | `%ProgramData%\HADA\logs\service.log` | The service's entries from Information up. Readable by administrators |
 | `%LocalAppData%\HADA\logs\tray.log` | The tray app's entries, including errors it otherwise only shows in a message box |
-| `%LocalAppData%\HADA\logs\settings-window.log` | The same for the window opened with **Unlock editing** |
+| `%LocalAppData%\HADA\logs\settings-window.log` | The same for the settings window |
 | Windows Event Log, Application, source `HADA.Service` | The service's warnings and errors |
 
 Each file is limited to 2 MB; the three previous files are kept as `service.1.log` and so on.

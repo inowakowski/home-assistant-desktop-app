@@ -1,8 +1,12 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Markup;
+using System.Windows.Media;
 using System.Windows.Threading;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
@@ -18,18 +22,25 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Wpf.Ui.Appearance;
+using Wpf.Ui.Markup;
 
 namespace HADA.Tray;
 
 /// <summary>
-/// Runs in the user's session: hosts the session sensors (active window, volume), streams them to the service over the
-/// IPC pipe, and offers the status and settings window from the notification-area icon.
+/// Runs in the user's session, in one of two roles chosen by the command line.
+/// As the tray it hosts the session sensors (active window, volume, …), streams them to the service over the IPC
+/// pipe and shows the notification-area icon. As the window (<c>--settings</c>) it is the status and settings window.
 /// </summary>
 /// <remarks>
-/// <c>--background</c> starts without opening the window (use it for sign-in startup).
-/// <c>--autostart</c> marks a start made by Windows at sign-in; the app then exits if the user turned autostart off.
-/// <c>--settings</c> opens only the window; it is used when relaunching elevated to edit settings.
+/// The window is a process of its own on purpose. Showing any WPF window sets up the graphics pipeline, which costs
+/// a few hundred megabytes that are never given back; in a separate process they go away when the window is closed,
+/// and the tray, which runs all day, stays small.
+/// <para>
+/// <c>--background</c> starts the tray without opening the window (use it for sign-in startup).
+/// <c>--autostart</c> marks a start made by Windows at sign-in; the tray then exits if the user turned autostart off.
+/// <c>--settings</c> runs as the window, without tray icon or sensors.
 /// <c>--page overview|connections|entities|custom|logs</c> chooses the page the window opens on.
+/// </para>
 /// </remarks>
 [SuppressMessage(
     "Design",
@@ -40,7 +51,7 @@ public partial class App : Application
     private const string BackgroundArgument = "--background";
     private const string SettingsArgument = "--settings";
     private const string PageArgument = "--page";
-    private const string ShowWindowSignalName = @"Local\HADA.Tray.ShowWindow";
+    private const int AnyProcess = -1;
 
     private Mutex? _singleInstance;
     private EventWaitHandle? _showWindowSignal;
@@ -56,15 +67,15 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // The elevated settings window runs next to the tray, so each writes its own file.
-        var isSettingsWindow = HasArgument(e, SettingsArgument);
+        // The window runs next to the tray, so each writes its own file.
+        var isWindow = HasArgument(e, SettingsArgument);
         _fileLog = new FileLoggerProvider(new FileLoggerOptions
         {
             FilePath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "HADA",
                 "logs",
-                isSettingsWindow ? "settings-window.log" : "tray.log"),
+                isWindow ? "settings-window.log" : "tray.log"),
         });
         _logger = _fileLog.CreateLogger(typeof(App).FullName!);
 
@@ -79,8 +90,15 @@ public partial class App : Application
         try
         {
             ApplyLanguage();
-            ApplicationThemeManager.ApplySystemTheme(true);
-            await StartAsync(e, isSettingsWindow);
+            var page = GetArgumentValue(e, PageArgument);
+            if (isWindow)
+            {
+                StartWindow(page);
+            }
+            else
+            {
+                await StartTrayAsync(e, page);
+            }
         }
         catch (Exception ex)
         {
@@ -91,17 +109,24 @@ public partial class App : Application
         }
     }
 
-    private async Task StartAsync(StartupEventArgs e, bool isSettingsWindow)
+    protected override void OnExit(ExitEventArgs e)
     {
-        var initialPage = PageNames.Find(GetArgumentValue(e, PageArgument));
-
-        if (isSettingsWindow)
+        _showWindowRegistration?.Unregister(null);
+        _showWindowSignal?.Dispose();
+        _trayIcon?.Dispose();
+        if (_host is not null)
         {
-            // Elevated copy started from "Unlock editing": just the window, and exit when it closes.
-            ShowMainWindow(exitOnClose: true, initialPage);
-            return;
+            _host.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            _host.Dispose();
         }
 
+        _singleInstance?.Dispose();
+        _fileLog?.Dispose();
+        base.OnExit(e);
+    }
+
+    private async Task StartTrayAsync(StartupEventArgs e, string? page)
+    {
         if (HasArgument(e, Autostart.Argument) && !Autostart.IsEnabled)
         {
             // Started by Windows at sign-in, but this user chose not to start HADA with Windows.
@@ -112,26 +137,11 @@ public partial class App : Application
         _singleInstance = new Mutex(initiallyOwned: true, @"Local\HADA.Tray", out var isFirstInstance);
         if (!isFirstInstance)
         {
-            // Already running in this session: bring up its window instead of starting a second tray.
-            if (EventWaitHandle.TryOpenExisting(ShowWindowSignalName, out var signal))
-            {
-                using (signal)
-                {
-                    signal.Set();
-                }
-            }
-
+            // The tray is already running in this session; starting HADA again means "show me the window".
+            OpenWindow(page);
             Shutdown();
             return;
         }
-
-        _showWindowSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, ShowWindowSignalName);
-        _showWindowRegistration = ThreadPool.RegisterWaitForSingleObject(
-            _showWindowSignal,
-            (_, _) => Dispatcher.InvokeAsync(() => ShowMainWindow(exitOnClose: false)),
-            state: null,
-            Timeout.Infinite,
-            executeOnlyOnce: false);
 
         var builder = Host.CreateApplicationBuilder(e.Args);
         builder.Logging.AddProvider(_fileLog!);
@@ -159,57 +169,102 @@ public partial class App : Application
         await Task.Run(() => _host.StartAsync());
 
         var ipc = _host.Services.GetRequiredService<IpcClient>();
-        _trayIcon = new TrayIcon(() => ipc.IsConnected, () => ShowMainWindow(exitOnClose: false), () => Shutdown());
+        _trayIcon = new TrayIcon(() => ipc.IsConnected, () => OpenWindow(page: null), () => Shutdown());
         _host.Services.GetRequiredService<IHostApplicationLifetime>()
             .ApplicationStopping.Register(() => Dispatcher.InvokeAsync(() => Shutdown()));
 
         if (!HasArgument(e, BackgroundArgument))
         {
-            ShowMainWindow(exitOnClose: false, initialPage);
+            OpenWindow(page);
         }
     }
 
-    protected override void OnExit(ExitEventArgs e)
+    /// <summary>Starts the window as its own process; if one is open already, that process brings it to the front instead.</summary>
+    private void OpenWindow(string? page)
     {
-        _showWindowRegistration?.Unregister(null);
-        _showWindowSignal?.Dispose();
-        _trayIcon?.Dispose();
-        if (_host is not null)
+        try
         {
-            _host.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
-            _host.Dispose();
-        }
-
-        _singleInstance?.Dispose();
-        _fileLog?.Dispose();
-        base.OnExit(e);
-    }
-
-    private void ShowMainWindow(bool exitOnClose, Type? initialPage = null)
-    {
-        if (_mainWindow is not null)
-        {
-            if (_mainWindow.WindowState == WindowState.Minimized)
+            var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+            start.ArgumentList.Add(SettingsArgument);
+            if (page is not null)
             {
-                _mainWindow.WindowState = WindowState.Normal;
+                start.ArgumentList.Add(PageArgument);
+                start.ArgumentList.Add(page);
             }
 
-            _mainWindow.Activate();
+            Process.Start(start)?.Dispose();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            LogWindowStartFailed(_logger, ex);
+            System.Windows.MessageBox.Show(ex.Message, Loc.Get("Error_UnexpectedTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void StartWindow(string? page)
+    {
+        // One window per user and privilege level: the administrator copy opened with "Unlock editing" may run
+        // next to the normal one for a moment, while that one is closing.
+        var name = Elevation.IsElevated ? @"Local\HADA.Window.Admin" : @"Local\HADA.Window";
+        _singleInstance = new Mutex(initiallyOwned: true, name, out var isFirstInstance);
+        if (!isFirstInstance)
+        {
+            if (EventWaitHandle.TryOpenExisting(name + ".Show", out var signal))
+            {
+                using (signal)
+                {
+                    // This process was started by the user and may take the foreground; pass that right on,
+                    // or Windows would only flash the existing window's taskbar button.
+                    AllowSetForegroundWindow(AnyProcess);
+                    signal.Set();
+                }
+            }
+
+            Shutdown();
             return;
         }
 
+        _showWindowSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, name + ".Show");
+        _showWindowRegistration = ThreadPool.RegisterWaitForSingleObject(
+            _showWindowSignal,
+            (_, _) => Dispatcher.InvokeAsync(BringWindowToFront),
+            state: null,
+            Timeout.Infinite,
+            executeOnlyOnce: false);
+
+        // Software rendering: on some graphics drivers, notably on ARM64, setting up hardware rendering alone
+        // takes over 200 MB, and these pages have nothing a CPU cannot draw instantly.
+        RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
+
+        // Loaded here rather than in App.xaml, so the tray never pays for the control library it does not use.
+        Resources.MergedDictionaries.Add(new ThemesDictionary { Theme = ApplicationTheme.Dark });
+        Resources.MergedDictionaries.Add(new ControlsDictionary());
+        Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri("pack://application:,,,/HADA.Tray;component/Views/Styles.xaml"),
+        });
+        ApplicationThemeManager.ApplySystemTheme(true);
+
         var client = new ServiceControlClient(new IpcOptions { ClientName = $"ui:{Environment.UserName}" });
         var viewModel = new MainViewModel(client, Elevation.IsElevated, RequestElevation);
-        _mainWindow = new MainWindow(viewModel, initialPage);
-        _mainWindow.Closed += (_, _) =>
-        {
-            _mainWindow = null;
-            if (exitOnClose)
-            {
-                Shutdown();
-            }
-        };
+        _mainWindow = new MainWindow(viewModel, PageNames.Find(page));
+        _mainWindow.Closed += (_, _) => Shutdown();
         _mainWindow.Show();
+        _mainWindow.Activate();
+    }
+
+    private void BringWindowToFront()
+    {
+        if (_mainWindow is null)
+        {
+            return;
+        }
+
+        if (_mainWindow.WindowState == WindowState.Minimized)
+        {
+            _mainWindow.WindowState = WindowState.Normal;
+        }
+
         _mainWindow.Activate();
     }
 
@@ -267,8 +322,15 @@ public partial class App : Application
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Critical, Message = "The tray app could not start.")]
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool AllowSetForegroundWindow(int processId);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "HADA could not start.")]
     private static partial void LogStartFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The HADA window could not be opened.")]
+    private static partial void LogWindowStartFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled error in the user interface.")]
     private static partial void LogUnhandled(ILogger logger, Exception exception);
@@ -276,6 +338,6 @@ public partial class App : Application
     [LoggerMessage(Level = LogLevel.Error, Message = "A background task failed without being observed.")]
     private static partial void LogBackgroundFailure(ILogger logger, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Critical, Message = "The tray app is crashing.")]
+    [LoggerMessage(Level = LogLevel.Critical, Message = "HADA is crashing.")]
     private static partial void LogCrash(ILogger logger, Exception? exception);
 }
