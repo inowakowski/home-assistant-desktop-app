@@ -26,19 +26,28 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
     {
         var data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
-        if (settings.Mqtt is { } mqtt)
+        if (settings.GetMqttServers() is { } servers)
         {
-            data["Mqtt:Host"] = mqtt.Host;
-            data["Mqtt:Port"] = mqtt.Port.ToString(CultureInfo.InvariantCulture);
-            data["Mqtt:UseTls"] = mqtt.UseTls ? "true" : "false";
-            data["Mqtt:Username"] = mqtt.Username;
-            data["Mqtt:DeviceId"] = mqtt.DeviceId;
-            data["Mqtt:DeviceName"] = mqtt.DeviceName;
-            data["Mqtt:DiscoveryPrefix"] = mqtt.DiscoveryPrefix;
-            data["Mqtt:BaseTopic"] = mqtt.BaseTopic;
+            // Saved servers replace whatever appsettings.json lists, down to there being none.
+            data[$"{MqttServersOptions.SectionName}:{nameof(MqttServersOptions.Count)}"] = servers.Count.ToString(CultureInfo.InvariantCulture);
+            for (var i = 0; i < servers.Count; i++)
+            {
+                var mqtt = servers[i].Settings;
+                var prefix = $"{MqttServersOptions.SectionName}:{nameof(MqttServersOptions.Items)}:{i}:";
+                data[prefix + nameof(mqtt.Id)] = mqtt.Id;
+                data[prefix + nameof(mqtt.Name)] = mqtt.Name;
+                data[prefix + nameof(mqtt.Host)] = mqtt.Host;
+                data[prefix + nameof(mqtt.Port)] = mqtt.Port.ToString(CultureInfo.InvariantCulture);
+                data[prefix + nameof(mqtt.UseTls)] = mqtt.UseTls ? "true" : "false";
+                data[prefix + nameof(mqtt.Username)] = mqtt.Username;
+                data[prefix + nameof(mqtt.DeviceId)] = mqtt.DeviceId;
+                data[prefix + nameof(mqtt.DeviceName)] = mqtt.DeviceName;
+                data[prefix + nameof(mqtt.DiscoveryPrefix)] = mqtt.DiscoveryPrefix;
+                data[prefix + nameof(mqtt.BaseTopic)] = mqtt.BaseTopic;
 
-            // A saved section owns its secret too, so clearing it in the window also overrides appsettings.json.
-            data["Mqtt:Password"] = SettingsStore.TryUnprotect(settings.MqttPassword) ?? string.Empty;
+                // A saved server owns its secret too, so clearing it in the window also overrides appsettings.json.
+                data[prefix + "Password"] = SettingsStore.TryUnprotect(servers[i].Password) ?? string.Empty;
+            }
         }
 
         if (settings.HomeAssistant is { } homeAssistant)

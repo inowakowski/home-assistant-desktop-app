@@ -113,7 +113,7 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
 
   <data name="Connections_Title" xml:space="preserve"><value>Connections</value></data>
-  <data name="Connections_Subtitle" xml:space="preserve"><value>How HADA talks to Home Assistant. Configure one of the two.</value></data>
+  <data name="Connections_Subtitle" xml:space="preserve"><value>How HADA talks to Home Assistant: through MQTT, to one Home Assistant or several at once, or through the WebSocket API.</value></data>
   <data name="Settings_LockedTitle" xml:space="preserve"><value>Read-only</value></data>
   <data name="Settings_LockedMessage" xml:space="preserve"><value>Changing settings requires administrator rights.</value></data>
   <data name="Settings_ElevationDeclined" xml:space="preserve"><value>Administrator rights were not granted.</value></data>
@@ -233,4 +233,14 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Logs_Copy" xml:space="preserve"><value>Copy</value></data>
   <data name="Logs_Clear" xml:space="preserve"><value>Clear</value></data>
   <data name="Logs_Empty" xml:space="preserve"><value>No log entries.</value></data>
+  <data name="Card_MqttServer" xml:space="preserve"><value>MQTT · {0}</value></data>
+  <data name="Mqtt_AddServer" xml:space="preserve"><value>Add a server</value></data>
+  <data name="Mqtt_RemoveServer" xml:space="preserve"><value>Remove this server</value></data>
+  <data name="Mqtt_NewServer" xml:space="preserve"><value>New server</value></data>
+  <data name="Mqtt_OneServer" xml:space="preserve"><value>To report to several Home Assistants at once, e.g. one in each place, add a server for each.</value></data>
+  <data name="Field_ServerName" xml:space="preserve"><value>Name</value></data>
+  <data name="Placeholder_ServerName" xml:space="preserve"><value>e.g. Home</value></data>
+  <data name="Mqtt_ServerNameHint" xml:space="preserve"><value>Your name for this Home Assistant, shown here and in the logs. Needed once there are several.</value></data>
+  <data name="Validation_ServerName" xml:space="preserve"><value>Give each MQTT server a name, to tell them apart.</value></data>
+  <data name="Validation_ServerNameTwice" xml:space="preserve"><value>Two MQTT servers are called "{0}".</value></data>
 </root>

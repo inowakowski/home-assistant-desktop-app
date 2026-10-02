@@ -57,7 +57,9 @@ public sealed record SettingsResponse(Guid RequestId, SettingsSnapshot Settings)
 public sealed record SaveSettingsRequest(Guid RequestId, SettingsUpdate Settings) : IpcRequest(RequestId);
 
 /// <summary>Requires an elevated administrator, because the test may send stored secrets to the given address.</summary>
-public sealed record TestConnectionRequest(Guid RequestId, ConnectionTarget Target, SettingsUpdate Settings) : IpcRequest(RequestId);
+/// <param name="ServerId">Which MQTT server of the settings to test; the first one when <see langword="null"/>.</param>
+public sealed record TestConnectionRequest(Guid RequestId, ConnectionTarget Target, SettingsUpdate Settings, string? ServerId = null)
+    : IpcRequest(RequestId);
 
 public sealed record OperationResponse(Guid RequestId, OperationResult Result) : IpcResponse(RequestId);
 

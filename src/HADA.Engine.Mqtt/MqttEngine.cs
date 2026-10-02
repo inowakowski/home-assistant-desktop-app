@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using HADA.Core.Abstractions;
@@ -29,7 +30,11 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private const int MaxStateLength = 255;
     private const int ShortLivedConnectionsBeforeWarning = 3;
 
-    private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(10);
+    // Enough for a name that stands for several addresses of which the first ones do not answer.
+    private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(15);
+
+    // A broker that takes a connection and then says nothing must not hold the engine up for minutes.
+    private static readonly TimeSpan ClientTimeout = TimeSpan.FromSeconds(20);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -45,6 +50,8 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private readonly MqttTopics _topics;
     private readonly DiscoveryDevice _device;
     private readonly IMqttClient _client;
+    private readonly BrokerLocator _locator;
+    private readonly string _server;
     private readonly ConcurrentDictionary<string, TelemetryEvent> _lastReadings = new(StringComparer.Ordinal);
 
     // Discovery topic and id of entities unregistered while disconnected; cleared on the next connect.
@@ -56,18 +63,30 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private TaskCompletionSource _disconnected = NewSignal();
     private volatile EngineConnectionState _state;
 
+    // What was last said about a failing connection and about the broker's address, so neither is said every minute.
+    private string? _lastFailure;
+    private IPAddress? _lastAddress;
+
+    /// <param name="locator">Turns the broker's name into an address; tests replace it.</param>
     public MqttEngine(
         IEventBus bus,
         IEntityRegistry registry,
         IOptions<MqttOptions> options,
         ILogger<MqttEngine> logger,
-        IEntityFilter? filter = null)
+        IEntityFilter? filter = null,
+        BrokerLocator? locator = null)
     {
         _bus = bus;
         _registry = registry;
         _filter = filter ?? EntityFilter.AllEnabled;
         _options = options.Value;
         _logger = logger;
+        _locator = locator ?? new BrokerLocator();
+
+        // Several of these engines can run side by side, one per Home Assistant, so each says which one it is.
+        var serverName = NullIfEmpty(_options.Name)?.Trim();
+        Name = serverName is null ? EngineName : $"{EngineName} ({serverName})";
+        _server = serverName is null ? $"{_options.Host}:{_options.Port}" : $"'{serverName}' ({_options.Host}:{_options.Port})";
 
         var deviceId = MqttTopics.ToTopicSegment(NullIfEmpty(_options.DeviceId) ?? Environment.MachineName);
         _topics = new MqttTopics(_options.DiscoveryPrefix, _options.BaseTopic, deviceId);
@@ -87,7 +106,11 @@ public sealed partial class MqttEngine : ICommunicationEngine
         };
     }
 
-    public string Name => "mqtt";
+    /// <summary>What every MQTT engine's <see cref="Name"/> starts with; the whole name of one whose server has no name.</summary>
+    public const string EngineName = "mqtt";
+
+    /// <summary><c>mqtt</c>, or <c>mqtt (Flat)</c> for a server the user named.</summary>
+    public string Name { get; }
 
     public EngineConnectionState State => _state;
 
@@ -105,18 +128,25 @@ public sealed partial class MqttEngine : ICommunicationEngine
         using var client = new MqttClientFactory().CreateMqttClient();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TestTimeout);
+        BrokerLocation? location = null;
         try
         {
-            await client.ConnectAsync(CreateClientOptions(options, $"hada-test-{Guid.NewGuid():N}").Build(), timeout.Token)
+            location = await new BrokerLocator().LocateAsync(options.Host, options.Port, timeout.Token).ConfigureAwait(false);
+            await client.ConnectAsync(
+                    CreateClientOptions(options, $"hada-test-{Guid.NewGuid():N}", location.Address).Build(), timeout.Token)
                 .ConfigureAwait(false);
             await client.DisconnectAsync(new MqttClientDisconnectOptionsBuilder().Build(), CancellationToken.None)
                 .ConfigureAwait(false);
-            return new ConnectionTestResult(true, $"Connected to MQTT broker {options.Host}:{options.Port}.");
+            return new ConnectionTestResult(true, $"Connected to MQTT broker {DescribeAddress(options, location)}.");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return new ConnectionTestResult(
-                false, $"MQTT broker {options.Host}:{options.Port} did not respond within {TestTimeout.TotalSeconds:0} s.");
+                false, $"MQTT broker {DescribeAddress(options, location)} did not respond within {TestTimeout.TotalSeconds:0} s.");
+        }
+        catch (BrokerNotFoundException ex)
+        {
+            return new ConnectionTestResult(false, ex.Message);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -208,6 +238,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 _disconnected = NewSignal();
                 await ConnectAsync(cancellationToken).ConfigureAwait(false);
                 var connectedAt = Stopwatch.GetTimestamp();
+                _lastFailure = null;
 
                 await _disconnected.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
                 _state = EngineConnectionState.Disconnected;
@@ -223,10 +254,10 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 }
                 else if (++shortLivedConnections == ShortLivedConnectionsBeforeWarning)
                 {
-                    LogConnectionKeepsDropping(_logger, _topics.DeviceId);
+                    LogConnectionKeepsDropping(_logger, _server, _topics.DeviceId);
                 }
 
-                LogDisconnected(_logger, retryDelay);
+                LogDisconnected(_logger, _server, retryDelay);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -235,7 +266,20 @@ public sealed partial class MqttEngine : ICommunicationEngine
             catch (Exception ex)
             {
                 _state = EngineConnectionState.Faulted;
-                LogConnectFailed(_logger, Describe(ex), retryDelay);
+
+                // A server that cannot be reached is nothing unusual for a computer that moves between places, and
+                // the attempts go on for as long as that lasts: said once, and again when the reason changes.
+                var reason = Describe(ex);
+                if (reason != _lastFailure)
+                {
+                    _lastFailure = reason;
+                    LogConnectFailed(_logger, _server, reason, _options.MaxReconnectDelay);
+                }
+                else
+                {
+                    LogConnectFailedAgain(_logger, _server, retryDelay);
+                }
+
                 await _client.TryDisconnectAsync(MqttClientDisconnectOptionsReason.NormalDisconnection, "reconnecting")
                     .ConfigureAwait(false);
             }
@@ -255,7 +299,20 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     private async Task ConnectAsync(CancellationToken cancellationToken)
     {
-        await _client.ConnectAsync(BuildClientOptions(), cancellationToken).ConfigureAwait(false);
+        var location = await _locator.LocateAsync(_options.Host!, _options.Port, cancellationToken).ConfigureAwait(false);
+        if (location.IsRemembered)
+        {
+            LogNameNotFound(_logger, _options.Host!, location.Address);
+        }
+        else if (!location.Address.Equals(_lastAddress) && !IPAddress.TryParse(_options.Host, out _))
+        {
+            // The first thing to look at when a name does not lead to the broker.
+            LogResolved(_logger, _options.Host!, location.Candidates, location.Address);
+        }
+
+        _lastAddress = location.Address;
+        await _client.ConnectAsync(BuildClientOptions(location.Address), cancellationToken).ConfigureAwait(false);
+        _locator.Remember(location.Address);
         await _client.SubscribeAsync(_topics.HomeAssistantStatus, MqttQualityOfServiceLevel.AtLeastOnce, cancellationToken)
             .ConfigureAwait(false);
         await _client.SubscribeAsync(_topics.CommandFilter, MqttQualityOfServiceLevel.AtLeastOnce, cancellationToken)
@@ -264,22 +321,25 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
         // Mark connected before announcing so readings arriving meanwhile are published, not just cached.
         _state = EngineConnectionState.Connected;
-        LogConnected(_logger, _options.Host!, _options.Port, _topics.DeviceId);
+        LogConnected(_logger, _server, _topics.DeviceId);
         await AnnounceAllAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private MqttClientOptions BuildClientOptions() =>
-        CreateClientOptions(_options, $"hada-{_topics.DeviceId}")
+    private MqttClientOptions BuildClientOptions(IPAddress address) =>
+        CreateClientOptions(_options, $"hada-{_topics.DeviceId}", address)
             .WithWillTopic(_topics.Availability)
             .WithWillPayload(Offline)
             .WithWillRetain(true)
             .WithWillQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
             .Build();
 
-    private static MqttClientOptionsBuilder CreateClientOptions(MqttOptions options, string clientId)
+    /// <param name="address">The address <see cref="BrokerLocator"/> found for the broker's name.</param>
+    private static MqttClientOptionsBuilder CreateClientOptions(MqttOptions options, string clientId, IPAddress address)
     {
         var builder = new MqttClientOptionsBuilder()
-            .WithTcpServer(options.Host, options.Port, System.Net.Sockets.AddressFamily.Unspecified)
+            .WithEndPoint(new IPEndPoint(address, options.Port))
+            .WithAddressFamily(address.AddressFamily)
+            .WithTimeout(ClientTimeout)
             .WithClientId(clientId)
             .WithCleanSession(true)
             .WithKeepAlivePeriod(TimeSpan.FromSeconds(30));
@@ -291,7 +351,8 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
         if (options.UseTls)
         {
-            builder.WithTlsOptions(tls => tls.UseTls(true));
+            // The certificate is issued for the name that was typed, not for the address it was turned into.
+            builder.WithTlsOptions(tls => tls.UseTls(true).WithTargetHost(options.Host));
         }
 
         return builder;
@@ -312,7 +373,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
         {
             if (payload == Online)
             {
-                LogHomeAssistantOnline(_logger);
+                LogHomeAssistantOnline(_logger, _server);
 
                 // Publishing from inside the receive handler can stall the client, so hand the work off.
                 var token = _stoppingToken;
@@ -412,6 +473,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 // A quick action is announced as a trigger of the device; one that is switched off, or was removed
                 // a moment ago, must not fire anything.
                 var isExposed = deviceEvent.IsWellFormed
+                    && deviceEvent.IsFor(Name)
                     && (deviceEvent.Name != DeviceEvent.QuickAction
                         || (TryGetExposed(deviceEvent.Value, out var trigger) && trigger.Kind == EntityKind.Trigger));
                 if (isExposed && _state == EngineConnectionState.Connected)
@@ -492,7 +554,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
         }
 
         var enabled = entities.Count(_filter.IsEnabled);
-        LogAnnounced(_logger, enabled, _options.DiscoveryPrefix, _topics.DeviceId, entities.Count - enabled);
+        LogAnnounced(_logger, enabled, _server, _options.DiscoveryPrefix, _topics.DeviceId, entities.Count - enabled);
 
         foreach (var reading in _lastReadings.Values)
         {
@@ -624,6 +686,11 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private bool TryGetExposed(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
         _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entity);
 
+    private static string DescribeAddress(MqttOptions options, BrokerLocation? location) =>
+        location is null || IPAddress.TryParse(options.Host, out _)
+            ? $"{options.Host}:{options.Port}"
+            : $"{options.Host}:{options.Port} (at {location.Address})";
+
     private static string Describe(Exception exception) =>
         exception.InnerException is null ? exception.Message : $"{exception.Message} ({exception.GetBaseException().Message})";
 
@@ -631,25 +698,34 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "MQTT engine is idle: Mqtt:Host is not configured.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "MQTT engine is idle: no broker host is configured.")]
     private static partial void LogNotConfigured(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Connected to MQTT broker {Host}:{Port} as device '{DeviceId}'.")]
-    private static partial void LogConnected(ILogger logger, string host, int port, string deviceId);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Connected to MQTT broker {Server} as device '{DeviceId}'.")]
+    private static partial void LogConnected(ILogger logger, string server, string deviceId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The broker's name '{Host}' stands for {Addresses}; connecting to {Address}.")]
+    private static partial void LogResolved(ILogger logger, string host, IReadOnlyList<IPAddress> addresses, IPAddress address);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The broker's name '{Host}' could not be looked up just now; trying {Address}, where it was last time.")]
+    private static partial void LogNameNotFound(ILogger logger, string host, IPAddress address);
 
     // What Home Assistant should now show; the first thing to compare when entities are missing there.
-    [LoggerMessage(Level = LogLevel.Information, Message = "Announced {Count} entities to Home Assistant on '{DiscoveryPrefix}/<type>/{DeviceId}/<entity>/config'; {Disabled} disabled ones were removed.")]
-    private static partial void LogAnnounced(ILogger logger, int count, string discoveryPrefix, string deviceId, int disabled);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Announced {Count} entities to Home Assistant at {Server} on '{DiscoveryPrefix}/<type>/{DeviceId}/<entity>/config'; {Disabled} disabled ones were removed.")]
+    private static partial void LogAnnounced(ILogger logger, int count, string server, string discoveryPrefix, string deviceId, int disabled);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "The MQTT connection keeps dropping right after it is made. Another HADA is probably connected with the same Device ID '{DeviceId}': every computer needs its own, and only one copy of the service may run. Retrying less and less often.")]
-    private static partial void LogConnectionKeepsDropping(ILogger logger, string deviceId);
+    [LoggerMessage(Level = LogLevel.Error, Message = "The MQTT connection to {Server} keeps dropping right after it is made. Another HADA is probably connected with the same Device ID '{DeviceId}': every computer needs its own, and only one copy of the service may run. Retrying less and less often.")]
+    private static partial void LogConnectionKeepsDropping(ILogger logger, string server, string deviceId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Disconnected from MQTT broker; reconnecting in {RetryDelay}.")]
-    private static partial void LogDisconnected(ILogger logger, TimeSpan retryDelay);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Disconnected from MQTT broker {Server}; reconnecting in {RetryDelay}.")]
+    private static partial void LogDisconnected(ILogger logger, string server, TimeSpan retryDelay);
 
     // The reason only: the stack trace of a refused connection says nothing more, and it repeats on every retry.
-    [LoggerMessage(Level = LogLevel.Warning, Message = "MQTT connection failed: {Reason} Retrying in {RetryDelay}.")]
-    private static partial void LogConnectFailed(ILogger logger, string reason, TimeSpan retryDelay);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "MQTT connection to {Server} failed: {Reason} Retrying, at least every {MaxDelay}, and not saying so again until it works or fails differently.")]
+    private static partial void LogConnectFailed(ILogger logger, string server, string reason, TimeSpan maxDelay);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "MQTT connection to {Server} failed again, for the same reason. Retrying in {RetryDelay}.")]
+    private static partial void LogConnectFailedAgain(ILogger logger, string server, TimeSpan retryDelay);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to disconnect cleanly from MQTT broker.")]
     private static partial void LogDisconnectFailed(ILogger logger, Exception exception);
@@ -657,8 +733,8 @@ public sealed partial class MqttEngine : ICommunicationEngine
     [LoggerMessage(Level = LogLevel.Debug, Message = "Failed to publish to {Topic}.")]
     private static partial void LogPublishFailed(ILogger logger, Exception exception, string topic);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Home Assistant came online; re-announcing entities.")]
-    private static partial void LogHomeAssistantOnline(ILogger logger);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Home Assistant at {Server} came online; re-announcing entities.")]
+    private static partial void LogHomeAssistantOnline(ILogger logger, string server);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Ignored a command for '{EntityId}': the entity is not exposed, or does not accept that payload.")]
     private static partial void LogIgnoredCommand(ILogger logger, string entityId);

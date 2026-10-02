@@ -11,7 +11,8 @@ namespace HADA.Tray.Session;
 
 /// <summary>
 /// Shows notifications as Windows toasts, which can carry a picture and buttons. A button that is pressed is
-/// reported back through <paramref name="actionPressed"/> with the action the notification gave it.
+/// reported back through <paramref name="actionPressed"/> with the action the notification gave it, and the
+/// engine the notification came through, so that the answer goes to the Home Assistant that asked.
 /// </summary>
 /// <remarks>
 /// A program without an installer package has to tell Windows who it is before it may show toasts; that is the
@@ -19,7 +20,7 @@ namespace HADA.Tray.Session;
 /// that showed the toast and still holds on to it, so the toasts shown lately are kept.
 /// </remarks>
 /// <param name="fallback">Shows a plain notification, when a toast cannot be shown.</param>
-public sealed partial class ToastPresenter(Action<string> actionPressed, Action<string, string> fallback, ILogger logger)
+public sealed partial class ToastPresenter(Action<string, string?> actionPressed, Action<string, string> fallback, ILogger logger)
 {
     /// <summary>Identifies this copy's notifications to Windows; the name shown is "HADA".</summary>
     public static string AppId { get; } = "HADA.Tray" + AppInstance.Suffix;
@@ -49,7 +50,7 @@ public sealed partial class ToastPresenter(Action<string> actionPressed, Action<
                 // Pressing the notification itself carries no argument; only a button names an action.
                 if (args is ToastActivatedEventArgs { Arguments: { Length: > 0 } action })
                 {
-                    actionPressed(action);
+                    actionPressed(action, request.Origin);
                 }
             };
 

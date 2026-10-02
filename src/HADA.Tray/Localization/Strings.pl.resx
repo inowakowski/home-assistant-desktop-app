@@ -113,7 +113,7 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
 
   <data name="Connections_Title" xml:space="preserve"><value>Połączenia</value></data>
-  <data name="Connections_Subtitle" xml:space="preserve"><value>Jak HADA łączy się z Home Assistant. Skonfiguruj jedno z dwóch.</value></data>
+  <data name="Connections_Subtitle" xml:space="preserve"><value>Jak HADA łączy się z Home Assistant: przez MQTT, z jednym albo kilkoma Home Assistantami naraz, lub przez WebSocket API.</value></data>
   <data name="Settings_LockedTitle" xml:space="preserve"><value>Tylko do odczytu</value></data>
   <data name="Settings_LockedMessage" xml:space="preserve"><value>Zmiana ustawień wymaga uprawnień administratora.</value></data>
   <data name="Settings_ElevationDeclined" xml:space="preserve"><value>Nie przyznano uprawnień administratora.</value></data>
@@ -233,4 +233,14 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Logs_Copy" xml:space="preserve"><value>Kopiuj</value></data>
   <data name="Logs_Clear" xml:space="preserve"><value>Wyczyść</value></data>
   <data name="Logs_Empty" xml:space="preserve"><value>Brak wpisów.</value></data>
+  <data name="Card_MqttServer" xml:space="preserve"><value>MQTT · {0}</value></data>
+  <data name="Mqtt_AddServer" xml:space="preserve"><value>Dodaj serwer</value></data>
+  <data name="Mqtt_RemoveServer" xml:space="preserve"><value>Usuń ten serwer</value></data>
+  <data name="Mqtt_NewServer" xml:space="preserve"><value>Nowy serwer</value></data>
+  <data name="Mqtt_OneServer" xml:space="preserve"><value>Aby raportować do kilku Home Assistantów naraz, np. po jednym w każdym miejscu, dodaj serwer dla każdego z nich.</value></data>
+  <data name="Field_ServerName" xml:space="preserve"><value>Nazwa</value></data>
+  <data name="Placeholder_ServerName" xml:space="preserve"><value>np. Mieszkanie</value></data>
+  <data name="Mqtt_ServerNameHint" xml:space="preserve"><value>Twoja nazwa tego Home Assistanta, widoczna tutaj i w logach. Potrzebna, gdy serwerów jest kilka.</value></data>
+  <data name="Validation_ServerName" xml:space="preserve"><value>Nadaj każdemu serwerowi MQTT nazwę, żeby dało się je odróżnić.</value></data>
+  <data name="Validation_ServerNameTwice" xml:space="preserve"><value>Dwa serwery MQTT nazywają się „{0}”.</value></data>
 </root>

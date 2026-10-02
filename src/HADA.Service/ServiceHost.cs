@@ -50,6 +50,18 @@ public static class ServiceHost
         }
     }
 
+    /// <summary>
+    /// Who may have made the folder the service keeps its settings in: the system, the administrators, and each of
+    /// them, since an administrator who ran HADA once from a console made it as themselves.
+    /// </summary>
+    public static bool IsTrustedOwner(System.Security.Principal.SecurityIdentifier owner)
+    {
+        using var self = System.Security.Principal.WindowsIdentity.GetCurrent();
+        return owner.IsWellKnown(System.Security.Principal.WellKnownSidType.LocalSystemSid)
+            || owner == self.User
+            || HADA.Platform.Windows.LocalAdministrators.Contains(owner);
+    }
+
     /// <param name="settingsStore">Where settings and logs live; <c>%ProgramData%\HADA</c> unless a test says otherwise.</param>
     public static HostApplicationBuilder CreateBuilder(string[] args, SettingsStore? settingsStore = null)
     {
@@ -66,8 +78,16 @@ public static class ServiceHost
             builder.Services.AddHostedService<PortableLifetime>();
         }
 
-        // Settings saved from the tray's settings window, added last so they override appsettings.json.
+        // Settings saved from the tray's settings window, added last so they override appsettings.json. Adding
+        // them reads them, so the installed service first makes sure the folder is one it can trust.
         settingsStore ??= new SettingsStore();
+        if (WindowsServiceHelpers.IsWindowsService())
+        {
+            var folderCheck = settingsStore.SecureFolder(IsTrustedOwner);
+            builder.Services.AddSingleton(folderCheck);
+            builder.Services.AddHostedService<SettingsFolderReport>();
+        }
+
         var storedSettings = new StoredSettingsConfigurationSource(settingsStore);
         ((IConfigurationBuilder)builder.Configuration).Add(storedSettings);
         builder.Services.AddSingleton(settingsStore);
@@ -79,9 +99,9 @@ public static class ServiceHost
         builder.Services.AddSingleton(logBuffer);
 
         // And a file, for what happened while nobody was looking. It lives next to the settings, in the same
-        // protected folder. Only the service itself protects a folder that already exists: a copy run from a
-        // console by another account would otherwise add that account to it.
-        if (WindowsServiceHelpers.IsWindowsService() || !Directory.Exists(settingsStore.FolderPath))
+        // protected folder. Only the service itself protects a folder that already exists, which it did above: a
+        // copy run from a console by another account would otherwise add that account to it.
+        if (!Directory.Exists(settingsStore.FolderPath))
         {
             settingsStore.TryEnsureFolder();
         }
@@ -101,6 +121,7 @@ public static class ServiceHost
         builder.Services.AddSingleton<IEntityRegistry, EntityRegistry>();
 
         builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
+        builder.Services.Configure<MqttServersOptions>(builder.Configuration.GetSection(MqttServersOptions.SectionName));
         builder.Services.Configure<HaWebSocketOptions>(builder.Configuration.GetSection(HaWebSocketOptions.SectionName));
         builder.Services.Configure<EntityOptions>(builder.Configuration.GetSection(EntityOptions.SectionName));
         builder.Services.Configure<CustomSensorOptions>(builder.Configuration.GetSection(CustomSensorOptions.SectionName));

@@ -16,8 +16,8 @@
 - **HADA.Service** runs as a Windows service. It holds the connections to Home Assistant, owns the settings, and runs anything that doesn't need the user's desktop.
 - **HADA.Tray** runs in the logged-in user's session. It reads things a service can't see, such as the focused window and the audio device, and streams them to the service over the `HADA.Session` named pipe. Commands from Home Assistant for the tray's entities come back over the same pipe. Its settings window uses the same pipe to read status and logs and to change settings. The window is the same program started as a second process, which exits when the window is closed: a window costs far more memory than the tray icon and the sensors, and this way that memory is only used while the window is open.
 - Sensors, actions and engines talk only through an in-process event bus (`HADA.Core`). Sensors never reference MQTT or WebSocket code.
-- There are two **communication engines**. Each stays idle until it is configured, and restarts by itself when its settings change:
-  - **MQTT** (recommended). Uses MQTT discovery, so entities appear automatically with unique IDs, a device, and availability tracking through a last will.
+- There are two kinds of **communication engines**. Each stays idle until it is configured, and restarts by itself when its settings change:
+  - **MQTT** (recommended). Uses MQTT discovery, so entities appear automatically with unique IDs, a device, and availability tracking through a last will. There is one engine per MQTT server, so one per Home Assistant, all fed from the same bus; the `EngineSupervisor` matches them to the servers in the settings by their ids.
   - **WebSocket/REST**. Needs no broker, but has the limitations listed [below](../home-assistant/websocket.md#limitations).
 
 | Project | Purpose |

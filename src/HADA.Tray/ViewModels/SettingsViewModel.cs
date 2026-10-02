@@ -14,7 +14,8 @@ namespace HADA.Tray.ViewModels;
 /// </summary>
 public sealed class SettingsViewModel : ObservableObject
 {
-    private const int DefaultMqttPort = 1883;
+    /// <summary>As many as the service takes.</summary>
+    private const int MaxMqttServers = 8;
 
     private readonly ServiceControlClient _client;
     private readonly HashSet<string> _disabledEntities = new(StringComparer.Ordinal);
@@ -24,6 +25,8 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly AsyncCommand _testMqttCommand;
     private readonly AsyncCommand _testHomeAssistantCommand;
     private readonly RelayCommand _addCustomSensorCommand;
+    private readonly RelayCommand _addMqttServerCommand;
+    private readonly RelayCommand _removeMqttServerCommand;
 
     private SettingsSnapshot? _snapshot;
     private bool _isApplying;
@@ -32,16 +35,7 @@ public sealed class SettingsViewModel : ObservableObject
     private bool _isTestingMqtt;
     private bool _isTestingHomeAssistant;
 
-    private string _mqttHost = string.Empty;
-    private double? _mqttPort = DefaultMqttPort;
-    private bool _mqttUseTls;
-    private string _mqttUsername = string.Empty;
-    private string _mqttPassword = string.Empty;
-    private bool _clearMqttPassword;
-    private string _mqttDeviceId = string.Empty;
-    private string _mqttDeviceName = string.Empty;
-    private string _mqttDiscoveryPrefix = "homeassistant";
-    private string _mqttBaseTopic = "hada";
+    private MqttServerViewModel? _selectedMqttServer;
     private string _homeAssistantUrl = string.Empty;
     private string _accessToken = string.Empty;
     private bool _clearAccessToken;
@@ -61,11 +55,13 @@ public sealed class SettingsViewModel : ObservableObject
         IsElevated = isElevated;
         _saveCommand = new AsyncCommand(SaveAsync, () => CanEdit && IsDirty && !IsBusy);
         _revertCommand = new RelayCommand(Revert, () => IsDirty && !IsBusy);
-        _testMqttCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.Mqtt), () => CanEdit && !IsBusy);
+        _testMqttCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.Mqtt), () => CanEdit && !IsBusy && SelectedMqttServer is not null);
         _testHomeAssistantCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.HomeAssistant), () => CanEdit && !IsBusy);
         _addCustomSensorCommand = new RelayCommand(
             () => AddCustomSensor(new CustomSensorDefinition()),
             () => CanEdit && !IsBusy);
+        _addMqttServerCommand = new RelayCommand(AddMqttServer, () => CanEdit && !IsBusy && MqttServers.Count < MaxMqttServers);
+        _removeMqttServerCommand = new RelayCommand(RemoveMqttServer, () => CanEdit && !IsBusy && MqttServers.Count > 1);
     }
 
     public event EventHandler? DisabledEntitiesChanged;
@@ -122,33 +118,31 @@ public sealed class SettingsViewModel : ObservableObject
 
     public string MachineNamePlaceholder { get; } = Loc.Format("Placeholder_MachineName", Environment.MachineName);
 
-    public bool HasMqttPassword => _snapshot?.HasMqttPassword ?? false;
-
     public bool HasAccessToken => _snapshot?.HasAccessToken ?? false;
-
-    public string MqttPasswordPlaceholder => Loc.Get(HasMqttPassword ? "Placeholder_SecretSaved" : "Placeholder_SecretNone");
 
     public string AccessTokenPlaceholder => Loc.Get(HasAccessToken ? "Placeholder_SecretSaved" : "Placeholder_SecretNone");
 
-    public string MqttHost { get => _mqttHost; set => SetSetting(ref _mqttHost, value); }
+    /// <summary>The MQTT servers, one per Home Assistant; there is always at least one to type into.</summary>
+    public ObservableCollection<MqttServerViewModel> MqttServers { get; } = [];
 
-    public double? MqttPort { get => _mqttPort; set => SetSetting(ref _mqttPort, value); }
+    /// <summary>The server the form on the Connections page shows.</summary>
+    public MqttServerViewModel? SelectedMqttServer
+    {
+        get => _selectedMqttServer;
+        set
+        {
+            if (SetProperty(ref _selectedMqttServer, value))
+            {
+                // The result of testing one server says nothing about another.
+                MqttTest.Close();
+                RefreshCommands();
+            }
+        }
+    }
 
-    public bool MqttUseTls { get => _mqttUseTls; set => SetSetting(ref _mqttUseTls, value); }
+    public bool HasSeveralMqttServers => MqttServers.Count > 1;
 
-    public string MqttUsername { get => _mqttUsername; set => SetSetting(ref _mqttUsername, value); }
-
-    public string MqttPassword { get => _mqttPassword; set => SetSetting(ref _mqttPassword, value ?? string.Empty); }
-
-    public bool ClearMqttPassword { get => _clearMqttPassword; set => SetSetting(ref _clearMqttPassword, value); }
-
-    public string MqttDeviceId { get => _mqttDeviceId; set => SetSetting(ref _mqttDeviceId, value); }
-
-    public string MqttDeviceName { get => _mqttDeviceName; set => SetSetting(ref _mqttDeviceName, value); }
-
-    public string MqttDiscoveryPrefix { get => _mqttDiscoveryPrefix; set => SetSetting(ref _mqttDiscoveryPrefix, value); }
-
-    public string MqttBaseTopic { get => _mqttBaseTopic; set => SetSetting(ref _mqttBaseTopic, value); }
+    public bool HasOneMqttServer => !HasSeveralMqttServers;
 
     public string HomeAssistantUrl { get => _homeAssistantUrl; set => SetSetting(ref _homeAssistantUrl, value); }
 
@@ -176,6 +170,10 @@ public sealed class SettingsViewModel : ObservableObject
 
     public ICommand AddCustomSensorCommand => _addCustomSensorCommand;
 
+    public ICommand AddMqttServerCommand => _addMqttServerCommand;
+
+    public ICommand RemoveMqttServerCommand => _removeMqttServerCommand;
+
     public ObservableCollection<CustomSensorViewModel> CustomSensors { get; } = [];
 
     public bool HasNoCustomSensors => CustomSensors.Count == 0;
@@ -193,6 +191,15 @@ public sealed class SettingsViewModel : ObservableObject
         if (changed)
         {
             UpdateDirty();
+        }
+    }
+
+    /// <summary>Shows the server with that id in the form, e.g. after its card on the overview was clicked.</summary>
+    public void ShowMqttServer(string id)
+    {
+        if (MqttServers.FirstOrDefault(server => server.Id == id) is { } server)
+        {
+            SelectedMqttServer = server;
         }
     }
 
@@ -243,6 +250,7 @@ public sealed class SettingsViewModel : ObservableObject
     private async Task TestAsync(ConnectionTarget target)
     {
         var result = target == ConnectionTarget.Mqtt ? MqttTest : HomeAssistantTest;
+        var server = SelectedMqttServer;
         if (Validate(target) is { } error)
         {
             result.Show(Loc.Get("Validation_Title"), error, InfoBarSeverity.Warning);
@@ -254,7 +262,7 @@ public sealed class SettingsViewModel : ObservableObject
         result.Close();
         try
         {
-            var outcome = await _client.TestConnectionAsync(target, BuildUpdate());
+            var outcome = await _client.TestConnectionAsync(target, BuildUpdate(server), server?.Id);
             result.Show(
                 Loc.Get(outcome.Success ? "Test_SuccessTitle" : "Test_FailureTitle"),
                 outcome.Message ?? string.Empty,
@@ -287,16 +295,19 @@ public sealed class SettingsViewModel : ObservableObject
         _isApplying = true;
         try
         {
-            MqttHost = snapshot.Mqtt.Host;
-            MqttPort = snapshot.Mqtt.Port;
-            MqttUseTls = snapshot.Mqtt.UseTls;
-            MqttUsername = snapshot.Mqtt.Username;
-            MqttPassword = string.Empty;
-            ClearMqttPassword = false;
-            MqttDeviceId = snapshot.Mqtt.DeviceId;
-            MqttDeviceName = snapshot.Mqtt.DeviceName;
-            MqttDiscoveryPrefix = snapshot.Mqtt.DiscoveryPrefix;
-            MqttBaseTopic = snapshot.Mqtt.BaseTopic;
+            var selected = SelectedMqttServer?.Id;
+            MqttServers.Clear();
+            foreach (var server in snapshot.MqttServers)
+            {
+                MqttServers.Add(new MqttServerViewModel(server.Settings, server.HasPassword, UpdateDirty));
+            }
+
+            if (MqttServers.Count == 0)
+            {
+                MqttServers.Add(MqttServerViewModel.New(UpdateDirty));
+            }
+
+            SelectedMqttServer = MqttServers.FirstOrDefault(server => server.Id == selected) ?? MqttServers[0];
             HomeAssistantUrl = snapshot.HomeAssistant.BaseUrl;
             AccessToken = string.Empty;
             ClearAccessToken = false;
@@ -322,28 +333,19 @@ public sealed class SettingsViewModel : ObservableObject
 
         OnPropertyChanged(nameof(IsLoaded));
         OnPropertyChanged(nameof(CanEdit));
-        OnPropertyChanged(nameof(HasMqttPassword));
         OnPropertyChanged(nameof(HasAccessToken));
-        OnPropertyChanged(nameof(MqttPasswordPlaceholder));
         OnPropertyChanged(nameof(AccessTokenPlaceholder));
+        OnPropertyChanged(nameof(HasSeveralMqttServers));
+        OnPropertyChanged(nameof(HasOneMqttServer));
         OnPropertyChanged(nameof(HasNoCustomSensors));
         DisabledEntitiesChanged?.Invoke(this, EventArgs.Empty);
         UpdateDirty();
         RefreshCommands();
     }
 
-    private SettingsUpdate BuildUpdate() => new(
-        // A pasted "mqtt://broker:1883" is split into host and port, as the service will store it.
-        MqttAddress.Apply(new MqttSettings(
-            MqttHost,
-            (int)Math.Round(MqttPort ?? DefaultMqttPort),
-            MqttUseTls,
-            MqttUsername.Trim(),
-            MqttDeviceId.Trim(),
-            MqttDeviceName.Trim(),
-            MqttDiscoveryPrefix.Trim().Trim('/'),
-            MqttBaseTopic.Trim().Trim('/'))),
-        SecretUpdateFor(MqttPassword, ClearMqttPassword),
+    /// <param name="alsoBlank">A server to send even if nothing is typed into it yet, because it is the one being tested.</param>
+    private SettingsUpdate BuildUpdate(MqttServerViewModel? alsoBlank = null) => new(
+        [.. PendingMqttServers().Union(alsoBlank is null ? [] : [alsoBlank]).Select(server => server.ToUpdate())],
         new HomeAssistantSettings(
             HomeAssistantUrl.Trim(),
             HomeAssistantDeviceId.Trim(),
@@ -354,6 +356,38 @@ public sealed class SettingsViewModel : ObservableObject
         [.. PendingCustomSensors()],
         [.. _enabledEntities.Order(StringComparer.Ordinal)],
         new UpdateSettings(CheckUpdatesAutomatically, IncludePrereleases));
+
+    /// <summary>The servers as they would be saved. One that nothing was typed into is not a server yet.</summary>
+    private IEnumerable<MqttServerViewModel> PendingMqttServers() => MqttServers.Where(server => !server.IsBlank);
+
+    private void AddMqttServer()
+    {
+        var server = MqttServerViewModel.New(UpdateDirty);
+        MqttServers.Add(server);
+        SelectedMqttServer = server;
+        OnMqttServersChanged();
+    }
+
+    private void RemoveMqttServer()
+    {
+        if (SelectedMqttServer is not { } server || MqttServers.Count < 2)
+        {
+            return;
+        }
+
+        var index = MqttServers.IndexOf(server);
+        MqttServers.Remove(server);
+        SelectedMqttServer = MqttServers[Math.Min(index, MqttServers.Count - 1)];
+        OnMqttServersChanged();
+    }
+
+    private void OnMqttServersChanged()
+    {
+        OnPropertyChanged(nameof(HasSeveralMqttServers));
+        OnPropertyChanged(nameof(HasOneMqttServer));
+        UpdateDirty();
+        RefreshCommands();
+    }
 
     /// <summary>The custom sensors as they would be saved. A row nothing was typed into is not a sensor yet.</summary>
     private IEnumerable<CustomSensorDefinition> PendingCustomSensors() =>
@@ -379,7 +413,7 @@ public sealed class SettingsViewModel : ObservableObject
         UpdateDirty();
     }
 
-    private static SecretUpdate SecretUpdateFor(string typed, bool clear) =>
+    internal static SecretUpdate SecretUpdateFor(string typed, bool clear) =>
         typed.Length > 0 ? new SecretUpdate(SecretChange.Replace, typed)
         : clear ? new SecretUpdate(SecretChange.Clear)
         : SecretUpdate.Unchanged;
@@ -387,27 +421,34 @@ public sealed class SettingsViewModel : ObservableObject
     /// <param name="target">The connection being tested, or <see langword="null"/> to check everything before saving.</param>
     private string? Validate(ConnectionTarget? target)
     {
-        if (target is null or ConnectionTarget.Mqtt)
+        if (target == ConnectionTarget.Mqtt && SelectedMqttServer?.Validate(hostRequired: true) is { } testError)
         {
-            var host = MqttAddress.Parse(MqttHost).Host;
-            if (target == ConnectionTarget.Mqtt && host.Length == 0)
+            return testError;
+        }
+
+        if (target is null)
+        {
+            var servers = PendingMqttServers().ToList();
+            foreach (var server in servers)
             {
-                return Loc.Get("Validation_HostRequired");
+                if (server.Validate(hostRequired: false) is { } error)
+                {
+                    // The form shows one server at a time; show the one that is wrong.
+                    SelectedMqttServer = server;
+                    return servers.Count > 1 ? $"{server.DisplayName}: {error}" : error;
+                }
             }
 
-            if (host.Length > 0 && Uri.CheckHostName(host) == UriHostNameType.Unknown)
+            if (servers.Count > 1 && servers.FirstOrDefault(server => server.Name.Trim().Length == 0) is { } unnamed)
             {
-                return Loc.Get("Validation_Host");
+                SelectedMqttServer = unnamed;
+                return Loc.Get("Validation_ServerName");
             }
 
-            if (MqttPort is not { } port || port is < 1 or > 65535 || port != Math.Floor(port))
+            var twice = servers.GroupBy(server => server.Name.Trim(), StringComparer.CurrentCultureIgnoreCase).FirstOrDefault(group => group.Count() > 1);
+            if (twice is not null)
             {
-                return Loc.Get("Validation_Port");
-            }
-
-            if (!IsTopicPrefix(MqttDiscoveryPrefix) || !IsTopicPrefix(MqttBaseTopic))
-            {
-                return Loc.Get("Validation_Topic");
+                return Loc.Format("Validation_ServerNameTwice", twice.Key);
             }
         }
 
@@ -453,12 +494,6 @@ public sealed class SettingsViewModel : ObservableObject
         return null;
     }
 
-    private static bool IsTopicPrefix(string value)
-    {
-        var trimmed = value.Trim().Trim('/');
-        return trimmed.Length > 0 && !trimmed.Any(c => char.IsWhiteSpace(c) || c is '+' or '#');
-    }
-
     private void SetSetting<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (SetProperty(ref field, value, propertyName))
@@ -476,9 +511,10 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     private static bool Matches(SettingsUpdate update, SettingsSnapshot snapshot) =>
-        update.Mqtt == snapshot.Mqtt
+        update.MqttServers.Select(server => server.Settings).SequenceEqual(
+            snapshot.MqttServers.Select(server => server.Settings).Where(server => server.Name.Length > 0 || server.Host.Length > 0))
+        && update.MqttServers.All(server => server.Password.Change == SecretChange.Keep)
         && update.HomeAssistant == snapshot.HomeAssistant
-        && update.MqttPassword.Change == SecretChange.Keep
         && update.AccessToken.Change == SecretChange.Keep
         && update.DisabledEntities.SequenceEqual(snapshot.DisabledEntities.Order(StringComparer.Ordinal))
         && update.EnabledEntities.SequenceEqual(snapshot.EnabledEntities.Order(StringComparer.Ordinal))
@@ -504,5 +540,7 @@ public sealed class SettingsViewModel : ObservableObject
         _testMqttCommand.RaiseCanExecuteChanged();
         _testHomeAssistantCommand.RaiseCanExecuteChanged();
         _addCustomSensorCommand.RaiseCanExecuteChanged();
+        _addMqttServerCommand.RaiseCanExecuteChanged();
+        _removeMqttServerCommand.RaiseCanExecuteChanged();
     }
 }

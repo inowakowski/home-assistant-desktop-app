@@ -207,7 +207,8 @@ public partial class App : Application
         // Notifications: toasts, which can carry a picture and buttons; the icon's plain balloon when a toast fails.
         var bus = _host.Services.GetRequiredService<IEventBus>();
         var toasts = new ToastPresenter(
-            action => _ = bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = action }).AsTask(),
+            (action, origin) => _ = bus.PublishAsync(
+                new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = action, Target = origin }).AsTask(),
             (title, message) => Dispatcher.InvokeAsync(() => _trayIcon?.ShowNotification(title, message)),
             _logger);
         try

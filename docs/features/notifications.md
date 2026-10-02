@@ -51,6 +51,8 @@ automation:
           entity_id: lock.front_door
 ```
 
+With [several Home Assistants](../home-assistant/mqtt.md#several-home-assistants-at-once), a press is reported only to the one that sent the notification.
+
 A press is reported only while the tray app that showed the notification is still running. A notification found in the notification centre after the computer was restarted can no longer report its buttons.
 
 ## Good to know

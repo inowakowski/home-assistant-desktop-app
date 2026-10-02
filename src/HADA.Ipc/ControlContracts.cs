@@ -57,7 +57,15 @@ public sealed record UpdateCheckResult(
 /// <param name="IncludePrereleases">Whether versions marked as pre-releases count as newer versions.</param>
 public sealed record UpdateSettings(bool CheckAutomatically = true, bool IncludePrereleases = false);
 
-public sealed record EngineStatus(string Name, bool IsConfigured, EngineConnectionState State);
+/// <param name="Name"><c>mqtt</c> or <c>websocket</c>.</param>
+/// <param name="ServerId">Which of the MQTT servers this is: the <see cref="MqttSettings.Id"/> of its settings.</param>
+/// <param name="ServerName">What the user calls that server; empty when it has no name.</param>
+public sealed record EngineStatus(
+    string Name,
+    bool IsConfigured,
+    EngineConnectionState State,
+    string? ServerId = null,
+    string? ServerName = null);
 
 /// <param name="Source"><c>service</c>, <c>custom</c> for a custom sensor, or the name of the tray client that registered the entity.</param>
 /// <param name="IsAvailable">False while the entity's source is away, e.g. a tray sensor after the tray app exited.</param>
@@ -69,6 +77,10 @@ public sealed record EntityStatus(
     DateTimeOffset? UpdatedAt,
     bool IsAvailable = true);
 
+/// <summary>
+/// One MQTT server, which is one Home Assistant. A computer can be connected to several at once, e.g. one per
+/// place it is used in; each then shows it as a device of its own and can send it commands.
+/// </summary>
 public sealed record MqttSettings(
     string Host,
     int Port,
@@ -77,7 +89,25 @@ public sealed record MqttSettings(
     string DeviceId,
     string DeviceName,
     string DiscoveryPrefix,
-    string BaseTopic);
+    string BaseTopic)
+{
+    /// <summary>
+    /// Tells the servers apart, whatever else about them is changed: a saved password is kept under it. Lowercase
+    /// letters and digits, made up by the window when a server is added.
+    /// </summary>
+    public string Id { get; init; } = string.Empty;
+
+    /// <summary>What the user calls the server, e.g. "Flat". Needed once there is more than one.</summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>A new id for a server added in the window.</summary>
+    public static string NewId() => Guid.NewGuid().ToString("N")[..8];
+}
+
+/// <summary>A server as shown to clients: its password is never sent back, only whether one is saved.</summary>
+public sealed record MqttServerSnapshot(MqttSettings Settings, bool HasPassword);
+
+public sealed record MqttServerUpdate(MqttSettings Settings, SecretUpdate Password);
 
 public sealed record HomeAssistantSettings(
     string BaseUrl,
@@ -88,8 +118,7 @@ public sealed record HomeAssistantSettings(
 /// <summary>Effective settings as shown to clients. Secrets are never sent back, only whether one is set.</summary>
 /// <param name="EnabledEntities">The off-by-default entities that were switched on.</param>
 public sealed record SettingsSnapshot(
-    MqttSettings Mqtt,
-    bool HasMqttPassword,
+    IReadOnlyList<MqttServerSnapshot> MqttServers,
     HomeAssistantSettings HomeAssistant,
     bool HasAccessToken,
     IReadOnlyList<string> DisabledEntities,
@@ -112,9 +141,9 @@ public sealed record SecretUpdate(SecretChange Change, string? Value = null)
     public override string ToString() => $"SecretUpdate {{ Change = {Change} }}";
 }
 
+/// <param name="MqttServers">Every server there should be; one that is left out is forgotten, with its password.</param>
 public sealed record SettingsUpdate(
-    MqttSettings Mqtt,
-    SecretUpdate MqttPassword,
+    IReadOnlyList<MqttServerUpdate> MqttServers,
     HomeAssistantSettings HomeAssistant,
     SecretUpdate AccessToken,
     IReadOnlyList<string> DisabledEntities,
@@ -148,7 +177,9 @@ public interface IServiceControl
     Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken);
 
     /// <summary>Tries <paramref name="settings"/> without saving; secrets marked Keep use the stored values.</summary>
-    Task<OperationResult> TestConnectionAsync(ConnectionTarget target, SettingsUpdate settings, CancellationToken cancellationToken);
+    /// <param name="serverId">Which MQTT server of <paramref name="settings"/> to try; the first one when <see langword="null"/>.</param>
+    Task<OperationResult> TestConnectionAsync(
+        ConnectionTarget target, SettingsUpdate settings, string? serverId, CancellationToken cancellationToken);
 
     IReadOnlyList<LogEntry> GetLogs(long afterSequence, int maxCount);
 

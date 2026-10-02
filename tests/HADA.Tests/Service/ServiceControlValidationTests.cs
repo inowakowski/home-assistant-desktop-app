@@ -5,9 +5,10 @@ namespace HADA.Tests.Service;
 
 public class ServiceControlValidationTests
 {
+    private static readonly MqttSettings Broker = new("broker.local", 1883, false, "hada", "", "", "homeassistant", "hada") { Id = "default" };
+
     private static readonly SettingsUpdate Valid = new(
-        new MqttSettings("broker.local", 1883, false, "hada", "", "", "homeassistant", "hada"),
-        SecretUpdate.Unchanged,
+        [new MqttServerUpdate(Broker, SecretUpdate.Unchanged)],
         new HomeAssistantSettings("http://homeassistant.local:8123", "", "", "hada_command"),
         SecretUpdate.Unchanged,
         [],
@@ -34,16 +35,24 @@ public class ServiceControlValidationTests
         { "custom sensor with the id of a built-in button", WithCustomSensor(ProcessSensor with { Id = "shutdown" }) },
         { "custom button without a command", WithCustomSensor(new CustomSensorDefinition { Name = "Backup", Type = CustomSensorType.CommandButton }) },
         { "two custom sensors with one id", Valid with { CustomSensors = [ProcessSensor, ProcessSensor with { Name = "gra wlaczona" }] } },
-        { "port 0", Valid with { Mqtt = Valid.Mqtt with { Port = 0 } } },
-        { "port 70000", Valid with { Mqtt = Valid.Mqtt with { Port = 70000 } } },
-        { "host with spaces", Valid with { Mqtt = Valid.Mqtt with { Host = "not a host" } } },
-        { "wildcard topic", Valid with { Mqtt = Valid.Mqtt with { BaseTopic = "hada/#" } } },
-        { "empty discovery prefix", Valid with { Mqtt = Valid.Mqtt with { DiscoveryPrefix = " / " } } },
+        { "port 0", WithBroker(Broker with { Port = 0 }) },
+        { "port 70000", WithBroker(Broker with { Port = 70000 }) },
+        { "host with spaces", WithBroker(Broker with { Host = "not a host" }) },
+        { "wildcard topic", WithBroker(Broker with { BaseTopic = "hada/#" }) },
+        { "empty discovery prefix", WithBroker(Broker with { DiscoveryPrefix = " / " }) },
         { "ftp url", Valid with { HomeAssistant = Valid.HomeAssistant with { BaseUrl = "ftp://ha.local" } } },
         { "relative url", Valid with { HomeAssistant = Valid.HomeAssistant with { BaseUrl = "ha.local:8123" } } },
         { "event type with space", Valid with { HomeAssistant = Valid.HomeAssistant with { CommandEventType = "hada command" } } },
-        { "very long name", Valid with { Mqtt = Valid.Mqtt with { DeviceName = new string('x', 300) } } },
-        { "very long secret", Valid with { MqttPassword = new SecretUpdate(SecretChange.Replace, new string('x', 5000)) } },
+        { "very long name", WithBroker(Broker with { DeviceName = new string('x', 300) }) },
+        { "very long secret", Valid with { MqttServers = [new MqttServerUpdate(Broker, new SecretUpdate(SecretChange.Replace, new string('x', 5000)))] } },
+        { "server without an id", WithBroker(Broker with { Id = "" }) },
+        { "server id that is no id", WithBroker(Broker with { Id = "Flat 1" }) },
+        { "very long server name", WithBroker(Broker with { Name = new string('x', 65) }) },
+        { "two servers, one without a name", WithBrokers(Broker with { Name = "Flat" }, Broker with { Id = "b", Host = "office.local" }) },
+        { "two servers with one name", WithBrokers(Broker with { Name = "Flat" }, Broker with { Id = "b", Name = "flat", Host = "office.local" }) },
+        { "two servers with one id", WithBrokers(Broker with { Name = "Flat" }, Broker with { Name = "Office", Host = "office.local" }) },
+        { "one broker twice with one device id", WithBrokers(Broker with { Name = "Flat" }, Broker with { Id = "b", Name = "Again", Host = "BROKER.local" }) },
+        { "more servers than allowed", WithBrokers([.. Enumerable.Range(0, ServiceControl.MaxMqttServers + 1).Select(i => Broker with { Id = $"s{i}", Name = $"S{i}", Host = $"h{i}.local" })]) },
     };
 
     [Fact]
@@ -53,15 +62,26 @@ public class ServiceControlValidationTests
     }
 
     [Fact]
+    public void Several_named_servers_pass_even_on_one_broker_with_different_device_ids()
+    {
+        var servers = WithBrokers(
+            Broker with { Name = "Mieszkanie" },
+            Broker with { Id = "b2", Name = "Biuro", Host = "office.example.com", Port = 8883, UseTls = true },
+            Broker with { Id = "c3", Name = "Same broker, other device", DeviceId = "desk-2" });
+
+        Assert.Null(ServiceControl.Validate(servers));
+    }
+
+    [Fact]
     public void Empty_host_and_url_are_allowed_because_they_turn_an_engine_off()
     {
-        var disabled = Valid with
+        var disabled = WithBroker(Broker with { Host = "" }) with
         {
-            Mqtt = Valid.Mqtt with { Host = "" },
             HomeAssistant = Valid.HomeAssistant with { BaseUrl = "" },
         };
 
         Assert.Null(ServiceControl.Validate(disabled));
+        Assert.Null(ServiceControl.Validate(Valid with { MqttServers = [] }));
     }
 
     [Theory]
@@ -79,23 +99,26 @@ public class ServiceControlValidationTests
     [InlineData("[fe80::1]:1883", "fe80::1", 1883, null)]
     [InlineData("fe80::1", "fe80::1", null, null)]
     [InlineData("broker.local", "broker.local", null, null)]
+    [InlineData("homeassistant.local", "homeassistant.local", null, null)]
     public void Pasted_broker_addresses_are_split_into_host_port_and_tls(string typed, string host, int? port, bool? useTls)
     {
         Assert.Equal(new MqttAddress(host, port, useTls), MqttAddress.Parse(typed));
-        Assert.Null(ServiceControl.Validate(Valid with { Mqtt = Valid.Mqtt with { Host = typed } }));
+        Assert.Null(ServiceControl.Validate(WithBroker(Broker with { Host = typed })));
     }
 
     [Fact]
     public void A_connection_test_is_not_refused_over_settings_it_does_not_use()
     {
-        var unfinished = Valid with
+        var unfinished = WithBrokers(Broker with { Name = "Flat" }, Broker with { Id = "b", Host = "not a host" }) with
         {
             HomeAssistant = Valid.HomeAssistant with { BaseUrl = "not a url" },
             CustomSensors = [new CustomSensorDefinition { Name = "Unfinished", Type = CustomSensorType.PowerShell }],
         };
 
         Assert.NotNull(ServiceControl.Validate(unfinished));
-        Assert.Null(ServiceControl.Validate(unfinished, ConnectionTarget.Mqtt));
+        Assert.Null(ServiceControl.Validate(unfinished, ConnectionTarget.Mqtt, "default"));
+        Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.Mqtt, "b"));
+        Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.Mqtt, "no-such-server"));
         Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.HomeAssistant));
     }
 
@@ -118,13 +141,32 @@ public class ServiceControlValidationTests
         Assert.Equal(expectedId, new CustomSensorDefinition { Name = name }.Normalize().Id);
     }
 
-    private static SettingsUpdate WithCustomSensor(CustomSensorDefinition sensor) => Valid with { CustomSensors = [sensor] };
-
     [Fact]
     public void Secrets_never_appear_in_the_string_form_of_an_update()
     {
-        var update = Valid with { AccessToken = new SecretUpdate(SecretChange.Replace, "super-secret-token") };
+        var update = Valid with
+        {
+            AccessToken = new SecretUpdate(SecretChange.Replace, "super-secret-token"),
+            MqttServers = [new MqttServerUpdate(Broker, new SecretUpdate(SecretChange.Replace, "broker-password"))],
+        };
 
         Assert.DoesNotContain("super-secret-token", update.ToString());
+        Assert.DoesNotContain("broker-password", update.MqttServers[0].ToString());
     }
+
+    [Fact]
+    public void New_server_ids_are_valid_ids()
+    {
+        var id = MqttSettings.NewId();
+
+        Assert.Null(ServiceControl.Validate(WithBroker(Broker with { Id = id })));
+        Assert.NotEqual(id, MqttSettings.NewId());
+    }
+
+    private static SettingsUpdate WithCustomSensor(CustomSensorDefinition sensor) => Valid with { CustomSensors = [sensor] };
+
+    private static SettingsUpdate WithBroker(MqttSettings broker) => WithBrokers(broker);
+
+    private static SettingsUpdate WithBrokers(params MqttSettings[] brokers) =>
+        Valid with { MqttServers = [.. brokers.Select(broker => new MqttServerUpdate(broker, SecretUpdate.Unchanged))] };
 }

@@ -69,7 +69,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         var settings = await _client.GetSettingsAsync();
         var logs = await _client.GetLogsAsync(afterSequence: 0);
 
-        Assert.Equal("broker.local", settings.Mqtt.Host);
+        Assert.Equal("broker.local", Assert.Single(settings.MqttServers).Settings.Host);
         Assert.Equal(FakeServiceControl.CustomSensor, Assert.Single(settings.CustomSensors));
         Assert.Equal("hello", Assert.Single(logs).Message);
         Assert.True(settings.Updates.IncludePrereleases);
@@ -91,7 +91,7 @@ public sealed class IpcControlTests : IAsyncDisposable
     {
         await _server.StartAsync(CancellationToken.None);
         var update = new SettingsUpdate(
-            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
+            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
 
         if (IsElevatedAdministrator())
         {
@@ -119,7 +119,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         var before = _control.SaveCalls;
 
         var update = new SettingsUpdate(
-            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
+            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
         Assert.True((await client.SaveSettingsAsync(update)).Success);
         Assert.True((await client.TestConnectionAsync(ConnectionTarget.Mqtt, update)).Success);
 
@@ -150,7 +150,7 @@ public sealed class IpcControlTests : IAsyncDisposable
 
     private sealed class FakeServiceControl(IEntityRegistry registry) : IServiceControl
     {
-        public static readonly MqttSettings Mqtt = new("broker.local", 1883, false, "", "", "", "homeassistant", "hada");
+        public static readonly MqttSettings Mqtt = new("broker.local", 1883, false, "", "", "", "homeassistant", "hada") { Id = "default" };
         public static readonly HomeAssistantSettings HomeAssistant = new("", "", "", "hada_command");
         public static readonly CustomSensorDefinition CustomSensor = new()
         {
@@ -174,7 +174,8 @@ public sealed class IpcControlTests : IAsyncDisposable
                 [.. registry.Entities.Select(entity => new EntityStatus(entity, true, "service", null, null))]));
 
         public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor], [], new UpdateSettings(IncludePrereleases: true)));
+            Task.FromResult(new SettingsSnapshot(
+                [new MqttServerSnapshot(Mqtt, false)], HomeAssistant, false, [], [CustomSensor], [], new UpdateSettings(IncludePrereleases: true)));
 
         public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
         {
@@ -182,7 +183,8 @@ public sealed class IpcControlTests : IAsyncDisposable
             return Task.FromResult(new OperationResult(true));
         }
 
-        public Task<OperationResult> TestConnectionAsync(ConnectionTarget target, SettingsUpdate settings, CancellationToken cancellationToken)
+        public Task<OperationResult> TestConnectionAsync(
+            ConnectionTarget target, SettingsUpdate settings, string? serverId, CancellationToken cancellationToken)
         {
             TestCalls++;
             return Task.FromResult(new OperationResult(true));
