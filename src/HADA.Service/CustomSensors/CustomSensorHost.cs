@@ -4,6 +4,7 @@ using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
 using HADA.Ipc;
+using HADA.Platform.Windows.Sensors;
 using HADA.Service.Settings;
 using Microsoft.Extensions.Options;
 
@@ -158,6 +159,13 @@ public sealed partial class CustomSensorHost(
                 BinaryState.From(count > 0),
                 new Dictionary<string, object?> { ["instances"] = count },
                 cancellationToken);
+            return;
+        }
+
+        if (sensor.Type == CustomSensorType.DeviceConnected)
+        {
+            await publisher.PublishAsync(
+                sensor.Id, BinaryState.From(PnpDevices.IsPresent(sensor.Value)), cancellationToken: cancellationToken);
             return;
         }
 

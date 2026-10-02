@@ -20,6 +20,7 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 | `microphone_in_use` | binary sensor | Tray | On while an app uses the microphone. The apps are listed in the `apps` attribute |
 | `microphone_muted` | binary sensor | Tray | On while the default microphone is muted in Windows. `level` (input level, %) is an attribute. Muting only inside a call app is not seen |
 | `camera_in_use` | binary sensor | Tray | On while an app uses the camera. The apps are listed in the `apps` attribute |
+| `external_display` | binary sensor | Tray | On while a monitor other than the built-in one is connected. `displays` and `external_displays` (counts) are attributes. A monitor without power is not seen |
 
 Every entity can be turned off on the **Entities** page. You can add your own without code as [custom sensors](#custom-sensors), or [in code](#adding-entities-in-code).
 
@@ -27,19 +28,46 @@ Every entity can be turned off on the **Entities** page. You can add your own wi
 
 ## Custom sensors
 
-On the **Custom sensors** page you define your own values to send to Home Assistant:
+On the **Custom sensors** page you define your own sensors:
 
 | Type | Becomes | What you enter |
 |---|---|---|
 | **Fixed text** | sensor | A value that stays the same until you change it, e.g. the room the computer is in |
 | **Program is running** | binary sensor | A process name such as `chrome`. On while at least one such process runs; the count is in the `instances` attribute |
 | **PowerShell command** | sensor | A command; whatever it prints becomes the value. Example: `[math]::Round((Get-PSDrive C).Free / 1GB)` with the unit `GB` |
+| **Device is connected** | binary sensor | A part of a device's ID, such as `VID_0BDA&PID_8153`, or pick one of the connected USB devices from the list. On while such a device is connected: a USB-C dock, a drive, a headset |
 
 - The **ID** is the entity ID. Leave it empty to derive it from the name (`Gra włączona` → `gra_wlaczona`).
 - Set a **unit** only for numbers. Home Assistant then treats the sensor as a measurement and draws a graph.
 - A program is looked for, and a command is run, every *n* seconds: at least 2, by default 30.
 - PowerShell commands are run by the service with Windows PowerShell 5.1, so as SYSTEM when installed. They cannot see your desktop or the files and settings of your user account. A command must finish within 30 seconds; if it fails or prints nothing, the sensor keeps its last value and the reason appears on the **Logs** page.
+- A device is matched against the instance IDs of all connected devices, ignoring case, so any part that identifies it works; Device Manager shows the full ID under **Details → Device instance path**. The check is cheap, so an interval of a few seconds is fine.
 - Removing a custom sensor also removes it from Home Assistant.
+
+### Example: is the laptop docked?
+
+A monitor on a smart plug should be powered only while the laptop sits in its USB-C dock with the screen on. Whether the laptop is charging does not say that, since a plain charger charges it too. Neither does `external_display`: once the plug is off, the monitor has no power and Windows no longer sees it. The dock itself does: its own devices, such as its network adapter, are there whenever the cable is plugged in.
+
+1. With the laptop docked, add a custom sensor of the type **Device is connected**, pick a device that belongs to the dock from the list, name it *Docked*, and set it to check every 3 seconds.
+2. In Home Assistant, let the plug follow both sensors:
+
+```yaml
+automation:
+  - alias: Monitor power follows the docked laptop
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.laptop_docked
+          - binary_sensor.laptop_display
+    actions:
+      - action: >-
+          switch.turn_{{ 'on' if is_state('binary_sensor.laptop_docked', 'on')
+          and is_state('binary_sensor.laptop_display', 'on') else 'off' }}
+        target:
+          entity_id: switch.monitor_plug
+```
+
+While the laptop is asleep or off, both sensors are *unavailable*, which also turns the plug off.
 
 ## Architecture
 

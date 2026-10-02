@@ -82,6 +82,41 @@ public class SystemReaderTests
     }
 
     [Fact]
+    public void Connected_devices_are_listed_and_found_by_a_part_of_their_id_in_any_case()
+    {
+        var present = PnpDevices.PresentInstanceIds();
+
+        Assert.NotEmpty(present);
+        Assert.True(PnpDevices.IsPresent(present[0].ToLowerInvariant()));
+        Assert.False(PnpDevices.IsPresent("VID_FFFF&PID_FFFF_NO_SUCH_DEVICE"));
+        Assert.False(PnpDevices.IsPresent(string.Empty));
+    }
+
+    [Fact]
+    public void Usb_devices_are_offered_once_per_model_with_a_name_and_a_vendor_and_product_id()
+    {
+        var devices = PnpDevices.ConnectedUsbDevices();
+
+        Assert.All(devices, device =>
+        {
+            Assert.Matches("^VID_[0-9A-F]{4}&PID_[0-9A-F]{4}$", device.MatchId);
+            Assert.False(string.IsNullOrWhiteSpace(device.Name));
+            Assert.True(PnpDevices.IsPresent(device.MatchId));
+        });
+        Assert.Equal(devices.Count, devices.Select(device => device.MatchId).Distinct().Count());
+    }
+
+    [Fact]
+    public void Connected_displays_are_counted_consistently()
+    {
+        // Not available in a session without a desktop, such as a service or some CI agents.
+        if (Displays.TryRead() is { } displays)
+        {
+            Assert.InRange(displays.External, 0, displays.Total);
+        }
+    }
+
+    [Fact]
     public async Task Display_state_is_reported_as_soon_as_it_is_watched()
     {
         var changes = Channel.CreateUnbounded<(Guid Setting, int Value)>();

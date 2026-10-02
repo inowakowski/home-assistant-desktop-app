@@ -64,6 +64,59 @@ internal static partial class NativeMethods
 
     [LibraryImport("powrprof.dll")]
     public static partial uint PowerSettingUnregisterNotification(nint registration);
+
+    /// <summary>Length, in characters, of the list <see cref="CM_Get_Device_ID_List"/> returns. Returns a CONFIGRET code.</summary>
+    [LibraryImport("cfgmgr32.dll", EntryPoint = "CM_Get_Device_ID_List_SizeW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial uint CM_Get_Device_ID_List_Size(out uint length, string? filter, uint flags);
+
+    /// <summary>Device instance ids, each terminated by a null character, with a second null after the last.</summary>
+    [LibraryImport("cfgmgr32.dll", EntryPoint = "CM_Get_Device_ID_ListW", StringMarshalling = StringMarshalling.Utf16)]
+    public static unsafe partial uint CM_Get_Device_ID_List(string? filter, char* buffer, uint bufferLength, uint flags);
+
+    [LibraryImport("cfgmgr32.dll", EntryPoint = "CM_Locate_DevNodeW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial uint CM_Locate_DevNode(out uint deviceInstance, string deviceId, uint flags);
+
+    [LibraryImport("cfgmgr32.dll", EntryPoint = "CM_Get_DevNode_PropertyW")]
+    public static unsafe partial uint CM_Get_DevNode_Property(
+        uint deviceInstance, in DevicePropertyKey key, out uint propertyType, byte* buffer, ref uint bufferSize, uint flags);
+
+    /// <summary>How many paths and modes <see cref="QueryDisplayConfig"/> will return. Returns a Win32 error code.</summary>
+    [LibraryImport("user32.dll")]
+    public static partial int GetDisplayConfigBufferSizes(uint flags, out uint pathCount, out uint modeCount);
+
+    /// <summary>The modes are not used here, so they are received into a plain byte buffer of 64 bytes each.</summary>
+    [LibraryImport("user32.dll")]
+    public static unsafe partial int QueryDisplayConfig(
+        uint flags, ref uint pathCount, DisplayConfigPath* paths, ref uint modeCount, byte* modes, nint currentTopology);
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct DevicePropertyKey
+{
+    public Guid Category;
+    public uint Id;
+}
+
+/// <summary>
+/// DISPLAYCONFIG_PATH_INFO, a source (20 bytes), a target (48 bytes) and flags; only the target's identity,
+/// connector type and availability are needed.
+/// </summary>
+[StructLayout(LayoutKind.Explicit, Size = 72)]
+internal struct DisplayConfigPath
+{
+    [FieldOffset(20)]
+    public long TargetAdapterId;
+
+    [FieldOffset(28)]
+    public uint TargetId;
+
+    /// <summary>DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY.</summary>
+    [FieldOffset(36)]
+    public uint OutputTechnology;
+
+    /// <summary>Non-zero while a monitor is connected to this output.</summary>
+    [FieldOffset(60)]
+    public int TargetAvailable;
 }
 
 [StructLayout(LayoutKind.Sequential)]

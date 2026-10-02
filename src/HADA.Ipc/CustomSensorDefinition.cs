@@ -14,6 +14,12 @@ public enum CustomSensorType
 
     /// <summary>The output of a PowerShell command, run by the service at a fixed interval.</summary>
     PowerShell,
+
+    /// <summary>
+    /// On while a device whose instance id contains the given text is connected, e.g. <c>VID_0BDA&amp;PID_8153</c>
+    /// for a USB-C dock's network adapter. Shows up as a binary sensor.
+    /// </summary>
+    DeviceConnected,
 }
 
 /// <summary>A sensor defined by the user in the settings window (or under <c>CustomSensors:Items</c> in appsettings.json).</summary>
@@ -30,7 +36,10 @@ public sealed record CustomSensorDefinition
 
     public CustomSensorType Type { get; init; }
 
-    /// <summary>The text, the process name or the PowerShell command, depending on <see cref="Type"/>.</summary>
+    /// <summary>Whether sensors of this type are on or off, as opposed to having a text or a number as their value.</summary>
+    public bool IsBinary => Type is CustomSensorType.ProcessRunning or CustomSensorType.DeviceConnected;
+
+    /// <summary>The text, the process name, the PowerShell command or the device id, depending on <see cref="Type"/>.</summary>
     public string Value { get; init; } = string.Empty;
 
     /// <summary>Unit of measurement. Set it only for numeric values; Home Assistant then treats the sensor as a measurement.</summary>
@@ -49,7 +58,7 @@ public sealed record CustomSensorDefinition
             Id = id.Length > 0 ? id : ToId(name),
             Name = name,
             Value = Value.Trim(),
-            Unit = Type == CustomSensorType.ProcessRunning ? string.Empty : Unit.Trim(),
+            Unit = IsBinary ? string.Empty : Unit.Trim(),
         };
     }
 

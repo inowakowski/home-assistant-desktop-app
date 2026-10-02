@@ -162,6 +162,7 @@ public partial class App : Application
         builder.Services.AddHostedService<UserActivitySensor>();
         builder.Services.AddHostedService<MediaCaptureSensor>();
         builder.Services.AddHostedService<MicrophoneMuteSensor>();
+        builder.Services.AddHostedService<ExternalDisplaySensor>();
         _host = builder.Build();
 
         // Started on the thread pool so hosted services never capture the dispatcher's synchronization context,

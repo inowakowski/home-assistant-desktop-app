@@ -19,6 +19,7 @@ public static partial class CustomSensorRules
     private const int MaxProcessNameLength = 260;
     private const int MaxCommandLength = 4096;
     private const int MaxUnitLength = 32;
+    private const int MinDeviceIdLength = 8;
 
     private static readonly SearchValues<char> PathCharacters = SearchValues.Create("\\/:*?\"<>|");
 
@@ -41,6 +42,7 @@ public static partial class CustomSensorRules
         MediaCaptureSensor.MicrophoneEntityId,
         MediaCaptureSensor.CameraEntityId,
         MicrophoneMuteSensor.EntityId,
+        ExternalDisplaySensor.EntityId,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>Checks one normalized definition. Returns an error message, or <see langword="null"/> when it is valid.</summary>
@@ -74,8 +76,15 @@ public static partial class CustomSensorRules
             {
                 CustomSensorType.ProcessRunning => $"Custom sensor '{label}' needs a process name.",
                 CustomSensorType.PowerShell => $"Custom sensor '{label}' needs a PowerShell command.",
+                CustomSensorType.DeviceConnected => $"Custom sensor '{label}' needs a device ID, such as VID_0BDA&PID_8153.",
                 _ => $"Custom sensor '{label}' needs a value.",
             };
+        }
+
+        // A fragment this short is part of nearly every device id, so the sensor would always be on.
+        if (sensor.Type == CustomSensorType.DeviceConnected && sensor.Value.Length < MinDeviceIdLength)
+        {
+            return $"The device ID of custom sensor '{label}' must be at least {MinDeviceIdLength} characters long, such as VID_0BDA&PID_8153.";
         }
 
         var maxValueLength = sensor.Type switch
@@ -137,13 +146,17 @@ public static partial class CustomSensorRules
     {
         Id = sensor.Id,
         Name = sensor.Name,
-        Kind = sensor.Type == CustomSensorType.ProcessRunning ? EntityKind.BinarySensor : EntityKind.Sensor,
+        Kind = sensor.IsBinary ? EntityKind.BinarySensor : EntityKind.Sensor,
         Icon = sensor.Type switch
         {
             CustomSensorType.ProcessRunning => "mdi:application-cog-outline",
             CustomSensorType.PowerShell => "mdi:powershell",
+            CustomSensorType.DeviceConnected => "mdi:usb-port",
             _ => "mdi:form-textbox",
         },
+
+        // Shown in Home Assistant as Connected / Disconnected.
+        DeviceClass = sensor.Type == CustomSensorType.DeviceConnected ? "connectivity" : null,
         UnitOfMeasurement = sensor.Unit.Length > 0 ? sensor.Unit : null,
 
         // A unit tells Home Assistant the value is a number; as a measurement it also gets a history graph.

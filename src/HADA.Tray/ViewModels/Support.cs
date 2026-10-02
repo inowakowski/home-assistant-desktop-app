@@ -93,6 +93,7 @@ internal static class EntityVisuals
         "user_active" => SymbolRegular.Person24,
         "microphone_in_use" => SymbolRegular.Mic24,
         "microphone_muted" => SymbolRegular.MicOff24,
+        "external_display" => SymbolRegular.DesktopMac24,
         "camera_in_use" => SymbolRegular.Video24,
         _ => entity.Kind switch
         {

@@ -118,10 +118,11 @@
   <data name="EntityHint_user_active" xml:space="preserve"><value>Włączony, gdy w ciągu ostatnich 60 sekund użyto klawiatury lub myszy.</value></data>
   <data name="EntityHint_microphone_in_use" xml:space="preserve"><value>Włączony, gdy jakaś aplikacja używa mikrofonu. Nazwy aplikacji są wysyłane jako atrybut.</value></data>
   <data name="EntityHint_microphone_muted" xml:space="preserve"><value>Włączony, gdy mikrofon jest wyciszony w Windows. Wyciszenie tylko w aplikacji do rozmów nie jest widoczne.</value></data>
+  <data name="EntityHint_external_display" xml:space="preserve"><value>Włączony, gdy podłączony jest monitor inny niż wbudowany. Monitor bez zasilania nie jest widoczny; aby wiedzieć, czy komputer jest w stacji dokującej, dodaj własny sensor „Urządzenie jest podłączone” dla stacji.</value></data>
   <data name="EntityHint_camera_in_use" xml:space="preserve"><value>Włączony, gdy jakaś aplikacja używa kamery. Nazwy aplikacji są wysyłane jako atrybut.</value></data>
 
   <data name="Custom_Title" xml:space="preserve"><value>Własne sensory</value></data>
-  <data name="Custom_Subtitle" xml:space="preserve"><value>Zdefiniuj własne wartości wysyłane do Home Assistant: stały tekst, informację, czy program jest uruchomiony, albo wynik polecenia PowerShell.</value></data>
+  <data name="Custom_Subtitle" xml:space="preserve"><value>Zdefiniuj własne wartości wysyłane do Home Assistant: stały tekst, informację, czy program jest uruchomiony albo czy urządzenie (np. stacja USB-C) jest podłączone, lub wynik polecenia PowerShell.</value></data>
   <data name="Custom_Empty" xml:space="preserve"><value>Nie ma jeszcze własnych sensorów. Dodaj sensor, aby wysyłać własną wartość do Home Assistant.</value></data>
   <data name="Custom_Add" xml:space="preserve"><value>Dodaj sensor</value></data>
   <data name="Custom_Remove" xml:space="preserve"><value>Usuń ten sensor</value></data>
@@ -132,6 +133,9 @@
   <data name="Custom_TypeText" xml:space="preserve"><value>Stały tekst</value></data>
   <data name="Custom_TypeProcess" xml:space="preserve"><value>Program jest uruchomiony</value></data>
   <data name="Custom_TypePowerShell" xml:space="preserve"><value>Polecenie PowerShell</value></data>
+  <data name="Custom_TypeDevice" xml:space="preserve"><value>Urządzenie jest podłączone</value></data>
+  <data name="Custom_ValueDevice" xml:space="preserve"><value>Identyfikator urządzenia lub jego fragment</value></data>
+  <data name="Custom_DevicePicker" xml:space="preserve"><value>Albo wybierz podłączone urządzenie USB</value></data>
   <data name="Custom_ValueText" xml:space="preserve"><value>Wartość</value></data>
   <data name="Custom_ValueProcess" xml:space="preserve"><value>Nazwa procesu (bez .exe)</value></data>
   <data name="Custom_ValuePowerShell" xml:space="preserve"><value>Polecenie – jego wynik staje się wartością</value></data>

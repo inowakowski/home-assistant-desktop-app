@@ -118,10 +118,11 @@
   <data name="EntityHint_user_active" xml:space="preserve"><value>On when the keyboard or mouse was used in the last 60 seconds.</value></data>
   <data name="EntityHint_microphone_in_use" xml:space="preserve"><value>On while an app is using the microphone. The app names are sent as an attribute.</value></data>
   <data name="EntityHint_microphone_muted" xml:space="preserve"><value>On while the microphone is muted in Windows. Muting inside a call app only is not seen.</value></data>
+  <data name="EntityHint_external_display" xml:space="preserve"><value>On while a monitor other than the built-in one is connected. A monitor without power is not seen; to know whether the computer is docked, add a "Device is connected" custom sensor for the dock.</value></data>
   <data name="EntityHint_camera_in_use" xml:space="preserve"><value>On while an app is using the camera. The app names are sent as an attribute.</value></data>
 
   <data name="Custom_Title" xml:space="preserve"><value>Custom sensors</value></data>
-  <data name="Custom_Subtitle" xml:space="preserve"><value>Define your own values to send to Home Assistant: a fixed text, whether a program is running, or the result of a PowerShell command.</value></data>
+  <data name="Custom_Subtitle" xml:space="preserve"><value>Define your own values to send to Home Assistant: a fixed text, whether a program is running, whether a device such as a USB-C dock is connected, or the result of a PowerShell command.</value></data>
   <data name="Custom_Empty" xml:space="preserve"><value>No custom sensors yet. Add one to send your own value to Home Assistant.</value></data>
   <data name="Custom_Add" xml:space="preserve"><value>Add sensor</value></data>
   <data name="Custom_Remove" xml:space="preserve"><value>Remove this sensor</value></data>
@@ -132,6 +133,9 @@
   <data name="Custom_TypeText" xml:space="preserve"><value>Fixed text</value></data>
   <data name="Custom_TypeProcess" xml:space="preserve"><value>Program is running</value></data>
   <data name="Custom_TypePowerShell" xml:space="preserve"><value>PowerShell command</value></data>
+  <data name="Custom_TypeDevice" xml:space="preserve"><value>Device is connected</value></data>
+  <data name="Custom_ValueDevice" xml:space="preserve"><value>Device ID, or a part of it</value></data>
+  <data name="Custom_DevicePicker" xml:space="preserve"><value>Or pick a connected USB device</value></data>
   <data name="Custom_ValueText" xml:space="preserve"><value>Value</value></data>
   <data name="Custom_ValueProcess" xml:space="preserve"><value>Process name (without .exe)</value></data>
   <data name="Custom_ValuePowerShell" xml:space="preserve"><value>Command – its output becomes the value</value></data>

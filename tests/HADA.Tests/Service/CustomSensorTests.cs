@@ -4,6 +4,7 @@ using HADA.Core.Entities;
 using HADA.Core.Messaging;
 using HADA.Core.Models;
 using HADA.Ipc;
+using HADA.Platform.Windows.Sensors;
 using HADA.Service.CustomSensors;
 using HADA.Service.Settings;
 using Microsoft.Extensions.Configuration;
@@ -72,6 +73,40 @@ public sealed class CustomSensorTests : IAsyncDisposable
         Assert.Equal(BinaryState.Off, states["ghost_running"]);
         Assert.True(_registry.TryGet("tests_running", out var entity));
         Assert.Equal(EntityKind.BinarySensor, entity.Kind);
+    }
+
+    [Fact]
+    public async Task Device_sensor_is_a_binary_sensor_that_is_on_while_the_device_is_connected()
+    {
+        var connected = PnpDevices.PresentInstanceIds()[0];
+        await using var readings = _bus.Subscribe<TelemetryEvent>();
+        _options.Set(Options(
+            new CustomSensorDefinition { Id = "docked", Name = "Docked", Type = CustomSensorType.DeviceConnected, Value = connected },
+            new CustomSensorDefinition { Id = "ghost_dock", Name = "Ghost dock", Type = CustomSensorType.DeviceConnected, Value = "VID_FFFF&PID_FFFF" }));
+
+        await _host.StartAsync(CancellationToken.None);
+
+        var states = new Dictionary<string, string>();
+        while (states.Count < 2)
+        {
+            var reading = await ReadAsync(readings);
+            states[reading.SensorId] = reading.State;
+        }
+
+        Assert.Equal(BinaryState.On, states["docked"]);
+        Assert.Equal(BinaryState.Off, states["ghost_dock"]);
+        Assert.True(_registry.TryGet("docked", out var entity));
+        Assert.Equal(EntityKind.BinarySensor, entity.Kind);
+        Assert.Equal("connectivity", entity.DeviceClass);
+    }
+
+    [Fact]
+    public void A_device_id_too_short_to_tell_devices_apart_is_rejected()
+    {
+        var sensor = new CustomSensorDefinition { Id = "docked", Name = "Docked", Type = CustomSensorType.DeviceConnected, Value = "USB" };
+
+        Assert.NotNull(CustomSensorRules.Validate(sensor));
+        Assert.Null(CustomSensorRules.Validate(sensor with { Value = "VID_0BDA&PID_8153" }));
     }
 
     [Fact]

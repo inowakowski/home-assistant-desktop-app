@@ -145,6 +145,22 @@
                                         <ui:TextBox PlaceholderText="°C, %, MB…" Text="{Binding Unit, UpdateSourceTrigger=PropertyChanged}" />
                                     </StackPanel>
                                     <StackPanel
+                                        Grid.Column="1"
+                                        Width="320"
+                                        Margin="16,0,0,0"
+                                        Visibility="{Binding ShowsDevicePicker, Converter={StaticResource BooleanToVisibility}}">
+                                        <ui:TextBlock
+                                            Margin="0,0,0,6"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Custom_DevicePicker}" />
+                                        <ComboBox
+                                            DisplayMemberPath="Label"
+                                            DropDownOpened="OnDevicePickerOpened"
+                                            ItemsSource="{Binding ConnectedDevices}"
+                                            SelectedItem="{Binding SelectedDevice}" />
+                                    </StackPanel>
+                                    <StackPanel
                                         Grid.Column="2"
                                         Width="150"
                                         Margin="16,0,0,0"
