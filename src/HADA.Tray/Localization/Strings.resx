@@ -30,8 +30,13 @@
   <data name="Overview_Entities" xml:space="preserve"><value>Entities</value></data>
   <data name="Overview_NoEntities" xml:space="preserve"><value>No entities yet.</value></data>
   <data name="Update_Title" xml:space="preserve"><value>HADA {0} is available</value></data>
-  <data name="Update_Detail" xml:space="preserve"><value>Download the installer and run it over this installation; your settings are kept.</value></data>
-  <data name="Update_Open" xml:space="preserve"><value>Open the download page</value></data>
+  <data name="Update_Detail" xml:space="preserve"><value>The installer is downloaded from GitHub, checked against its published checksum and started. Your settings are kept.</value></data>
+  <data name="Update_Open" xml:space="preserve"><value>What is new</value></data>
+  <data name="Update_Install" xml:space="preserve"><value>Download and install</value></data>
+  <data name="Update_DetailElevated" xml:space="preserve"><value>To install it, use the HADA window opened from the tray icon, not this administrator window.</value></data>
+  <data name="Update_Downloading" xml:space="preserve"><value>Downloading… {0:0} %</value></data>
+  <data name="Update_Started" xml:space="preserve"><value>The installer was started; carry on in its window. HADA closes while it is being replaced.</value></data>
+  <data name="Update_Failed" xml:space="preserve"><value>The download did not work: {0} You can also get the installer from the release page.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors, when you sign in. The HADA service always starts with Windows.</value></data>
   <data name="Autostart_Elevated" xml:space="preserve"><value>This is your personal setting. Change it in the HADA window opened from the tray icon, not in this administrator window.</value></data>

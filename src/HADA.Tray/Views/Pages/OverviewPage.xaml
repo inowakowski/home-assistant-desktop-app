@@ -27,6 +27,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <ui:SymbolIcon
                         VerticalAlignment="Center"
@@ -41,15 +42,28 @@
                         <ui:TextBlock
                             Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                             FontTypography="Caption"
-                            Text="{l:Tr Update_Detail}"
+                            Text="{Binding UpdateDetail}"
                             TextWrapping="Wrap" />
+                        <ProgressBar
+                            Height="4"
+                            Margin="0,8,0,0"
+                            Maximum="1"
+                            Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BooleanToVisibility}}"
+                            Value="{Binding UpdateProgress, Mode=OneWay}" />
                     </StackPanel>
                     <ui:Button
                         Grid.Column="2"
                         VerticalAlignment="Center"
-                        Appearance="Primary"
                         Command="{Binding OpenUpdateCommand}"
                         Content="{l:Tr Update_Open}" />
+                    <ui:Button
+                        Grid.Column="3"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        Appearance="Primary"
+                        Command="{Binding InstallUpdateCommand}"
+                        Content="{l:Tr Update_Install}"
+                        Visibility="{Binding CanInstallUpdate, Converter={StaticResource BooleanToVisibility}}" />
                 </Grid>
             </ui:Card>
 

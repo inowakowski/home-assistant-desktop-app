@@ -30,8 +30,13 @@
   <data name="Overview_Entities" xml:space="preserve"><value>Encje</value></data>
   <data name="Overview_NoEntities" xml:space="preserve"><value>Brak encji.</value></data>
   <data name="Update_Title" xml:space="preserve"><value>Dostępna jest HADA {0}</value></data>
-  <data name="Update_Detail" xml:space="preserve"><value>Pobierz instalator i uruchom go na tej instalacji; ustawienia zostaną zachowane.</value></data>
-  <data name="Update_Open" xml:space="preserve"><value>Otwórz stronę pobierania</value></data>
+  <data name="Update_Detail" xml:space="preserve"><value>Instalator zostanie pobrany z GitHuba, sprawdzony z opublikowaną sumą kontrolną i uruchomiony. Ustawienia zostaną zachowane.</value></data>
+  <data name="Update_Open" xml:space="preserve"><value>Co nowego</value></data>
+  <data name="Update_Install" xml:space="preserve"><value>Pobierz i zainstaluj</value></data>
+  <data name="Update_DetailElevated" xml:space="preserve"><value>Aby zainstalować, użyj okna HADA otwartego z ikony w zasobniku, a nie tego okna administratora.</value></data>
+  <data name="Update_Downloading" xml:space="preserve"><value>Pobieranie… {0:0}%</value></data>
+  <data name="Update_Started" xml:space="preserve"><value>Instalator został uruchomiony; dokończ w jego oknie. HADA zamknie się na czas wymiany plików.</value></data>
+  <data name="Update_Failed" xml:space="preserve"><value>Pobieranie nie powiodło się: {0} Instalator możesz też pobrać ze strony wydania.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Uruchamiaj z systemem Windows</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Uruchamia aplikację Tray, a z nią sensory sesji, po zalogowaniu. Usługa HADA zawsze startuje razem z Windows.</value></data>
   <data name="Autostart_Elevated" xml:space="preserve"><value>To ustawienie osobiste. Zmień je w oknie HADA otwartym z ikony w zasobniku, a nie w tym oknie administratora.</value></data>

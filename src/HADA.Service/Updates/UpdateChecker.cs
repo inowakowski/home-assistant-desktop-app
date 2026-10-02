@@ -1,9 +1,11 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
+using HADA.Core.Updates;
 using HADA.Ipc;
 using HADA.Service.CustomSensors;
 using HADA.Service.Settings;
@@ -67,7 +69,8 @@ public static class ReleaseFeed
 
 /// <summary>
 /// Asks GitHub once a day whether a newer HADA was released, and reports it as the <c>update_available</c> binary
-/// sensor and on the window's Overview page. Nothing is downloaded or installed.
+/// sensor and on the window's Overview page. The service itself downloads and installs nothing; the window
+/// offers to, when its user asks for it.
 /// </summary>
 /// <remarks>Switching the entity off on the Entities page also stops the daily request.</remarks>
 public sealed partial class UpdateChecker(
@@ -77,8 +80,6 @@ public sealed partial class UpdateChecker(
     ILogger<UpdateChecker> logger) : BackgroundService
 {
     public const string EntityId = ReservedIds.UpdateAvailable;
-
-    private const string ReleasesUrl = "https://api.github.com/repos/inowakowski/home-assistant-desktop-app/releases?per_page=30";
 
     private static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
@@ -97,6 +98,7 @@ public sealed partial class UpdateChecker(
         typeof(UpdateChecker).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
 
     private volatile UpdateInfo? _available;
+    private bool _releasesHidden;
 
     /// <summary>The newer version found by the last check, if any.</summary>
     public UpdateInfo? Available => _available;
@@ -131,7 +133,7 @@ public sealed partial class UpdateChecker(
 
                 try
                 {
-                    var latest = ReleaseFeed.FindLatest(await http.GetStringAsync(new Uri(ReleasesUrl), stoppingToken));
+                    var latest = await FindLatestAsync(http, stoppingToken);
                     var isNewer = latest is { } found && found.Version > Installed;
                     var update = isNewer ? new UpdateInfo(latest!.Value.Version.ToString(), latest.Value.Url) : null;
                     _available = update;
@@ -163,6 +165,32 @@ public sealed partial class UpdateChecker(
         {
         }
     }
+
+    /// <summary>The newest release, or <see langword="null"/> when nothing is published where everybody can see it.</summary>
+    private async Task<(Version Version, string Url)?> FindLatestAsync(HttpClient http, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var latest = ReleaseFeed.FindLatest(await http.GetStringAsync(HadaReleases.Api, cancellationToken));
+            _releasesHidden = false;
+            return latest;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // What GitHub answers for a private repository. Not a failure to retry within the hour, and not
+            // worth a line in the log every day either.
+            if (!_releasesHidden)
+            {
+                LogReleasesHidden(logger);
+                _releasesHidden = true;
+            }
+
+            return null;
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "HADA's releases cannot be seen without signing in to GitHub, so there is nothing to compare this version with. Looking again once a day.")]
+    private static partial void LogReleasesHidden(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "HADA {Version} is available: {Url}")]
     private static partial void LogUpdateAvailable(ILogger logger, string version, string url);
