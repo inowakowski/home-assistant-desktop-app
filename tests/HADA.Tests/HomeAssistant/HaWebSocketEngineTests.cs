@@ -151,6 +151,57 @@ public sealed class HaWebSocketEngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Command_events_carry_values_for_switches_numbers_and_notifications()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "volume_level", Name = "Volume level", Kind = EntityKind.Number, Min = 0, Max = 100 });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "notification", Name = "Notification", Kind = EntityKind.Notify });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "testpc", action = "audio_mute" });
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "testpc", action = "volume_level", value = 250 });
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "testpc", action = "audio_mute", value = "on" });
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "testpc", action = "volume_level", value = 40 });
+        await _homeAssistant.SendCommandEventAsync(new { device_id = "testpc", action = "notification", title = "Laundry", message = "Done" });
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        var received = new List<ActionCommand>();
+        await foreach (var command in commands.ReadAllAsync(timeout.Token))
+        {
+            received.Add(command);
+            if (received.Count == 3)
+            {
+                break;
+            }
+        }
+
+        Assert.Equal(("audio_mute", "on"), (received[0].ActionId, received[0].Value));
+        Assert.Equal(("volume_level", "40"), (received[1].ActionId, received[1].Value));
+        Assert.Equal(("notification", "Done"), (received[2].ActionId, received[2].Value));
+        Assert.Equal("Laundry", received[2].GetParameter("title"));
+        Assert.False(commands.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task A_switch_is_shown_as_a_binary_sensor_and_a_number_as_a_sensor()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "volume_level", Name = "Volume level", Kind = EntityKind.Number });
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "audio_mute", State = BinaryState.On });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "volume_level", State = "40" });
+
+        Assert.Equal("on", (await WaitForStateWriteAsync("binary_sensor.testpc_audio_mute")).Body.GetProperty("state").GetString());
+        Assert.Equal("40", (await WaitForStateWriteAsync("sensor.testpc_volume_level")).Body.GetProperty("state").GetString());
+    }
+
+    [Fact]
     public async Task Stop_marks_sensors_unavailable_and_closes_the_socket_gracefully()
     {
         await using var engine = CreateEngine();

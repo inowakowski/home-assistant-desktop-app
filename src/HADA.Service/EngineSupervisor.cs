@@ -160,7 +160,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
                 return;
             }
 
-            var filter = new EntityFilter(_entityOptions.CurrentValue.Disabled);
+            var filter = _entityOptions.CurrentValue.ToFilter();
             var anyRecreated = false;
             foreach (var slot in _slots)
             {
@@ -235,8 +235,9 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         public override async Task<bool> ApplyAsync(EntityFilter filter, ILogger logger, CancellationToken cancellationToken)
         {
             var options = monitor.CurrentValue;
-            var fingerprint = JsonSerializer.Serialize(options) + "|"
-                + string.Join(',', filter.DisabledEntityIds.Order(StringComparer.Ordinal));
+            var fingerprint = JsonSerializer.Serialize(options)
+                + "|" + string.Join(',', filter.DisabledEntityIds.Order(StringComparer.Ordinal))
+                + "|" + string.Join(',', filter.EnabledEntityIds.Order(StringComparer.Ordinal));
             if (fingerprint == _fingerprint)
             {
                 return false;

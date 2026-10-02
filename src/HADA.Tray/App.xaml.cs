@@ -8,13 +8,10 @@ using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
-using HADA.Core.Abstractions;
-using HADA.Core.Entities;
 using HADA.Core.Logging;
-using HADA.Core.Messaging;
 using HADA.Ipc;
-using HADA.Platform.Windows.Sensors;
 using HADA.Tray.Localization;
+using HADA.Tray.Session;
 using HADA.Tray.ViewModels;
 using HADA.Tray.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,8 +25,8 @@ namespace HADA.Tray;
 
 /// <summary>
 /// Runs in the user's session, in one of two roles chosen by the command line.
-/// As the tray it hosts the session sensors (active window, volume, …), streams them to the service over the IPC
-/// pipe and shows the notification-area icon. As the window (<c>--settings</c>) it is the status and settings window.
+/// As the tray it hosts the session sensors (active window, volume, …) and actions (volume, media keys,
+/// notifications, …), connects them to the service over the IPC pipe and shows the notification-area icon. As the window (<c>--settings</c>) it is the status and settings window.
 /// </summary>
 /// <remarks>
 /// The window is a process of its own on purpose. Showing any WPF window sets up the graphics pipeline, which costs
@@ -146,23 +143,7 @@ public partial class App : Application
         var builder = Host.CreateApplicationBuilder(e.Args);
         builder.Logging.AddProvider(_fileLog!);
 
-        // A sensor that fails must not take the other sensors and the tray icon down with it.
-        builder.Services.Configure<HostOptions>(
-            options => options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
-
-        builder.Services.AddSingleton<IEventBus, ChannelEventBus>();
-        builder.Services.AddSingleton<IEntityRegistry, EntityRegistry>();
-        builder.Services.Configure<IpcOptions>(options => options.ClientName = $"tray:{Environment.UserName}");
-
-        // The IPC client starts first so it is subscribed before the sensors publish anything.
-        builder.Services.AddSingleton<IpcClient>();
-        builder.Services.AddHostedService(services => services.GetRequiredService<IpcClient>());
-        builder.Services.AddHostedService<ActiveWindowSensor>();
-        builder.Services.AddHostedService<AudioVolumeSensor>();
-        builder.Services.AddHostedService<UserActivitySensor>();
-        builder.Services.AddHostedService<MediaCaptureSensor>();
-        builder.Services.AddHostedService<MicrophoneMuteSensor>();
-        builder.Services.AddHostedService<ExternalDisplaySensor>();
+        builder.Services.AddSessionServices();
         _host = builder.Build();
 
         // Started on the thread pool so hosted services never capture the dispatcher's synchronization context,
@@ -171,6 +152,8 @@ public partial class App : Application
 
         var ipc = _host.Services.GetRequiredService<IpcClient>();
         _trayIcon = new TrayIcon(() => ipc.IsConnected, () => OpenWindow(page: null), () => Shutdown());
+        _host.Services.GetRequiredService<NotificationPresenter>().Show =
+            (title, message) => Dispatcher.InvokeAsync(() => _trayIcon?.ShowNotification(title, message));
         _host.Services.GetRequiredService<IHostApplicationLifetime>()
             .ApplicationStopping.Register(() => Dispatcher.InvokeAsync(() => Shutdown()));
 

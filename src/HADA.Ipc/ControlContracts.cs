@@ -14,12 +14,18 @@ public enum IpcClientRole
     Control,
 }
 
+/// <param name="Update">A newer version of HADA, when the service found one.</param>
 public sealed record ServiceStatus(
     string Version,
     DateTimeOffset StartedAt,
     IReadOnlyList<EngineStatus> Engines,
     IReadOnlyList<string> SensorClients,
-    IReadOnlyList<EntityStatus> Entities);
+    IReadOnlyList<EntityStatus> Entities,
+    UpdateInfo? Update = null);
+
+/// <param name="Version">E.g. <c>0.4.1</c>.</param>
+/// <param name="Url">The page to download it from.</param>
+public sealed record UpdateInfo(string Version, string Url);
 
 public sealed record EngineStatus(string Name, bool IsConfigured, EngineConnectionState State);
 
@@ -50,13 +56,15 @@ public sealed record HomeAssistantSettings(
     string CommandEventType);
 
 /// <summary>Effective settings as shown to clients. Secrets are never sent back, only whether one is set.</summary>
+/// <param name="EnabledEntities">The off-by-default entities that were switched on.</param>
 public sealed record SettingsSnapshot(
     MqttSettings Mqtt,
     bool HasMqttPassword,
     HomeAssistantSettings HomeAssistant,
     bool HasAccessToken,
     IReadOnlyList<string> DisabledEntities,
-    IReadOnlyList<CustomSensorDefinition> CustomSensors);
+    IReadOnlyList<CustomSensorDefinition> CustomSensors,
+    IReadOnlyList<string> EnabledEntities);
 
 public enum SecretChange
 {
@@ -79,7 +87,8 @@ public sealed record SettingsUpdate(
     HomeAssistantSettings HomeAssistant,
     SecretUpdate AccessToken,
     IReadOnlyList<string> DisabledEntities,
-    IReadOnlyList<CustomSensorDefinition> CustomSensors);
+    IReadOnlyList<CustomSensorDefinition> CustomSensors,
+    IReadOnlyList<string> EnabledEntities);
 
 public enum ConnectionTarget
 {

@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Windows.Input;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Ipc;
@@ -10,11 +12,14 @@ namespace HADA.Tray.ViewModels;
 
 public sealed class OverviewViewModel : ObservableObject
 {
+    private const string ReleasesPage = "https://github.com/inowakowski/home-assistant-desktop-app/";
+
     private readonly StatusCardViewModel _service = new(Loc.Get("Card_Service"), SymbolRegular.Server24);
     private readonly StatusCardViewModel _mqtt = new(Loc.Get("Card_Mqtt"), SymbolRegular.Router24);
     private readonly StatusCardViewModel _homeAssistant = new(Loc.Get("Card_HomeAssistant"), SymbolRegular.HomeCheckmark24);
     private readonly StatusCardViewModel _tray = new(Loc.Get("Card_Tray"), SymbolRegular.WindowApps24);
     private bool _hasNoEntities = true;
+    private UpdateInfo? _update;
 
     /// <param name="isElevated">Whether this is the administrator copy of the window, opened with "Unlock editing".</param>
     public OverviewViewModel(bool isElevated)
@@ -22,8 +27,15 @@ public sealed class OverviewViewModel : ObservableObject
         Cards = [_service, _mqtt, _homeAssistant, _tray];
         CanChangeAutostart = !isElevated;
         AutostartDetail = Loc.Get(isElevated ? "Autostart_Elevated" : "Autostart_Detail");
+        OpenUpdateCommand = new RelayCommand(OpenUpdatePage);
         SetUnavailable();
     }
+
+    public bool IsUpdateAvailable => _update is not null;
+
+    public string UpdateTitle => _update is { } update ? Loc.Format("Update_Title", update.Version) : string.Empty;
+
+    public ICommand OpenUpdateCommand { get; }
 
     public IReadOnlyList<StatusCardViewModel> Cards { get; }
 
@@ -76,6 +88,34 @@ public sealed class OverviewViewModel : ObservableObject
             id => new EntityRowViewModel(id),
             (row, entity) => row.Update(entity));
         HasNoEntities = Entities.Count == 0;
+
+        if (_update != status.Update)
+        {
+            _update = status.Update;
+            OnPropertyChanged(nameof(IsUpdateAvailable));
+            OnPropertyChanged(nameof(UpdateTitle));
+        }
+    }
+
+    private void OpenUpdatePage()
+    {
+        // The address came from the service, which got it from GitHub; open nothing but HADA's own release pages.
+        if (_update is not { } update
+            || !update.Url.StartsWith(ReleasesPage, StringComparison.OrdinalIgnoreCase)
+            || !Uri.TryCreate(update.Url, UriKind.Absolute, out var page))
+        {
+            return;
+        }
+
+        try
+        {
+            // Through Explorer, so the browser runs as the user even when this window runs as administrator.
+            using var explorer = Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { page.AbsoluteUri }, UseShellExecute = false });
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            // Nothing to open it with; the address is in the title for the user to type.
+        }
     }
 
     public void SetUnavailable()

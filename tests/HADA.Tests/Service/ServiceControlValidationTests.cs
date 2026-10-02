@@ -11,7 +11,8 @@ public class ServiceControlValidationTests
         new HomeAssistantSettings("http://homeassistant.local:8123", "", "", "hada_command"),
         SecretUpdate.Unchanged,
         [],
-        [ProcessSensor]);
+        [ProcessSensor],
+        []);
 
     private static CustomSensorDefinition ProcessSensor => new()
     {
@@ -28,6 +29,9 @@ public class ServiceControlValidationTests
         { "custom sensor with a built-in id", WithCustomSensor(ProcessSensor with { Id = "cpu_load" }) },
         { "custom sensor with a process path", WithCustomSensor(ProcessSensor with { Value = @"C:\Games\game.exe" }) },
         { "custom sensor polled too often", WithCustomSensor(ProcessSensor with { IntervalSeconds = 0 }) },
+        { "custom sensor with the id of a disk sensor", WithCustomSensor(ProcessSensor with { Id = "disk_c_usage" }) },
+        { "custom sensor with the id of a built-in button", WithCustomSensor(ProcessSensor with { Id = "shutdown" }) },
+        { "custom button without a command", WithCustomSensor(new CustomSensorDefinition { Name = "Backup", Type = CustomSensorType.CommandButton }) },
         { "two custom sensors with one id", Valid with { CustomSensors = [ProcessSensor, ProcessSensor with { Name = "gra wlaczona" }] } },
         { "port 0", Valid with { Mqtt = Valid.Mqtt with { Port = 0 } } },
         { "port 70000", Valid with { Mqtt = Valid.Mqtt with { Port = 70000 } } },

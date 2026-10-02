@@ -46,6 +46,8 @@ public sealed class CustomSensorViewModel : ObservableObject
         new(CustomSensorType.ProcessRunning, Loc.Get("Custom_TypeProcess")),
         new(CustomSensorType.PowerShell, Loc.Get("Custom_TypePowerShell")),
         new(CustomSensorType.DeviceConnected, Loc.Get("Custom_TypeDevice")),
+        new(CustomSensorType.CommandButton, Loc.Get("Custom_TypeCommandButton")),
+        new(CustomSensorType.LaunchButton, Loc.Get("Custom_TypeLaunchButton")),
     ];
 
     public double MinInterval => CustomSensorDefinition.MinIntervalSeconds;
@@ -154,6 +156,8 @@ public sealed class CustomSensorViewModel : ObservableObject
         CustomSensorType.ProcessRunning => "Custom_ValueProcess",
         CustomSensorType.PowerShell => "Custom_ValuePowerShell",
         CustomSensorType.DeviceConnected => "Custom_ValueDevice",
+        CustomSensorType.CommandButton => "Custom_ValueCommandButton",
+        CustomSensorType.LaunchButton => "Custom_ValueLaunchButton",
         _ => "Custom_ValueText",
     });
 
@@ -162,14 +166,17 @@ public sealed class CustomSensorViewModel : ObservableObject
         CustomSensorType.ProcessRunning => "chrome",
         CustomSensorType.PowerShell => "(Get-Process).Count",
         CustomSensorType.DeviceConnected => "VID_0BDA&PID_8153",
+        CustomSensorType.CommandButton => "Restart-Service Spooler",
+        CustomSensorType.LaunchButton => "\"C:\\Program Files\\App\\app.exe\" --option",
         _ => string.Empty,
     };
 
     /// <summary>A process is running or not, a device connected or not; there is nothing to measure.</summary>
     public bool ShowsUnit => Type is CustomSensorType.Text or CustomSensorType.PowerShell;
 
-    /// <summary>A fixed text is sent once; there is nothing to repeat.</summary>
-    public bool ShowsInterval => Type != CustomSensorType.Text;
+    /// <summary>A fixed text is sent once, and a button waits to be pressed; there is nothing to repeat.</summary>
+    public bool ShowsInterval =>
+        Type is not (CustomSensorType.Text or CustomSensorType.CommandButton or CustomSensorType.LaunchButton);
 
     public CustomSensorDefinition ToDefinition() => new CustomSensorDefinition
     {

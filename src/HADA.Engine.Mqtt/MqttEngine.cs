@@ -17,6 +17,8 @@ namespace HADA.Engine.Mqtt;
 /// Engine A: MQTT with Home Assistant discovery. Availability uses a retained topic backed by a last will,
 /// so Home Assistant marks every entity unavailable when the connection drops.
 /// Disabled entities are removed from Home Assistant by clearing their retained discovery config.
+/// Commands arrive on each entity's <c>set</c> topic: <c>PRESS</c> for a button, <c>on</c>/<c>off</c> for a switch,
+/// the value for a number and the message for a notification.
 /// </summary>
 public sealed partial class MqttEngine : ICommunicationEngine
 {
@@ -321,21 +323,61 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     private async Task DispatchCommandAsync(string entityId, string payload)
     {
-        if (!TryGetExposed(entityId, out var entity) || entity.Kind != EntityKind.Button || payload != PressPayload)
+        if (!TryGetExposed(entityId, out var entity)
+            || !entity.Kind.AcceptsCommands()
+            || (entity.Kind == EntityKind.Button && payload != PressPayload)
+            || !CommandValue.TryNormalize(entity, SplitNotification(entity, payload, out var title), out var value))
         {
-            LogIgnoredCommand(_logger, entityId, payload);
+            // Not the payload: a notification's text is nobody's business but the user's.
+            LogIgnoredCommand(_logger, entityId);
             return;
         }
 
+        var command = new ActionCommand { ActionId = entity.Id, Value = value, Origin = Name };
         try
         {
-            await _bus.PublishAsync(new ActionCommand { ActionId = entity.Id, Origin = Name }, _stoppingToken)
+            await _bus.PublishAsync(
+                    title is null ? command : command with { Parameters = new Dictionary<string, object?> { ["title"] = title } },
+                    _stoppingToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             // Engine is stopping.
         }
+    }
+
+    /// <summary>
+    /// Home Assistant's notify entity sends the message as plain text. To send a title as well, publish JSON
+    /// instead: <c>{"title": "…", "message": "…"}</c>.
+    /// </summary>
+    private static string? SplitNotification(EntityDescriptor entity, string? payload, out string? title)
+    {
+        title = null;
+        if (entity.Kind != EntityKind.Notify || payload is null || !payload.AsSpan().TrimStart().StartsWith("{"))
+        {
+            return payload;
+        }
+
+        try
+        {
+            using var json = JsonDocument.Parse(payload);
+            if (json.RootElement.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+            {
+                if (json.RootElement.TryGetProperty("title", out var titleProperty) && titleProperty.ValueKind == JsonValueKind.String)
+                {
+                    title = titleProperty.GetString();
+                }
+
+                return message.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            // Not JSON after all, just a message that starts with a brace.
+        }
+
+        return payload;
     }
 
     private async Task ForwardTelemetryAsync(IEventSubscription<TelemetryEvent> readings, CancellationToken cancellationToken)
@@ -391,7 +433,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
                         }
 
                         break;
-                    case EntityAvailabilityChanged availability when connected && _filter.IsEnabled(availability.Entity.Id):
+                    case EntityAvailabilityChanged availability when connected && _filter.IsEnabled(availability.Entity):
                         await TryPublishEntityAvailabilityAsync(availability.Entity.Id, cancellationToken).ConfigureAwait(false);
                         break;
                 }
@@ -427,7 +469,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
             await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
         }
 
-        var enabled = entities.Count(entity => _filter.IsEnabled(entity.Id));
+        var enabled = entities.Count(_filter.IsEnabled);
         LogAnnounced(_logger, enabled, _options.DiscoveryPrefix, _topics.DeviceId, entities.Count - enabled);
 
         foreach (var reading in _lastReadings.Values)
@@ -438,7 +480,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     private async Task TryAnnounceEntityAsync(EntityDescriptor entity, CancellationToken cancellationToken)
     {
-        if (!_filter.IsEnabled(entity.Id))
+        if (!_filter.IsEnabled(entity))
         {
             await TryRemoveEntityAsync(_topics.Discovery(entity), entity.Id, cancellationToken).ConfigureAwait(false);
             return;
@@ -446,7 +488,8 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
         var isSensor = entity.Kind.ReportsState();
         var isButton = entity.Kind == EntityKind.Button;
-        var isBinary = entity.Kind == EntityKind.BinarySensor;
+        var isBinary = entity.Kind.IsBinary();
+        var isNumber = entity.Kind == EntityKind.Number;
         var payload = new DiscoveryPayload(
             Name: entity.Name,
             UniqueId: $"{_device.Identifiers[0]}_{entity.Id}",
@@ -455,7 +498,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
             AvailabilityMode: "all",
             StateTopic: isSensor ? _topics.State(entity.Id) : null,
             JsonAttributesTopic: isSensor ? _topics.Attributes(entity.Id) : null,
-            CommandTopic: isButton ? _topics.Command(entity.Id) : null,
+            CommandTopic: entity.Kind.AcceptsCommands() ? _topics.Command(entity.Id) : null,
             PayloadPress: isButton ? PressPayload : null,
             PayloadOn: isBinary ? BinaryState.On : null,
             PayloadOff: isBinary ? BinaryState.Off : null,
@@ -463,6 +506,9 @@ public sealed partial class MqttEngine : ICommunicationEngine
             DeviceClass: entity.DeviceClass,
             UnitOfMeasurement: entity.UnitOfMeasurement,
             StateClass: entity.StateClass,
+            Min: isNumber ? entity.Min : null,
+            Max: isNumber ? entity.Max : null,
+            Step: isNumber ? entity.Step : null,
             Device: _device);
 
         await TryPublishAsync(_topics.Discovery(entity), JsonSerializer.Serialize(payload, JsonOptions), retain: true, cancellationToken)
@@ -538,7 +584,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
             cancellationToken);
 
     private bool TryGetExposed(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
-        _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entityId);
+        _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entity);
 
     private static string Describe(Exception exception) =>
         exception.InnerException is null ? exception.Message : $"{exception.Message} ({exception.GetBaseException().Message})";
@@ -576,6 +622,6 @@ public sealed partial class MqttEngine : ICommunicationEngine
     [LoggerMessage(Level = LogLevel.Information, Message = "Home Assistant came online; re-announcing entities.")]
     private static partial void LogHomeAssistantOnline(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Ignored command for '{EntityId}' with payload '{Payload}'.")]
-    private static partial void LogIgnoredCommand(ILogger logger, string entityId, string payload);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Ignored a command for '{EntityId}': the entity is not exposed, or does not accept that payload.")]
+    private static partial void LogIgnoredCommand(ILogger logger, string entityId);
 }

@@ -15,4 +15,7 @@ public sealed class IpcOptions
 
     /// <summary>How long the server waits before trying again to create a pipe that another process holds.</summary>
     public TimeSpan PipeRetryDelay { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>How often the server checks whether another user's session came to the front.</summary>
+    public TimeSpan SessionCheckInterval { get; set; } = TimeSpan.FromSeconds(2);
 }

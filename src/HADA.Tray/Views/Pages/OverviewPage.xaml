@@ -18,6 +18,41 @@
                 Text="{l:Tr Overview_Subtitle}"
                 TextWrapping="Wrap" />
 
+            <ui:Card
+                Margin="0,0,0,12"
+                Padding="18,14"
+                Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BooleanToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon
+                        VerticalAlignment="Center"
+                        FontSize="24"
+                        Foreground="{DynamicResource SystemFillColorAttentionBrush}"
+                        Symbol="ArrowDownload24" />
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="14,0,16,0"
+                        VerticalAlignment="Center">
+                        <ui:TextBlock FontTypography="BodyStrong" Text="{Binding UpdateTitle}" />
+                        <ui:TextBlock
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            FontTypography="Caption"
+                            Text="{l:Tr Update_Detail}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:Button
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Appearance="Primary"
+                        Command="{Binding OpenUpdateCommand}"
+                        Content="{l:Tr Update_Open}" />
+                </Grid>
+            </ui:Card>
+
             <!--  The negative margin takes back the gap that the cards of the right column leave on their right.  -->
             <ItemsControl Margin="0,0,-12,0" ItemsSource="{Binding Cards}">
                 <ItemsControl.ItemsPanel>

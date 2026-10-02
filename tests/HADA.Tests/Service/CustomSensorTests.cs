@@ -110,6 +110,81 @@ public sealed class CustomSensorTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_command_button_runs_its_command_when_pressed_and_only_then()
+    {
+        var marker = Path.Combine(Path.GetTempPath(), $"hada-button-{Guid.NewGuid():N}.txt");
+        _options.Set(Options(new CustomSensorDefinition
+        {
+            Name = "Start backup",
+            Type = CustomSensorType.CommandButton,
+            Value = $"Set-Content -LiteralPath '{marker}' -Value 'pressed'",
+        }));
+        await using var readings = _bus.Subscribe<TelemetryEvent>();
+        await _host.StartAsync(CancellationToken.None);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        try
+        {
+            while (!_registry.TryGet("start_backup", out _))
+            {
+                await Task.Delay(20, timeout.Token);
+            }
+
+            Assert.True(_registry.TryGet("start_backup", out var entity));
+            Assert.Equal(EntityKind.Button, entity.Kind);
+            Assert.False(File.Exists(marker));
+
+            await _bus.PublishAsync(new ActionCommand { ActionId = "start_backup", Origin = "mqtt" });
+
+            while (!File.Exists(marker))
+            {
+                await Task.Delay(50, timeout.Token);
+            }
+
+            // A button has no state to report.
+            Assert.False(readings.TryRead(out _));
+        }
+        finally
+        {
+            File.Delete(marker);
+        }
+    }
+
+    [Fact]
+    public async Task A_launch_button_asks_the_tray_to_start_what_was_configured_not_what_was_sent()
+    {
+        _options.Set(Options(new CustomSensorDefinition
+        {
+            Id = "open_player",
+            Name = "Open player",
+            Type = CustomSensorType.LaunchButton,
+            Value = """
+                "C:\Program Files\Player\player.exe" --fullscreen
+                """,
+        }));
+        await _host.StartAsync(CancellationToken.None);
+        using var timeout = new CancellationTokenSource(Timeout);
+        while (!_registry.TryGet("open_player", out _))
+        {
+            await Task.Delay(20, timeout.Token);
+        }
+
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await _bus.PublishAsync(new ActionCommand { ActionId = "open_player", Value = "calc.exe", Origin = "mqtt" });
+
+        ActionCommand launch;
+        do
+        {
+            launch = await ReadAsync(commands);
+        }
+        while (launch.ActionId != SessionCommands.Launch);
+
+        Assert.Equal("""
+            "C:\Program Files\Player\player.exe" --fullscreen
+            """, launch.Value);
+        Assert.Equal("mqtt", launch.Origin);
+    }
+
+    [Fact]
     public async Task Changed_settings_add_replace_and_remove_sensors()
     {
         await using var changes = _bus.Subscribe<EntityRegistryChange>();

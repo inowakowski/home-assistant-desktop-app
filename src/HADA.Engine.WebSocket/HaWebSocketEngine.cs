@@ -19,7 +19,8 @@ namespace HADA.Engine.WebSocket;
 /// <remarks>
 /// <list type="bullet">
 /// <item>The WebSocket API (<c>/api/websocket</c>) carries authentication, a heartbeat and commands, which arrive as
-/// custom events (<see cref="HaWebSocketOptions.CommandEventType"/>).</item>
+/// custom events (<see cref="HaWebSocketOptions.CommandEventType"/>) naming the device and the entity, with a
+/// <c>value</c> for switches and numbers, or a <c>message</c> and optional <c>title</c> for notifications.</item>
 /// <item>Sensor states are written through the REST API (<c>POST /api/states/sensor.*</c> or <c>binary_sensor.*</c>), since the WebSocket API
 /// cannot set states. These entities have no unique id, so they cannot be edited in the Home Assistant UI and
 /// disappear when Home Assistant restarts; the engine re-sends them after every reconnect.</item>
@@ -383,21 +384,42 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         // Commands must name this device explicitly, so one event never locks every computer at once.
         var deviceId = data.TryGetProperty("device_id", out var device) ? device.GetString() : null;
         var action = data.TryGetProperty("action", out var actionProperty) ? actionProperty.GetString() : null;
-        if (deviceId != _deviceId || action is null || !TryGetExposed(action, out var entity) || entity.Kind != EntityKind.Button)
+        if (deviceId != _deviceId
+            || action is null
+            || !TryGetExposed(action, out var entity)
+            || !entity.Kind.AcceptsCommands()
+            || !CommandValue.TryNormalize(entity, ReadText(data, entity.Kind == EntityKind.Notify ? "message" : "value"), out var value))
         {
             LogIgnoredCommand(_logger, deviceId, action);
             return;
         }
 
+        var parameters = entity.Kind == EntityKind.Notify && ReadText(data, "title") is { Length: > 0 } title
+            ? new Dictionary<string, object?> { ["title"] = title }
+            : null;
+        var command = new ActionCommand { ActionId = entity.Id, Value = value, Origin = Name };
         try
         {
-            await _bus.PublishAsync(new ActionCommand { ActionId = entity.Id, Origin = Name }, _stoppingToken).ConfigureAwait(false);
+            await _bus.PublishAsync(parameters is null ? command : command with { Parameters = parameters }, _stoppingToken)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             // Engine is stopping.
         }
     }
+
+    /// <summary>A text or number property of the event data, as text; YAML makes <c>value: 40</c> a number.</summary>
+    private static string? ReadText(JsonElement data, string property) =>
+        !data.TryGetProperty(property, out var element) ? null
+        : element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number => element.GetRawText(),
+            JsonValueKind.True => BinaryState.On,
+            JsonValueKind.False => BinaryState.Off,
+            _ => null,
+        };
 
     private async Task ForwardTelemetryAsync(IEventSubscription<TelemetryEvent> readings, CancellationToken cancellationToken)
     {
@@ -474,7 +496,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     {
         foreach (var entity in _registry.Entities)
         {
-            if (entity.Kind.ReportsState() && !_filter.IsEnabled(entity.Id))
+            if (entity.Kind.ReportsState() && !_filter.IsEnabled(entity))
             {
                 await TrySendStateRequestAsync(HttpMethod.Delete, entity, content: null, cancellationToken).ConfigureAwait(false);
             }
@@ -530,7 +552,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private async Task TrySendStateRequestAsync(
         HttpMethod method, EntityDescriptor entity, HttpContent? content, CancellationToken cancellationToken)
     {
-        var domain = entity.Kind == EntityKind.BinarySensor ? "binary_sensor" : "sensor";
+        // A state written through the REST API is not backed by an entity Home Assistant could send commands to, so
+        // a switch is shown as what it reports, a binary sensor, and a number as a sensor.
+        var domain = entity.Kind.IsBinary() ? "binary_sensor" : "sensor";
         using var request = new HttpRequestMessage(method, new Uri(_baseUrl!, $"api/states/{domain}.{_deviceId}_{entity.Id}"))
         {
             Content = content,
@@ -556,7 +580,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     }
 
     private bool TryGetExposed(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
-        _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entityId);
+        _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entity);
 
     private bool TryGetExposedSensor(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
         TryGetExposed(entityId, out entity) && entity.Kind.ReportsState();

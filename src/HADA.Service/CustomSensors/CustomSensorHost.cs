@@ -3,6 +3,7 @@ using System.Diagnostics;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
+using HADA.Core.Models;
 using HADA.Ipc;
 using HADA.Platform.Windows.Sensors;
 using HADA.Service.Settings;
@@ -11,8 +12,8 @@ using Microsoft.Extensions.Options;
 namespace HADA.Service.CustomSensors;
 
 /// <summary>
-/// Runs the sensors the user defined in settings. Follows settings changes: new sensors start, changed ones restart,
-/// and removed ones are unregistered, which also removes them from Home Assistant.
+/// Runs the sensors and buttons the user defined in settings. Follows settings changes: new ones start, changed
+/// ones restart, and removed ones are unregistered, which also removes them from Home Assistant.
 /// </summary>
 public sealed partial class CustomSensorHost(
     IEventBus bus,
@@ -26,12 +27,20 @@ public sealed partial class CustomSensorHost(
     // Configuration reloads fire several change notifications in a row; apply them once.
     private static readonly TimeSpan ReloadDelay = TimeSpan.FromMilliseconds(500);
 
+    // A button may start something long, such as a backup; a sensor's command has to be quick.
+    private static readonly TimeSpan ButtonCommandTimeout = TimeSpan.FromMinutes(10);
+
     private readonly ConcurrentDictionary<string, RunningSensor> _running = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _changed = new(0);
+    private readonly ConcurrentDictionary<string, byte> _busyButtons = new(StringComparer.Ordinal);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var registration = options.OnChange(_ => _changed.Release());
+
+        // Subscribed before the first button is registered, so a press right after discovery is not missed.
+        var commands = bus.Subscribe<ActionCommand>();
+        var pressing = Task.Run(() => HandlePressesAsync(commands, stoppingToken), CancellationToken.None);
         try
         {
             while (true)
@@ -55,6 +64,72 @@ public sealed partial class CustomSensorHost(
             {
                 await StopSensorAsync(id);
             }
+
+            await pressing;
+        }
+    }
+
+    private async Task HandlePressesAsync(IEventSubscription<ActionCommand> commands, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var command in commands.ReadAllAsync(cancellationToken))
+            {
+                if (!_running.TryGetValue(command.ActionId, out var running) || !running.Definition.IsButton)
+                {
+                    continue;
+                }
+
+                var button = running.Definition;
+                if (button.Type == CustomSensorType.LaunchButton)
+                {
+                    // The service has no desktop; the tray app in the user's session starts it.
+                    await bus.PublishAsync(
+                        new ActionCommand { ActionId = SessionCommands.Launch, Value = button.Value, Origin = command.Origin },
+                        cancellationToken);
+                    LogPressed(logger, button.Id, command.Origin);
+                }
+                else if (_busyButtons.TryAdd(button.Id, 0))
+                {
+                    LogPressed(logger, button.Id, command.Origin);
+                    _ = Task.Run(() => RunButtonCommandAsync(button, cancellationToken), CancellationToken.None);
+                }
+                else
+                {
+                    LogStillRunning(logger, button.Id);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            await commands.DisposeAsync();
+        }
+    }
+
+    private async Task RunButtonCommandAsync(CustomSensorDefinition button, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await PowerShellRunner.RunAsync(button.Value, ButtonCommandTimeout, cancellationToken);
+            if (result.ExitCode != 0)
+            {
+                LogButtonFailed(
+                    logger, button.Id, $"PowerShell exited with code {result.ExitCode}: {(result.Error.Length > 0 ? result.Error : "no error output")}");
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            LogButtonFailed(logger, button.Id, ex.Message);
+        }
+        finally
+        {
+            _busyButtons.TryRemove(button.Id, out _);
         }
     }
 
@@ -93,7 +168,12 @@ public sealed partial class CustomSensorHost(
 
             await registry.RegisterAsync(CustomSensorRules.ToEntity(sensor), cancellationToken);
             var stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _running[id] = new RunningSensor(sensor, stopping, Task.Run(() => RunAsync(sensor, stopping.Token), CancellationToken.None));
+
+            // A button has nothing to read; it waits to be pressed.
+            _running[id] = new RunningSensor(
+                sensor,
+                stopping,
+                sensor.IsButton ? Task.CompletedTask : Task.Run(() => RunAsync(sensor, stopping.Token), CancellationToken.None));
             LogStarted(logger, sensor.Id, sensor.Type);
         }
     }
@@ -205,6 +285,15 @@ public sealed partial class CustomSensorHost(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Custom sensor '{SensorId}' cannot be read: {Reason}. It keeps its last value until this works again.")]
     private static partial void LogReadFailed(ILogger logger, string sensorId, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Custom button '{ButtonId}' pressed via {Origin}.")]
+    private static partial void LogPressed(ILogger logger, string buttonId, string? origin);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Custom button '{ButtonId}' was pressed again while its command is still running; ignored.")]
+    private static partial void LogStillRunning(ILogger logger, string buttonId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The command of custom button '{ButtonId}' failed: {Reason}")]
+    private static partial void LogButtonFailed(ILogger logger, string buttonId, string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Custom sensor '{SensorId}' can be read again.")]
     private static partial void LogRecovered(ILogger logger, string sensorId);

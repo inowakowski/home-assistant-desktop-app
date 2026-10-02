@@ -136,7 +136,98 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task Service_rejects_buttons_foreign_entities_and_unregistered_readings()
+    public async Task Commands_for_a_tray_entity_reach_the_tray_and_those_for_service_entities_do_not()
+    {
+        var (serviceBus, serviceRegistry) = CreateServiceSide();
+        await serviceRegistry.RegisterAsync(new EntityDescriptor { Id = "lock_screen", Name = "Lock screen", Kind = EntityKind.Button });
+        await StartServerAsync(serviceBus, serviceRegistry);
+        await using var trayCommands = _trayBus.Subscribe<ActionCommand>();
+        await StartClientAsync();
+        await _trayRegistry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await WaitUntilAsync(() => serviceRegistry.TryGet("audio_mute", out _));
+
+        await serviceBus.PublishAsync(new ActionCommand { ActionId = "lock_screen", Origin = "mqtt" });
+        await serviceBus.PublishAsync(new ActionCommand
+        {
+            ActionId = "audio_mute",
+            Value = BinaryState.On,
+            Origin = "mqtt",
+            Parameters = new Dictionary<string, object?> { ["title"] = "Hello" },
+        });
+
+        var command = await ReadAsync(trayCommands);
+        Assert.Equal("audio_mute", command.ActionId);
+        Assert.Equal(BinaryState.On, command.Value);
+        Assert.Equal("mqtt", command.Origin);
+        Assert.Equal("Hello", command.GetParameter("title"));
+        Assert.False(trayCommands.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task The_service_can_ask_the_tray_to_start_a_program_without_any_entity()
+    {
+        var (serviceBus, serviceRegistry) = CreateServiceSide();
+        await StartServerAsync(serviceBus, serviceRegistry);
+        await using var trayCommands = _trayBus.Subscribe<ActionCommand>();
+        var client = await StartClientAsync();
+        await _trayRegistry.RegisterAsync(Sensor("audio_volume"));
+        await WaitUntilAsync(() => client.IsConnected && serviceRegistry.TryGet("audio_volume", out _));
+
+        await serviceBus.PublishAsync(new ActionCommand { ActionId = SessionCommands.Launch, Value = "notepad" });
+
+        var command = await ReadAsync(trayCommands);
+        Assert.Equal(SessionCommands.Launch, command.ActionId);
+        Assert.Equal("notepad", command.Value);
+    }
+
+    [Fact]
+    public async Task With_several_users_signed_in_only_the_one_at_the_computer_is_reported()
+    {
+        var sessions = new FakeSessions { ConsoleSessionId = 1 };
+        sessions.SessionOf["tray:alice"] = 1;
+        sessions.SessionOf["tray:bob"] = 2;
+        _options.SessionCheckInterval = TimeSpan.FromMilliseconds(50);
+
+        var (serviceBus, serviceRegistry) = CreateServiceSide();
+        await using var serviceReadings = serviceBus.Subscribe<TelemetryEvent>();
+        await StartServerAsync(serviceBus, serviceRegistry, sessions);
+
+        // Alice sits at the computer; Bob is signed in too, switched away from.
+        await using var alice = await SecondTray.StartAsync(_options.PipeName, "tray:alice");
+        await alice.ReportAsync("active_window", "Alice's editor");
+        Assert.Equal("Alice's editor", (await ReadAsync(serviceReadings)).State);
+
+        await using var bob = await SecondTray.StartAsync(_options.PipeName, "tray:bob");
+        await bob.ReportAsync("active_window", "Bob's browser");
+        await bob.Registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await alice.Registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await WaitUntilAsync(() => serviceRegistry.TryGet("audio_mute", out _));
+        await Task.Delay(300);
+        Assert.False(serviceReadings.TryRead(out _));
+
+        // Bob comes to the front: his window is reported without him having to do anything, and commands go to him.
+        sessions.ConsoleSessionId = 2;
+        var reading = await ReadAsync(serviceReadings);
+        Assert.Equal("Bob's browser", reading.State);
+        Assert.Equal("tray:bob", reading.Source);
+
+        await using var bobCommands = bob.Bus.Subscribe<ActionCommand>();
+        await using var aliceCommands = alice.Bus.Subscribe<ActionCommand>();
+        await serviceBus.PublishAsync(new ActionCommand { ActionId = "audio_mute", Value = BinaryState.On });
+        Assert.Equal("audio_mute", (await ReadAsync(bobCommands)).ActionId);
+        Assert.False(aliceCommands.TryRead(out _));
+
+        // The sign-in screen: nobody's desktop is in use, so nobody's window is reported.
+        sessions.ConsoleSessionId = 3;
+        await WaitUntilAsync(() => !serviceRegistry.IsAvailable("active_window"));
+
+        sessions.ConsoleSessionId = 1;
+        Assert.Equal("Alice's editor", (await ReadAsync(serviceReadings)).State);
+        Assert.True(serviceRegistry.IsAvailable("active_window"));
+    }
+
+    [Fact]
+    public async Task Service_rejects_foreign_entities_and_unregistered_readings()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
         var serviceEntity = new EntityDescriptor { Id = "cpu_load", Name = "CPU load", Kind = EntityKind.Sensor };
@@ -148,7 +239,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         var stream = new IpcMessageStream(pipe);
         await stream.WriteAsync(new HelloMessage(IpcMessageStream.ProtocolVersion, "rogue"), CancellationToken.None);
         await stream.WriteAsync(
-            new EntityRegistrationMessage(new EntityDescriptor { Id = "rogue_button", Name = "Rogue", Kind = EntityKind.Button }),
+            new EntityRegistrationMessage(new EntityDescriptor { Id = "Not An Id", Name = "Rogue", Kind = EntityKind.Button }),
             CancellationToken.None);
         await stream.WriteAsync(
             new EntityRegistrationMessage(serviceEntity with { Name = "Hijacked" }), CancellationToken.None);
@@ -160,7 +251,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         var reading = await ReadAsync(serviceReadings);
         Assert.Equal("audio_volume", reading.SensorId);
         Assert.False(serviceReadings.TryRead(out _));
-        Assert.False(serviceRegistry.TryGet("rogue_button", out _));
+        Assert.DoesNotContain(serviceRegistry.Entities, entity => entity.Name == "Rogue");
         Assert.True(serviceRegistry.TryGet("cpu_load", out var cpu));
         Assert.Equal("CPU load", cpu.Name);
     }
@@ -188,9 +279,9 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         return (bus, new EntityRegistry(bus));
     }
 
-    private async Task<IpcServer> StartServerAsync(IEventBus bus, IEntityRegistry registry)
+    private async Task<IpcServer> StartServerAsync(IEventBus bus, IEntityRegistry registry, ISessionDirectory? sessions = null)
     {
-        var server = new IpcServer(bus, registry, Options.Create(_options), NullLogger<IpcServer>.Instance);
+        var server = new IpcServer(bus, registry, Options.Create(_options), NullLogger<IpcServer>.Instance, sessions: sessions);
         _started.Add(server);
         await server.StartAsync(CancellationToken.None);
         return server;
@@ -226,6 +317,67 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         while (!condition())
         {
             await Task.Delay(20, timeout.Token);
+        }
+    }
+
+    /// <summary>Sessions as the test says they are; clients are told apart by their names.</summary>
+    private sealed class FakeSessions : ISessionDirectory
+    {
+        private volatile uint _console;
+
+        public Dictionary<string, uint> SessionOf { get; } = [];
+
+        public uint? ConsoleSessionId
+        {
+            get => _console;
+            set => _console = value ?? 0;
+        }
+
+        public uint? GetClientSessionId(NamedPipeServerStream pipe, string clientName) =>
+            SessionOf.TryGetValue(clientName, out var session) ? session : null;
+
+        // Only the console is in use; nobody is connected remotely.
+        public bool IsConnected(uint sessionId) => false;
+    }
+
+    /// <summary>The tray of a further signed-in user, with a bus and registry of its own.</summary>
+    private sealed class SecondTray : IAsyncDisposable
+    {
+        private readonly IpcClient _client;
+
+        private SecondTray(string pipeName, string clientName)
+        {
+            Registry = new EntityRegistry(Bus);
+            _client = new IpcClient(
+                Bus,
+                Registry,
+                Options.Create(new IpcOptions { PipeName = pipeName, ClientName = clientName, MinReconnectDelay = TimeSpan.FromMilliseconds(50) }),
+                NullLogger<IpcClient>.Instance);
+        }
+
+        public ChannelEventBus Bus { get; } = new();
+
+        public EntityRegistry Registry { get; }
+
+        public static async Task<SecondTray> StartAsync(string pipeName, string clientName)
+        {
+            var tray = new SecondTray(pipeName, clientName);
+            await tray._client.StartAsync(CancellationToken.None);
+            await WaitUntilAsync(() => tray._client.IsConnected);
+            return tray;
+        }
+
+        public async Task ReportAsync(string sensorId, string state)
+        {
+            await Registry.RegisterAsync(Sensor(sensorId));
+            await Bus.PublishAsync(new TelemetryEvent { SensorId = sensorId, State = state });
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await _client.StopAsync(CancellationToken.None);
+            _client.Dispose();
+            await Bus.DisposeAsync();
         }
     }
 }

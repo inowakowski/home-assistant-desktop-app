@@ -8,7 +8,19 @@ using HADA.Platform.Windows.Sensors;
 
 namespace HADA.Service.CustomSensors;
 
-/// <summary>What a custom sensor definition must look like, and how it maps to a Home Assistant entity.</summary>
+/// <summary>Ids of built-in entities whose classes live in projects the service does not reference.</summary>
+public static class ReservedIds
+{
+    /// <summary>The tray app's notification entity.</summary>
+    public const string Notification = "notification";
+
+    /// <summary>The tray app's media playback sensor.</summary>
+    public const string MediaPlayback = "media_playback";
+
+    public const string UpdateAvailable = "update_available";
+}
+
+/// <summary>What a custom sensor or button definition must look like, and how it maps to a Home Assistant entity.</summary>
 public static partial class CustomSensorRules
 {
     public const int MaxSensors = 64;
@@ -43,7 +55,31 @@ public static partial class CustomSensorRules
         MediaCaptureSensor.CameraEntityId,
         MicrophoneMuteSensor.EntityId,
         ExternalDisplaySensor.EntityId,
+        NetworkSensor.AddressEntityId,
+        NetworkSensor.WifiEntityId,
+        ActiveUserSensor.EntityId,
+        AudioDeviceSensor.EntityId,
+        DoNotDisturbSensor.EntityId,
+        PowerActions.SleepEntityId,
+        PowerActions.HibernateEntityId,
+        PowerActions.ShutdownEntityId,
+        PowerActions.RestartEntityId,
+        DisplayActions.TurnOffEntityId,
+        DisplayActions.WakeEntityId,
+        MediaKeyActions.PlayPauseEntityId,
+        MediaKeyActions.NextEntityId,
+        MediaKeyActions.PreviousEntityId,
+        MediaKeyActions.StopEntityId,
+        AudioControl.VolumeEntityId,
+        AudioControl.MuteEntityId,
+        AudioControl.MicrophoneMuteEntityId,
+        ReservedIds.Notification,
+        ReservedIds.MediaPlayback,
+        ReservedIds.UpdateAvailable,
     }.ToFrozenSet(StringComparer.Ordinal);
+
+    /// <summary>Whether an id belongs to a built-in entity, including the per-drive ones that have no fixed list.</summary>
+    public static bool IsBuiltIn(string id) => BuiltInIds.Contains(id) || DiskUsageSensor.IsEntityId(id);
 
     /// <summary>Checks one normalized definition. Returns an error message, or <see langword="null"/> when it is valid.</summary>
     public static string? Validate(CustomSensorDefinition sensor)
@@ -60,7 +96,7 @@ public static partial class CustomSensorRules
             return $"The ID of custom sensor '{label}' must contain only lowercase letters, digits and underscores.";
         }
 
-        if (BuiltInIds.Contains(sensor.Id))
+        if (IsBuiltIn(sensor.Id))
         {
             return $"The ID '{sensor.Id}' of custom sensor '{label}' is already used by a built-in entity.";
         }
@@ -77,6 +113,8 @@ public static partial class CustomSensorRules
                 CustomSensorType.ProcessRunning => $"Custom sensor '{label}' needs a process name.",
                 CustomSensorType.PowerShell => $"Custom sensor '{label}' needs a PowerShell command.",
                 CustomSensorType.DeviceConnected => $"Custom sensor '{label}' needs a device ID, such as VID_0BDA&PID_8153.",
+                CustomSensorType.CommandButton => $"Custom button '{label}' needs a PowerShell command.",
+                CustomSensorType.LaunchButton => $"Custom button '{label}' needs a program, document or address to open.",
                 _ => $"Custom sensor '{label}' needs a value.",
             };
         }
@@ -90,7 +128,7 @@ public static partial class CustomSensorRules
         var maxValueLength = sensor.Type switch
         {
             CustomSensorType.ProcessRunning => MaxProcessNameLength,
-            CustomSensorType.PowerShell => MaxCommandLength,
+            CustomSensorType.PowerShell or CustomSensorType.CommandButton or CustomSensorType.LaunchButton => MaxCommandLength,
             _ => MaxTextLength,
         };
         if (sensor.Value.Length > maxValueLength)
@@ -109,6 +147,7 @@ public static partial class CustomSensorRules
         }
 
         if (sensor.Type != CustomSensorType.Text
+            && !sensor.IsButton
             && sensor.IntervalSeconds is < CustomSensorDefinition.MinIntervalSeconds or > CustomSensorDefinition.MaxIntervalSeconds)
         {
             return $"The interval of custom sensor '{label}' must be between {CustomSensorDefinition.MinIntervalSeconds} and {CustomSensorDefinition.MaxIntervalSeconds} seconds.";
@@ -146,12 +185,14 @@ public static partial class CustomSensorRules
     {
         Id = sensor.Id,
         Name = sensor.Name,
-        Kind = sensor.IsBinary ? EntityKind.BinarySensor : EntityKind.Sensor,
+        Kind = sensor.IsButton ? EntityKind.Button : sensor.IsBinary ? EntityKind.BinarySensor : EntityKind.Sensor,
         Icon = sensor.Type switch
         {
             CustomSensorType.ProcessRunning => "mdi:application-cog-outline",
             CustomSensorType.PowerShell => "mdi:powershell",
             CustomSensorType.DeviceConnected => "mdi:usb-port",
+            CustomSensorType.CommandButton => "mdi:console-line",
+            CustomSensorType.LaunchButton => "mdi:rocket-launch",
             _ => "mdi:form-textbox",
         },
 

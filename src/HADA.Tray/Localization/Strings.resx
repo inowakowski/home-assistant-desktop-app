@@ -12,7 +12,7 @@
   <data name="Nav_Connections" xml:space="preserve"><value>Connections</value></data>
   <data name="Nav_Entities" xml:space="preserve"><value>Entities</value></data>
   <data name="Nav_Logs" xml:space="preserve"><value>Logs</value></data>
-  <data name="Nav_CustomSensors" xml:space="preserve"><value>Custom sensors</value></data>
+  <data name="Nav_CustomSensors" xml:space="preserve"><value>Custom entities</value></data>
 
   <data name="Common_On" xml:space="preserve"><value>On</value></data>
   <data name="Common_Off" xml:space="preserve"><value>Off</value></data>
@@ -29,6 +29,9 @@
   <data name="Overview_Subtitle" xml:space="preserve"><value>Live status of the HADA service, its connections and entities.</value></data>
   <data name="Overview_Entities" xml:space="preserve"><value>Entities</value></data>
   <data name="Overview_NoEntities" xml:space="preserve"><value>No entities yet.</value></data>
+  <data name="Update_Title" xml:space="preserve"><value>HADA {0} is available</value></data>
+  <data name="Update_Detail" xml:space="preserve"><value>Download the installer and run it over this installation; your settings are kept.</value></data>
+  <data name="Update_Open" xml:space="preserve"><value>Open the download page</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors, when you sign in. The HADA service always starts with Windows.</value></data>
   <data name="Autostart_Elevated" xml:space="preserve"><value>This is your personal setting. Change it in the HADA window opened from the tray icon, not in this administrator window.</value></data>
@@ -49,7 +52,7 @@
   <data name="State_NotConfiguredDetail" xml:space="preserve"><value>Set it up on the Connections page.</value></data>
   <data name="Tray_ClientsConnected" xml:space="preserve"><value>Connected ({0})</value></data>
   <data name="Tray_NoClients" xml:space="preserve"><value>No tray app connected</value></data>
-  <data name="Tray_ClientsDetail" xml:space="preserve"><value>Active window, volume, user activity and the microphone and camera sensors come from the tray app.</value></data>
+  <data name="Tray_ClientsDetail" xml:space="preserve"><value>Sensors and controls of your desktop (windows, sound, media, display, notifications) come from the tray app.</value></data>
   <data name="Column_Entity" xml:space="preserve"><value>Entity</value></data>
   <data name="Column_Value" xml:space="preserve"><value>Value</value></data>
   <data name="Column_Source" xml:space="preserve"><value>Source</value></data>
@@ -57,8 +60,11 @@
   <data name="Entity_Sensor" xml:space="preserve"><value>Sensor</value></data>
   <data name="Entity_Button" xml:space="preserve"><value>Button</value></data>
   <data name="Entity_BinarySensor" xml:space="preserve"><value>Binary sensor</value></data>
+  <data name="Entity_Switch" xml:space="preserve"><value>Switch</value></data>
+  <data name="Entity_Number" xml:space="preserve"><value>Number</value></data>
+  <data name="Entity_Notify" xml:space="preserve"><value>Notification</value></data>
   <data name="Entity_Disabled" xml:space="preserve"><value>Disabled</value></data>
-  <data name="Entity_Unavailable" xml:space="preserve"><value>Unavailable – the tray app is not running</value></data>
+  <data name="Entity_Unavailable" xml:space="preserve"><value>Unavailable – the tray app is not running, or another user is at the computer</value></data>
   <data name="Source_Service" xml:space="preserve"><value>Service</value></data>
   <data name="Source_Custom" xml:space="preserve"><value>Custom</value></data>
   <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
@@ -102,14 +108,14 @@
   <data name="Validation_UrlRequired" xml:space="preserve"><value>Enter the Home Assistant URL first.</value></data>
   <data name="Validation_Url" xml:space="preserve"><value>The Home Assistant URL must start with http:// or https://.</value></data>
   <data name="Validation_EventType" xml:space="preserve"><value>The command event type must not be empty or contain spaces.</value></data>
-  <data name="Validation_CustomName" xml:space="preserve"><value>Custom sensors: every sensor needs a name.</value></data>
-  <data name="Validation_CustomValue" xml:space="preserve"><value>Custom sensors: "{0}" has no value, process name or command.</value></data>
+  <data name="Validation_CustomName" xml:space="preserve"><value>Custom entities: every sensor and button needs a name.</value></data>
+  <data name="Validation_CustomValue" xml:space="preserve"><value>Custom entities: "{0}" has no value, process name, command or program.</value></data>
   <data name="Error_ServiceUnavailable" xml:space="preserve"><value>The HADA service is not running or cannot be reached.</value></data>
   <data name="Error_Unauthorized" xml:space="preserve"><value>This action requires administrator rights.</value></data>
   <data name="Error_UnexpectedTitle" xml:space="preserve"><value>Unexpected error</value></data>
 
   <data name="Entities_Title" xml:space="preserve"><value>Entities</value></data>
-  <data name="Entities_Subtitle" xml:space="preserve"><value>Choose what this computer shares with Home Assistant. Disabled entities are removed from Home Assistant.</value></data>
+  <data name="Entities_Subtitle" xml:space="preserve"><value>Choose what this computer shares with Home Assistant, and what Home Assistant may do to it. Disabled entities are removed from Home Assistant. The buttons that switch the computer off are off until you turn them on.</value></data>
   <data name="Entities_Empty" xml:space="preserve"><value>No entities are registered yet. Is the HADA service running?</value></data>
   <data name="EntityHint_active_window" xml:space="preserve"><value>Sends window titles, which can contain document names, e-mail subjects or web page titles.</value></data>
   <data name="EntityHint_lock_screen" xml:space="preserve"><value>Lets Home Assistant lock this computer.</value></data>
@@ -120,20 +126,43 @@
   <data name="EntityHint_microphone_muted" xml:space="preserve"><value>On while the microphone is muted in Windows. Muting inside a call app only is not seen.</value></data>
   <data name="EntityHint_external_display" xml:space="preserve"><value>On while a monitor other than the built-in one is connected. A monitor without power is not seen; to know whether the computer is docked, add a "Device is connected" custom sensor for the dock.</value></data>
   <data name="EntityHint_camera_in_use" xml:space="preserve"><value>On while an app is using the camera. The app names are sent as an attribute.</value></data>
+  <data name="EntityHint_active_user" xml:space="preserve"><value>The account name of whoever is signed in at this computer; "none" on the sign-in screen.</value></data>
+  <data name="EntityHint_ip_address" xml:space="preserve"><value>The address of the connection Windows routes through. Its name and type are attributes.</value></data>
+  <data name="EntityHint_wifi_network" xml:space="preserve"><value>The name of the connected Wi-Fi network, with the signal strength as an attribute. Recent versions of Windows hide the name unless location access is allowed.</value></data>
+  <data name="EntityHint_disk_usage" xml:space="preserve"><value>How full the drive is. Free and total space are attributes.</value></data>
+  <data name="EntityHint_audio_device" xml:space="preserve"><value>The name of the default playback device, so an automation can tell headphones from speakers. The default microphone is an attribute.</value></data>
+  <data name="EntityHint_do_not_disturb" xml:space="preserve"><value>On while Windows holds notifications back (Do not disturb).</value></data>
+  <data name="EntityHint_media_playback" xml:space="preserve"><value>Whether media is playing. Sends the title, artist, album and app as attributes.</value></data>
+  <data name="EntityHint_update_available" xml:space="preserve"><value>On when a newer HADA was released. To find out, the service asks GitHub once a day; switching this off stops that.</value></data>
+  <data name="EntityHint_sleep" xml:space="preserve"><value>Lets Home Assistant put this computer to sleep. Off until you turn it on.</value></data>
+  <data name="EntityHint_hibernate" xml:space="preserve"><value>Lets Home Assistant hibernate this computer. Off until you turn it on.</value></data>
+  <data name="EntityHint_shutdown" xml:space="preserve"><value>Lets Home Assistant shut this computer down. Apps with unsaved work can still object. Off until you turn it on.</value></data>
+  <data name="EntityHint_restart" xml:space="preserve"><value>Lets Home Assistant restart this computer. Apps with unsaved work can still object. Off until you turn it on.</value></data>
+  <data name="EntityHint_turn_off_display" xml:space="preserve"><value>Lets Home Assistant turn the screen off. Many laptops go to sleep soon after.</value></data>
+  <data name="EntityHint_wake_display" xml:space="preserve"><value>Lets Home Assistant turn the screen back on, as moving the mouse would. Cannot wake a computer that is asleep.</value></data>
+  <data name="EntityHint_media_play_pause" xml:space="preserve"><value>Presses the play/pause key; whichever app handles media keys reacts.</value></data>
+  <data name="EntityHint_volume_level" xml:space="preserve"><value>Lets Home Assistant set the volume of the default playback device.</value></data>
+  <data name="EntityHint_audio_mute" xml:space="preserve"><value>Lets Home Assistant mute and unmute the default playback device.</value></data>
+  <data name="EntityHint_microphone_mute" xml:space="preserve"><value>Lets Home Assistant mute and unmute the default microphone in Windows.</value></data>
+  <data name="EntityHint_notification" xml:space="preserve"><value>Messages sent to this entity are shown to you as Windows notifications.</value></data>
 
-  <data name="Custom_Title" xml:space="preserve"><value>Custom sensors</value></data>
-  <data name="Custom_Subtitle" xml:space="preserve"><value>Define your own values to send to Home Assistant: a fixed text, whether a program is running, whether a device such as a USB-C dock is connected, or the result of a PowerShell command.</value></data>
-  <data name="Custom_Empty" xml:space="preserve"><value>No custom sensors yet. Add one to send your own value to Home Assistant.</value></data>
-  <data name="Custom_Add" xml:space="preserve"><value>Add sensor</value></data>
-  <data name="Custom_Remove" xml:space="preserve"><value>Remove this sensor</value></data>
+  <data name="Custom_Title" xml:space="preserve"><value>Custom sensors and buttons</value></data>
+  <data name="Custom_Subtitle" xml:space="preserve"><value>Define your own sensors: a fixed text, whether a program is running, whether a device such as a USB-C dock is connected, or the result of a PowerShell command. And your own buttons for Home Assistant to press: run a PowerShell command, or start a program on your desktop.</value></data>
+  <data name="Custom_Empty" xml:space="preserve"><value>Nothing here yet. Add a sensor to send your own value to Home Assistant, or a button for Home Assistant to press.</value></data>
+  <data name="Custom_Add" xml:space="preserve"><value>Add sensor or button</value></data>
+  <data name="Custom_Remove" xml:space="preserve"><value>Remove</value></data>
   <data name="Custom_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Custom_Id" xml:space="preserve"><value>ID</value></data>
   <data name="Custom_IdAuto" xml:space="preserve"><value>From the name</value></data>
   <data name="Custom_Type" xml:space="preserve"><value>Type</value></data>
-  <data name="Custom_TypeText" xml:space="preserve"><value>Fixed text</value></data>
-  <data name="Custom_TypeProcess" xml:space="preserve"><value>Program is running</value></data>
-  <data name="Custom_TypePowerShell" xml:space="preserve"><value>PowerShell command</value></data>
-  <data name="Custom_TypeDevice" xml:space="preserve"><value>Device is connected</value></data>
+  <data name="Custom_TypeText" xml:space="preserve"><value>Sensor: fixed text</value></data>
+  <data name="Custom_TypeProcess" xml:space="preserve"><value>Sensor: program running</value></data>
+  <data name="Custom_TypePowerShell" xml:space="preserve"><value>Sensor: PowerShell command</value></data>
+  <data name="Custom_TypeDevice" xml:space="preserve"><value>Sensor: device connected</value></data>
+  <data name="Custom_TypeCommandButton" xml:space="preserve"><value>Button: PowerShell command</value></data>
+  <data name="Custom_TypeLaunchButton" xml:space="preserve"><value>Button: start a program</value></data>
+  <data name="Custom_ValueCommandButton" xml:space="preserve"><value>Command – run when the button is pressed</value></data>
+  <data name="Custom_ValueLaunchButton" xml:space="preserve"><value>Program, document or address to open</value></data>
   <data name="Custom_ValueDevice" xml:space="preserve"><value>Device ID, or a part of it</value></data>
   <data name="Custom_DevicePicker" xml:space="preserve"><value>Or pick a connected USB device</value></data>
   <data name="Custom_ValueText" xml:space="preserve"><value>Value</value></data>
@@ -141,7 +170,8 @@
   <data name="Custom_ValuePowerShell" xml:space="preserve"><value>Command – its output becomes the value</value></data>
   <data name="Custom_Unit" xml:space="preserve"><value>Unit (numbers only)</value></data>
   <data name="Custom_Interval" xml:space="preserve"><value>Check every (seconds)</value></data>
-  <data name="Custom_PowerShellNote" xml:space="preserve"><value>PowerShell commands are run by the HADA service with system rights, not as you, so they cannot see your desktop or your user's files and settings. A command that fails or takes longer than 30 seconds is reported on the Logs page.</value></data>
+  <data name="Custom_PowerShellNote" xml:space="preserve"><value>PowerShell commands, of sensors and of buttons, are run by the HADA service with system rights, not as you, so they cannot see your desktop or your user's files and settings. A sensor's command that fails or takes longer than 30 seconds is reported on the Logs page; a button's command may take up to 10 minutes.</value></data>
+  <data name="Custom_ButtonNote" xml:space="preserve"><value>A program a button starts runs on the desktop of whoever is signed in, with that user's rights, so the tray app must be running. Put a path that contains spaces in quotes.</value></data>
 
   <data name="Logs_Title" xml:space="preserve"><value>Logs</value></data>
   <data name="Logs_Subtitle" xml:space="preserve"><value>Recent messages from the HADA service.</value></data>

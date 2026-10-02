@@ -10,7 +10,8 @@ using Microsoft.Extensions.Options;
 namespace HADA.Ipc;
 
 /// <summary>
-/// Tray side of the session IPC: streams entities and readings from the local event bus to the service.
+/// Tray side of the session IPC: streams entities and readings from the local event bus to the service, and
+/// publishes the commands the service passes on to the local event bus, where the tray's actions pick them up.
 /// Survives service restarts by reconnecting and replaying the registry and the latest reading of each sensor.
 /// </summary>
 public sealed partial class IpcClient(
@@ -64,9 +65,14 @@ public sealed partial class IpcClient(
 
                     try
                     {
-                        // The service sends nothing yet, but reading notices promptly when it goes away.
-                        while (await stream.ReadAsync(cancellationToken).ConfigureAwait(false) is not null)
+                        // Reading also notices promptly when the service goes away.
+                        while (await stream.ReadAsync(cancellationToken).ConfigureAwait(false) is { } message)
                         {
+                            if (message is CommandMessage command)
+                            {
+                                // Home Assistant wants something done by one of this session's actions.
+                                await bus.PublishAsync(command.Command, cancellationToken).ConfigureAwait(false);
+                            }
                         }
                     }
                     finally

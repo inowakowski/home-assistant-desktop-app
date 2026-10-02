@@ -12,6 +12,21 @@ public enum EntityKind
     /// Reports <see cref="BinaryState.On"/> or <see cref="BinaryState.Off"/> via <see cref="Models.TelemetryEvent"/>.
     /// </summary>
     BinarySensor,
+
+    /// <summary>
+    /// Reports <see cref="BinaryState.On"/> or <see cref="BinaryState.Off"/> and can be turned on and off from
+    /// Home Assistant: the <see cref="Models.ActionCommand.Value"/> of its commands is the wanted state.
+    /// </summary>
+    Switch,
+
+    /// <summary>
+    /// Reports a number and can be set from Home Assistant, within <see cref="EntityDescriptor.Min"/> and
+    /// <see cref="EntityDescriptor.Max"/>: the <see cref="Models.ActionCommand.Value"/> of its commands is the wanted number.
+    /// </summary>
+    Number,
+
+    /// <summary>Receives messages from Home Assistant; <see cref="Models.ActionCommand.Value"/> is the message text.</summary>
+    Notify,
 }
 
 /// <summary>The two states of an <see cref="EntityKind.BinarySensor"/>, as Home Assistant spells them.</summary>
@@ -26,7 +41,15 @@ public static class BinaryState
 public static class EntityKindExtensions
 {
     /// <summary>Whether entities of this kind publish readings, as opposed to receiving commands.</summary>
-    public static bool ReportsState(this EntityKind kind) => kind is EntityKind.Sensor or EntityKind.BinarySensor;
+    public static bool ReportsState(this EntityKind kind) =>
+        kind is EntityKind.Sensor or EntityKind.BinarySensor or EntityKind.Switch or EntityKind.Number;
+
+    /// <summary>Whether Home Assistant can send commands to entities of this kind.</summary>
+    public static bool AcceptsCommands(this EntityKind kind) =>
+        kind is EntityKind.Button or EntityKind.Switch or EntityKind.Number or EntityKind.Notify;
+
+    /// <summary>Whether the state of entities of this kind is <see cref="BinaryState.On"/> or <see cref="BinaryState.Off"/>.</summary>
+    public static bool IsBinary(this EntityKind kind) => kind is EntityKind.BinarySensor or EntityKind.Switch;
 }
 
 /// <summary>
@@ -55,6 +78,21 @@ public sealed record EntityDescriptor
 
     /// <summary>Home Assistant state class, e.g. <c>measurement</c>, which enables long-term statistics.</summary>
     public string? StateClass { get; init; }
+
+    /// <summary>Smallest value of an <see cref="EntityKind.Number"/>.</summary>
+    public double? Min { get; init; }
+
+    /// <summary>Largest value of an <see cref="EntityKind.Number"/>.</summary>
+    public double? Max { get; init; }
+
+    /// <summary>Step between the values of an <see cref="EntityKind.Number"/>.</summary>
+    public double? Step { get; init; }
+
+    /// <summary>
+    /// False for entities that are exposed to Home Assistant only after the user switched them on, such as the
+    /// buttons that shut the computer down.
+    /// </summary>
+    public bool EnabledByDefault { get; init; } = true;
 }
 
 /// <summary>A change to the entity registry, published on the event bus in the order the changes were made.</summary>

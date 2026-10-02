@@ -52,6 +52,22 @@ internal sealed class TrayIcon : IDisposable
         _statusTimer.Start();
     }
 
+    /// <summary>
+    /// Shows a Windows notification coming from this icon. Windows cuts titles and texts it finds too long,
+    /// so both are shortened here, where an ellipsis can say so.
+    /// </summary>
+    public void ShowNotification(string title, string message)
+    {
+        const int MaxTitleLength = 63;
+        const int MaxMessageLength = 255;
+        const int Timeout = 10_000;
+
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            _icon.ShowBalloonTip(Timeout, Shorten(title.Trim(), MaxTitleLength), Shorten(message.Trim(), MaxMessageLength), ToolTipIcon.None);
+        }
+    }
+
     public void Dispose()
     {
         _statusTimer.Stop();
@@ -61,6 +77,9 @@ internal sealed class TrayIcon : IDisposable
         _menu.Dispose();
         _boldFont.Dispose();
     }
+
+    private static string Shorten(string text, int maxLength) =>
+        text.Length <= maxLength ? text : string.Concat(text.AsSpan(0, maxLength - 1), "…");
 
     private void ApplyTheme(MenuTheme theme)
     {

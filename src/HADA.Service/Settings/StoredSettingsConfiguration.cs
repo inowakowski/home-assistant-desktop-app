@@ -57,6 +57,14 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
             }
         }
 
+        if (settings.EnabledEntities is { } enabled)
+        {
+            for (var i = 0; i < enabled.Count; i++)
+            {
+                data[$"{EntityOptions.SectionName}:Enabled:{i}"] = enabled[i];
+            }
+        }
+
         if (settings.CustomSensors is { } customSensors)
         {
             for (var i = 0; i < customSensors.Count; i++)

@@ -117,6 +117,66 @@ public class SystemReaderTests
     }
 
     [Fact]
+    public void The_console_user_can_be_read()
+    {
+        // Empty on the sign-in screen and on build agents without a console user; never null while there is a console.
+        if (ConsoleSession.TryRead() is not null)
+        {
+            Assert.NotNull(ConsoleSession.TryReadUserName());
+        }
+    }
+
+    [Fact]
+    public void The_address_windows_routes_through_is_a_real_one()
+    {
+        if (NetworkAddress.TryRead() is { } network)
+        {
+            Assert.True(System.Net.IPAddress.TryParse(network.Address, out var address));
+            Assert.False(System.Net.IPAddress.IsLoopback(address));
+            Assert.Contains(network.ConnectionType, new[] { "ethernet", "wifi", "other" });
+        }
+    }
+
+    [Fact]
+    public void Wifi_is_read_without_misreading_the_structures()
+    {
+        var wifi = WifiNetwork.TryRead();
+
+        if (wifi.Ssid is { } ssid)
+        {
+            Assert.True(wifi.HasAdapter);
+            Assert.InRange(ssid.Length, 0, 32);
+            Assert.DoesNotContain('\0', ssid);
+            Assert.InRange(Assert.NotNull(wifi.SignalPercent), 0, 100);
+        }
+    }
+
+    [Fact]
+    public void Built_in_drives_are_listed_with_plausible_numbers()
+    {
+        var disks = Disks.Read();
+
+        Assert.Contains(disks, disk => disk.Letter == char.ToLowerInvariant(Environment.SystemDirectory[0]));
+        Assert.All(disks, disk =>
+        {
+            Assert.InRange(disk.UsedPercent, 0, 100);
+            Assert.InRange(disk.FreeGigabytes, 0, disk.TotalGigabytes);
+            Assert.True(DiskUsageSensor.IsEntityId(DiskUsageSensor.EntityIdFor(disk.Letter)));
+        });
+        Assert.False(DiskUsageSensor.IsEntityId("disk_usage"));
+        Assert.False(DiskUsageSensor.IsEntityId("disk_1_usage"));
+    }
+
+    [Fact]
+    public void Do_not_disturb_is_one_of_the_known_modes_or_not_told_at_all()
+    {
+        if (QuietHours.TryRead() is { } mode)
+        {
+            Assert.True(Enum.IsDefined(mode));
+        }
+    }
+
+    [Fact]
     public async Task Display_state_is_reported_as_soon_as_it_is_watched()
     {
         var changes = Channel.CreateUnbounded<(Guid Setting, int Value)>();

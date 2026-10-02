@@ -45,6 +45,7 @@ public readonly record struct ConsoleSessionInfo(uint SessionId, bool IsLocked);
 public static class ConsoleSession
 {
     private const int SessionInfoExClass = 25;
+    private const int UserNameClass = 5;
     private const int SessionUnlocked = 1;
 
     // WTSINFOEXW is a DWORD level followed by an 8-byte aligned union, whose level 1 member starts with
@@ -76,6 +77,30 @@ public static class ConsoleSession
             return new ConsoleSessionInfo(
                 (uint)Marshal.ReadInt32(buffer, SessionIdOffset),
                 Marshal.ReadInt32(buffer, SessionFlagsOffset) != SessionUnlocked);
+        }
+        finally
+        {
+            NativeMethods.WTSFreeMemory(buffer);
+        }
+    }
+
+    /// <summary>
+    /// The account name of whoever is signed in to a session; by default the one on the physical console.
+    /// Empty while the sign-in screen is shown, <see langword="null"/> when there is no such session.
+    /// </summary>
+    public static string? TryReadUserName(uint? sessionId = null)
+    {
+        var id = sessionId ?? NativeMethods.WTSGetActiveConsoleSessionId();
+        if (id == NativeMethods.NoActiveConsoleSession
+            || !NativeMethods.WTSQuerySessionInformation(0, id, UserNameClass, out var buffer, out _)
+            || buffer == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            return Marshal.PtrToStringUni(buffer) ?? string.Empty;
         }
         finally
         {

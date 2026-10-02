@@ -41,6 +41,23 @@ internal interface IMMDevice
 {
     [PreserveSig]
     int Activate(ref Guid iid, uint classContext, nint activationParams, [MarshalAs(UnmanagedType.IUnknown)] out object? instance);
+
+    [PreserveSig]
+    int OpenPropertyStore(uint access, out IPropertyStore? properties);
+}
+
+[ComImport]
+[Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IPropertyStore
+{
+    void GetCount();
+
+    void GetAt();
+
+    /// <summary>The value must be released with <see cref="NativeMethods.PropVariantClear"/>.</summary>
+    [PreserveSig]
+    int GetValue(in DevicePropertyKey key, out PropVariant value);
 }
 
 [ComImport]
@@ -56,7 +73,10 @@ internal interface IAudioEndpointVolume
 
     void SetMasterVolumeLevel();
 
-    void SetMasterVolumeLevelScalar();
+    /// <param name="level">0 to 1.</param>
+    /// <param name="eventContext">Identifies the caller to volume-change listeners; may be 0.</param>
+    [PreserveSig]
+    int SetMasterVolumeLevelScalar(float level, nint eventContext);
 
     void GetMasterVolumeLevel();
 
@@ -71,7 +91,8 @@ internal interface IAudioEndpointVolume
 
     void GetChannelVolumeLevelScalar();
 
-    void SetMute();
+    [PreserveSig]
+    int SetMute([MarshalAs(UnmanagedType.Bool)] bool muted, nint eventContext);
 
     [PreserveSig]
     int GetMute([MarshalAs(UnmanagedType.Bool)] out bool muted);

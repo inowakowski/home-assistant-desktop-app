@@ -23,6 +23,8 @@ public sealed record StoredSettings
 
     public IReadOnlyList<string>? DisabledEntities { get; init; }
 
+    public IReadOnlyList<string>? EnabledEntities { get; init; }
+
     public IReadOnlyList<CustomSensorDefinition>? CustomSensors { get; init; }
 }
 

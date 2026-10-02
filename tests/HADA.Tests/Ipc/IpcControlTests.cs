@@ -79,7 +79,7 @@ public sealed class IpcControlTests : IAsyncDisposable
     {
         await _server.StartAsync(CancellationToken.None);
         var update = new SettingsUpdate(
-            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], []);
+            FakeServiceControl.Mqtt, SecretUpdate.Unchanged, FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], []);
 
         if (IsElevatedAdministrator())
         {
@@ -143,7 +143,7 @@ public sealed class IpcControlTests : IAsyncDisposable
                 [.. registry.Entities.Select(entity => new EntityStatus(entity, true, "service", null, null))]));
 
         public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor]));
+            Task.FromResult(new SettingsSnapshot(Mqtt, false, HomeAssistant, false, [], [CustomSensor], []));
 
         public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
         {

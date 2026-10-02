@@ -18,6 +18,7 @@ public sealed class SettingsViewModel : ObservableObject
 
     private readonly ServiceControlClient _client;
     private readonly HashSet<string> _disabledEntities = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _enabledEntities = new(StringComparer.Ordinal);
     private readonly AsyncCommand _saveCommand;
     private readonly RelayCommand _revertCommand;
     private readonly AsyncCommand _testMqttCommand;
@@ -169,11 +170,16 @@ public sealed class SettingsViewModel : ObservableObject
 
     public bool HasNoCustomSensors => CustomSensors.Count == 0;
 
-    public bool IsEntityDisabled(string entityId) => _disabledEntities.Contains(entityId);
+    /// <param name="enabledByDefault">False for entities that stay off until switched on, such as the shutdown button.</param>
+    public bool IsEntityEnabled(string entityId, bool enabledByDefault) =>
+        enabledByDefault ? !_disabledEntities.Contains(entityId) : _enabledEntities.Contains(entityId);
 
-    public void SetEntityDisabled(string entityId, bool disabled)
+    public void SetEntityEnabled(string entityId, bool enabledByDefault, bool enabled)
     {
-        var changed = disabled ? _disabledEntities.Add(entityId) : _disabledEntities.Remove(entityId);
+        // Each kind of entity is listed only where it departs from its default.
+        var changed = enabledByDefault
+            ? (enabled ? _disabledEntities.Remove(entityId) : _disabledEntities.Add(entityId))
+            : (enabled ? _enabledEntities.Add(entityId) : _enabledEntities.Remove(entityId));
         if (changed)
         {
             UpdateDirty();
@@ -289,6 +295,8 @@ public sealed class SettingsViewModel : ObservableObject
             CommandEventType = snapshot.HomeAssistant.CommandEventType;
             _disabledEntities.Clear();
             _disabledEntities.UnionWith(snapshot.DisabledEntities);
+            _enabledEntities.Clear();
+            _enabledEntities.UnionWith(snapshot.EnabledEntities);
             CustomSensors.Clear();
             foreach (var sensor in snapshot.CustomSensors)
             {
@@ -331,7 +339,8 @@ public sealed class SettingsViewModel : ObservableObject
             CommandEventType.Trim()),
         SecretUpdateFor(AccessToken, ClearAccessToken),
         [.. _disabledEntities.Order(StringComparer.Ordinal)],
-        [.. PendingCustomSensors()]);
+        [.. PendingCustomSensors()],
+        [.. _enabledEntities.Order(StringComparer.Ordinal)]);
 
     /// <summary>The custom sensors as they would be saved. A row nothing was typed into is not a sensor yet.</summary>
     private IEnumerable<CustomSensorDefinition> PendingCustomSensors() =>
@@ -458,6 +467,7 @@ public sealed class SettingsViewModel : ObservableObject
         && update.MqttPassword.Change == SecretChange.Keep
         && update.AccessToken.Change == SecretChange.Keep
         && update.DisabledEntities.SequenceEqual(snapshot.DisabledEntities.Order(StringComparer.Ordinal))
+        && update.EnabledEntities.SequenceEqual(snapshot.EnabledEntities.Order(StringComparer.Ordinal))
         && update.CustomSensors.SequenceEqual(snapshot.CustomSensors);
 
     private void SetTesting(ConnectionTarget target, bool isTesting)

@@ -16,6 +16,9 @@ internal sealed record DiscoveryPayload(
     string? DeviceClass,
     string? UnitOfMeasurement,
     string? StateClass,
+    double? Min,
+    double? Max,
+    double? Step,
     DiscoveryDevice Device);
 
 /// <summary>A topic carrying <c>online</c> or <c>offline</c>.</summary>

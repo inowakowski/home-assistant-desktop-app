@@ -161,6 +161,123 @@ public sealed class MqttEngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Switches_numbers_and_notifications_are_discovered_with_what_they_accept()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await _registry.RegisterAsync(new EntityDescriptor
+        {
+            Id = "volume_level",
+            Name = "Volume level",
+            Kind = EntityKind.Number,
+            UnitOfMeasurement = "%",
+            Min = 0,
+            Max = 100,
+            Step = 1,
+        });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "notification", Name = "Notification", Kind = EntityKind.Notify });
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+
+        using (var config = JsonDocument.Parse((await WaitForMessageAsync("homeassistant/switch/testpc/audio_mute/config")).Payload))
+        {
+            var root = config.RootElement;
+            Assert.Equal("hada/testpc/audio_mute/state", root.GetProperty("state_topic").GetString());
+            Assert.Equal("hada/testpc/audio_mute/set", root.GetProperty("command_topic").GetString());
+            Assert.Equal("on", root.GetProperty("payload_on").GetString());
+            Assert.Equal("off", root.GetProperty("payload_off").GetString());
+        }
+
+        using (var config = JsonDocument.Parse((await WaitForMessageAsync("homeassistant/number/testpc/volume_level/config")).Payload))
+        {
+            var root = config.RootElement;
+            Assert.Equal("hada/testpc/volume_level/set", root.GetProperty("command_topic").GetString());
+            Assert.Equal(0, root.GetProperty("min").GetDouble());
+            Assert.Equal(100, root.GetProperty("max").GetDouble());
+            Assert.Equal(1, root.GetProperty("step").GetDouble());
+            Assert.False(root.TryGetProperty("payload_on", out _));
+        }
+
+        using (var config = JsonDocument.Parse((await WaitForMessageAsync("homeassistant/notify/testpc/notification/config")).Payload))
+        {
+            var root = config.RootElement;
+            Assert.Equal("hada/testpc/notification/set", root.GetProperty("command_topic").GetString());
+            Assert.False(root.TryGetProperty("state_topic", out _));
+            Assert.False(root.TryGetProperty("min", out _));
+        }
+    }
+
+    [Fact]
+    public async Task Commands_carry_their_value_and_those_an_entity_does_not_accept_are_ignored()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "volume_level", Name = "Volume level", Kind = EntityKind.Number, Min = 0, Max = 100 });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "notification", Name = "Notification", Kind = EntityKind.Notify });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        await PublishAsync("hada/testpc/audio_mute/set", "PRESS");
+        await PublishAsync("hada/testpc/volume_level/set", "150");
+        await PublishAsync("hada/testpc/volume_level/set", "loud");
+        await PublishAsync("hada/testpc/audio_mute/set", "ON");
+        await PublishAsync("hada/testpc/volume_level/set", "40.0");
+        await PublishAsync("hada/testpc/notification/set", "The washing machine is done");
+        await PublishAsync("hada/testpc/notification/set", """{"title": "Laundry", "message": "Done"}""");
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        var received = new List<ActionCommand>();
+        await foreach (var command in commands.ReadAllAsync(timeout.Token))
+        {
+            received.Add(command);
+            if (received.Count == 4)
+            {
+                break;
+            }
+        }
+
+        Assert.Equal(("audio_mute", "on"), (received[0].ActionId, received[0].Value));
+        Assert.Equal(("volume_level", "40"), (received[1].ActionId, received[1].Value));
+        Assert.Equal(("notification", "The washing machine is done"), (received[2].ActionId, received[2].Value));
+        Assert.Null(received[2].GetParameter("title"));
+        Assert.Equal(("notification", "Done"), (received[3].ActionId, received[3].Value));
+        Assert.Equal("Laundry", received[3].GetParameter("title"));
+        Assert.False(commands.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task Entities_that_are_off_by_default_stay_out_of_home_assistant_until_switched_on()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "shutdown", Name = "Shut down", Kind = EntityKind.Button, EnabledByDefault = false });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+
+        await using (var engine = CreateEngine(new EntityFilter([])))
+        {
+            await engine.StartAsync(CancellationToken.None);
+            await WaitUntilConnectedAsync(engine);
+            await WaitForMessageAsync("homeassistant/button/testpc/lock_screen/config");
+            await PublishAsync("hada/testpc/shutdown/set", "PRESS");
+            await Task.Delay(300);
+
+            Assert.DoesNotContain(Snapshot(), message =>
+                message.Topic == "homeassistant/button/testpc/shutdown/config" && message.Payload.Length > 0);
+            Assert.False(commands.TryRead(out _));
+        }
+
+        await using var enabled = CreateEngine(new EntityFilter([], ["shutdown"]));
+        await enabled.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(async () =>
+            (await _broker.GetRetainedMessageAsync("homeassistant/button/testpc/shutdown/config")) is not null);
+        await WaitUntilConnectedAsync(enabled);
+        await PublishAsync("hada/testpc/shutdown/set", "PRESS");
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        await using var enumerator = commands.ReadAllAsync(timeout.Token).GetAsyncEnumerator(timeout.Token);
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal("shutdown", enumerator.Current.ActionId);
+    }
+
+    [Fact]
     public async Task Binary_sensors_are_discovered_as_binary_sensors_with_on_off_payloads()
     {
         await using var engine = CreateEngine();

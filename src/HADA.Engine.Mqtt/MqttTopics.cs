@@ -72,6 +72,9 @@ internal sealed class MqttTopics
         EntityKind.Sensor => "sensor",
         EntityKind.Button => "button",
         EntityKind.BinarySensor => "binary_sensor",
+        EntityKind.Switch => "switch",
+        EntityKind.Number => "number",
+        EntityKind.Notify => "notify",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 }

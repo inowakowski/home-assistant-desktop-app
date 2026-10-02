@@ -51,6 +51,7 @@ public sealed class EntityToggleViewModel(string id, SettingsViewModel settings)
     private SymbolRegular _symbol;
     private string _caption = string.Empty;
     private string _hint = string.Empty;
+    private bool _enabledByDefault = true;
 
     public string Id { get; } = id;
 
@@ -88,10 +89,10 @@ public sealed class EntityToggleViewModel(string id, SettingsViewModel settings)
 
     public bool IsEnabled
     {
-        get => !settings.IsEntityDisabled(Id);
+        get => settings.IsEntityEnabled(Id, _enabledByDefault);
         set
         {
-            settings.SetEntityDisabled(Id, !value);
+            settings.SetEntityEnabled(Id, _enabledByDefault, value);
             OnPropertyChanged();
         }
     }
@@ -103,6 +104,11 @@ public sealed class EntityToggleViewModel(string id, SettingsViewModel settings)
         Symbol = EntityVisuals.SymbolFor(entity);
         Caption = $"{entity.Id} · {EntityVisuals.KindText(entity)} · {EntityVisuals.FormatSource(status.Source)}";
         Hint = EntityVisuals.HintFor(entity.Id);
+        if (_enabledByDefault != entity.EnabledByDefault)
+        {
+            _enabledByDefault = entity.EnabledByDefault;
+            RefreshEnabled();
+        }
     }
 
     public void RefreshEnabled() => OnPropertyChanged(nameof(IsEnabled));

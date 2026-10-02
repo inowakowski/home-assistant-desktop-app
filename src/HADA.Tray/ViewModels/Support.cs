@@ -95,10 +95,33 @@ internal static class EntityVisuals
         "microphone_muted" => SymbolRegular.MicOff24,
         "external_display" => SymbolRegular.DesktopMac24,
         "camera_in_use" => SymbolRegular.Video24,
+        "ip_address" => SymbolRegular.Globe24,
+        "wifi_network" => SymbolRegular.Wifi124,
+        "active_user" => SymbolRegular.PersonCircle24,
+        "audio_device" => SymbolRegular.Headphones24,
+        "do_not_disturb" => SymbolRegular.AlertOff24,
+        "media_playback" => SymbolRegular.MusicNote224,
+        "update_available" => SymbolRegular.ArrowDownload24,
+        "sleep" or "hibernate" => SymbolRegular.WeatherMoon24,
+        "shutdown" => SymbolRegular.Power24,
+        "restart" => SymbolRegular.ArrowClockwise24,
+        "turn_off_display" or "wake_display" => SymbolRegular.Desktop24,
+        "media_play_pause" => SymbolRegular.Play24,
+        "media_next" => SymbolRegular.Next24,
+        "media_previous" => SymbolRegular.Previous24,
+        "media_stop" => SymbolRegular.Stop24,
+        "volume_level" => SymbolRegular.Speaker224,
+        "audio_mute" => SymbolRegular.SpeakerMute24,
+        "microphone_mute" => SymbolRegular.MicOff24,
+        "notification" => SymbolRegular.Alert24,
+        _ when entity.Id.StartsWith("disk_", StringComparison.Ordinal) && entity.Id.EndsWith("_usage", StringComparison.Ordinal)
+            => SymbolRegular.Database24,
         _ => entity.Kind switch
         {
             EntityKind.Button => SymbolRegular.Circle24,
-            EntityKind.BinarySensor => SymbolRegular.ToggleLeft24,
+            EntityKind.BinarySensor or EntityKind.Switch => SymbolRegular.ToggleLeft24,
+            EntityKind.Number => SymbolRegular.NumberSymbol24,
+            EntityKind.Notify => SymbolRegular.Alert24,
             _ => SymbolRegular.Pulse24,
         },
     };
@@ -107,18 +130,21 @@ internal static class EntityVisuals
     {
         EntityKind.Button => "Entity_Button",
         EntityKind.BinarySensor => "Entity_BinarySensor",
+        EntityKind.Switch => "Entity_Switch",
+        EntityKind.Number => "Entity_Number",
+        EntityKind.Notify => "Entity_Notify",
         _ => "Entity_Sensor",
     });
 
     /// <summary>The state as shown in the window: on/off in the user's language, numbers with their unit.</summary>
     public static string FormatState(EntityDescriptor entity, string? state)
     {
-        if (entity.Kind == EntityKind.Button || state is null)
+        if (!entity.Kind.ReportsState() || state is null)
         {
             return "—";
         }
 
-        if (entity.Kind == EntityKind.BinarySensor)
+        if (entity.Kind.IsBinary())
         {
             return state == BinaryState.On ? Loc.Get("Common_On") : state == BinaryState.Off ? Loc.Get("Common_Off") : state;
         }
@@ -138,7 +164,10 @@ internal static class EntityVisuals
         : source.StartsWith("tray:", StringComparison.Ordinal) ? Loc.Format("Source_Tray", source["tray:".Length..])
         : source;
 
-    public static string HintFor(string entityId) => Loc.TryGet($"EntityHint_{entityId}") ?? string.Empty;
+    public static string HintFor(string entityId) =>
+        Loc.TryGet($"EntityHint_{entityId}")
+        ?? (entityId.StartsWith("disk_", StringComparison.Ordinal) ? Loc.TryGet("EntityHint_disk_usage") : null)
+        ?? string.Empty;
 }
 
 internal static class CollectionSync

@@ -1,71 +1,12 @@
-using HADA.Core.Abstractions;
-using HADA.Core.Entities;
-using HADA.Core.Logging;
-using HADA.Core.Messaging;
-using HADA.Engine.Mqtt;
-using HADA.Engine.WebSocket;
-using HADA.Ipc;
-using HADA.Platform.Windows.Actions;
-using HADA.Platform.Windows.Sensors;
 using HADA.Service;
-using HADA.Service.CustomSensors;
-using HADA.Service.Logging;
-using HADA.Service.Settings;
 
-var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddWindowsService(options => options.ServiceName = "HADA");
-
-// Settings saved from the tray's settings window, added last so they override appsettings.json.
-var settingsStore = new SettingsStore();
-var storedSettings = new StoredSettingsConfigurationSource(settingsStore);
-((IConfigurationBuilder)builder.Configuration).Add(storedSettings);
-builder.Services.AddSingleton(settingsStore);
-builder.Services.AddSingleton(storedSettings.Provider);
-
-// Recent log entries, shown in the settings window.
-var logBuffer = new LogBuffer();
-builder.Logging.AddProvider(new InMemoryLoggerProvider(logBuffer));
-builder.Services.AddSingleton(logBuffer);
-
-// And a file, for what happened while nobody was looking. It lives next to the settings, in the same protected folder.
-settingsStore.TryEnsureFolder();
-builder.Logging.AddProvider(new FileLoggerProvider(
-    new FileLoggerOptions { FilePath = Path.Combine(settingsStore.FolderPath, "logs", "service.log") }));
-
-// A sensor that fails must not take the connection to Home Assistant and every other sensor down with it.
-// The host logs the failure; the rest of the service keeps running.
-builder.Services.Configure<HostOptions>(options =>
+if (ServiceHost.IsUnwantedSecondCopy())
 {
-    options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
-    options.ShutdownTimeout = TimeSpan.FromSeconds(15);
-});
+    Console.Error.WriteLine(
+        "Another HADA service is already running on this computer, and two would fight over the connection to "
+        + "Home Assistant. Stop it first (in an elevated terminal: sc.exe stop HADA), then start this copy again.");
+    return 1;
+}
 
-builder.Services.AddSingleton<IEventBus, ChannelEventBus>();
-builder.Services.AddSingleton<IEntityRegistry, EntityRegistry>();
-
-builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
-builder.Services.Configure<HaWebSocketOptions>(builder.Configuration.GetSection(HaWebSocketOptions.SectionName));
-builder.Services.Configure<EntityOptions>(builder.Configuration.GetSection(EntityOptions.SectionName));
-builder.Services.Configure<CustomSensorOptions>(builder.Configuration.GetSection(CustomSensorOptions.SectionName));
-
-builder.Services.AddSingleton<TelemetryCache>();
-builder.Services.AddSingleton<EngineSupervisor>();
-builder.Services.AddSingleton<IServiceControl, ServiceControl>();
-
-// Hosted services start in this order: everything that listens starts before the sensors and clients that feed it.
-builder.Services.AddHostedService(services => services.GetRequiredService<TelemetryCache>());
-builder.Services.AddHostedService(services => services.GetRequiredService<EngineSupervisor>());
-builder.Services.AddHostedService<IpcServer>();
-builder.Services.AddHostedService<CpuLoadSensor>();
-builder.Services.AddHostedService<MemoryUsageSensor>();
-builder.Services.AddHostedService<BatterySensor>();
-builder.Services.AddHostedService<PowerStateSensor>();
-builder.Services.AddHostedService<SessionLockSensor>();
-builder.Services.AddHostedService<LastBootSensor>();
-builder.Services.AddHostedService<LockScreenAction>();
-
-// After the built-in entities, so a custom sensor can never take one of their ids first.
-builder.Services.AddHostedService<CustomSensorHost>();
-
-var host = builder.Build();
-host.Run();
+ServiceHost.CreateBuilder(args).Build().Run();
+return 0;

@@ -8,6 +8,7 @@ using HADA.Ipc;
 using HADA.Service.CustomSensors;
 using HADA.Service.Logging;
 using HADA.Service.Settings;
+using HADA.Service.Updates;
 using Microsoft.Extensions.Options;
 
 namespace HADA.Service;
@@ -24,7 +25,8 @@ public sealed partial class ServiceControl(
     IOptionsMonitor<EntityOptions> entityOptions,
     IOptionsMonitor<CustomSensorOptions> customSensorOptions,
     LogBuffer logs,
-    ILogger<ServiceControl> logger) : IServiceControl
+    ILogger<ServiceControl> logger,
+    UpdateChecker? updates = null) : IServiceControl
 {
     private const int MaxLogEntriesPerRequest = 50;
     private const int MaxTextLength = 256;
@@ -38,7 +40,7 @@ public sealed partial class ServiceControl(
 
     public Task<ServiceStatus> GetStatusAsync(CancellationToken cancellationToken)
     {
-        var disabled = entityOptions.CurrentValue.Disabled.ToHashSet(StringComparer.Ordinal);
+        var filter = entityOptions.CurrentValue.ToFilter();
         var custom = CurrentCustomSensors().Select(sensor => sensor.Id).ToHashSet(StringComparer.Ordinal);
         var entities = registry.Entities
             .OrderBy(entity => entity.Name, StringComparer.CurrentCultureIgnoreCase)
@@ -47,12 +49,12 @@ public sealed partial class ServiceControl(
                 telemetry.TryGet(entity.Id, out var reading);
                 var source = custom.Contains(entity.Id) ? CustomSensorHost.Source : reading?.Source ?? "service";
                 return new EntityStatus(
-                    entity, !disabled.Contains(entity.Id), source, reading?.State, reading?.Timestamp, registry.IsAvailable(entity.Id));
+                    entity, filter.IsEnabled(entity), source, reading?.State, reading?.Timestamp, registry.IsAvailable(entity.Id));
             })
             .ToArray();
 
         // The IPC server fills in the connected tray clients and which entities they own.
-        return Task.FromResult(new ServiceStatus(Version, StartedAt, engines.GetStatus(), [], entities));
+        return Task.FromResult(new ServiceStatus(Version, StartedAt, engines.GetStatus(), [], entities, updates?.Available));
     }
 
     public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken)
@@ -77,7 +79,8 @@ public sealed partial class ServiceControl(
                 homeAssistant.CommandEventType),
             !string.IsNullOrEmpty(homeAssistant.AccessToken),
             [.. entityOptions.CurrentValue.Disabled],
-            CurrentCustomSensors()));
+            CurrentCustomSensors(),
+            [.. entityOptions.CurrentValue.Enabled]));
     }
 
     public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
@@ -94,6 +97,7 @@ public sealed partial class ServiceControl(
             HomeAssistant = Normalize(settings.HomeAssistant),
             AccessToken = ProtectOrNull(ResolveSecret(settings.AccessToken, homeAssistantOptions.CurrentValue.AccessToken)),
             DisabledEntities = [.. settings.DisabledEntities.Distinct(StringComparer.Ordinal)],
+            EnabledEntities = [.. settings.EnabledEntities.Distinct(StringComparer.Ordinal)],
             CustomSensors = [.. settings.CustomSensors.Select(sensor => sensor.Normalize())],
         };
 
@@ -161,9 +165,9 @@ public sealed partial class ServiceControl(
             return null;
         }
 
-        if (settings.DisabledEntities.Count > MaxDisabledEntities)
+        if (settings.DisabledEntities.Count > MaxDisabledEntities || settings.EnabledEntities.Count > MaxDisabledEntities)
         {
-            return "Too many disabled entities.";
+            return "Too many entities are switched on or off.";
         }
 
         return CustomSensorRules.Validate([.. settings.CustomSensors.Select(sensor => sensor.Normalize())]);

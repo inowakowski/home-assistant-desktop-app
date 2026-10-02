@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 using System.Security;
 using System.Security.Principal;
@@ -13,28 +13,45 @@ namespace HADA.Ipc;
 
 /// <summary>
 /// Service side of the session IPC. Sensor clients (the tray) stream entities and readings into the service's
-/// <see cref="IEntityRegistry"/> and <see cref="IEventBus"/>; control clients (the settings window) query status,
-/// settings and logs through <see cref="IServiceControl"/>.
+/// <see cref="IEntityRegistry"/> and <see cref="IEventBus"/>, and receive the commands Home Assistant sends to their
+/// entities; control clients (the settings window) query status, settings and logs through <see cref="IServiceControl"/>.
 /// </summary>
 /// <remarks>
-/// Any interactive user can connect, so clients are not trusted: sensor clients may only register sensors, may not
-/// replace entities the service registered itself, and may only report readings for entities registered over IPC.
+/// Any interactive user can connect, so clients are not trusted: sensor clients may not replace entities the
+/// service registered itself, and may only report readings for entities they registered.
 /// Saving settings and testing connections also require the client to be an elevated administrator.
+/// <para>
+/// With several users signed in, every user's tray connects and registers the same entities. Only one of them is
+/// reported to Home Assistant at a time: the tray of the session on the computer's own screen, or else of a
+/// session somebody is connected to remotely. The others are remembered, and take over when their user comes back.
+/// </para>
 /// </remarks>
+[SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "The semaphore's wait handle is never used, so it holds nothing to release.")]
 public sealed partial class IpcServer(
     IEventBus bus,
     IEntityRegistry registry,
     IOptions<IpcOptions> options,
     ILogger<IpcServer> logger,
-    IServiceControl? control = null) : BackgroundService
+    IServiceControl? control = null,
+    ISessionDirectory? sessions = null) : BackgroundService
 {
     private const int MaxClients = 8;
     private const int MaxClientNameLength = 64;
     private const int MaxConcurrentRequestsPerClient = 4;
     private const int MaxLogEntriesPerResponse = 50;
+    private const int MaxEntitiesPerClient = 128;
 
-    private readonly ConcurrentDictionary<string, EntityOwner> _ipcEntityOwners = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<Guid, string> _sensorClients = new();
+    private readonly ISessionDirectory _sessions = sessions ?? new WindowsSessionDirectory();
+
+    // Guards everything below: which trays are connected, what they registered, and which one is reported.
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly List<SensorClient> _sensorClients = [];
+    private readonly Dictionary<string, string> _ipcEntitySources = new(StringComparer.Ordinal);
+    private SensorClient? _active;
+    private long _connections;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -42,6 +59,12 @@ public sealed partial class IpcServer(
         var clients = new List<Task>();
         var isFirstInstance = true;
         var isPipeUnavailable = false;
+
+        // Subscribed before the first client can connect, so no command is missed.
+        var commands = bus.Subscribe<ActionCommand>();
+        var background = Task.WhenAll(
+            Task.Run(() => ForwardCommandsAsync(commands, stoppingToken), CancellationToken.None),
+            Task.Run(() => WatchSessionsAsync(stoppingToken), CancellationToken.None));
         try
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -100,6 +123,84 @@ public sealed partial class IpcServer(
         finally
         {
             await Task.WhenAll(clients).ConfigureAwait(false);
+            await background.ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Passes commands for a tray's entities, and the service's own requests to the session, on to the tray.</summary>
+    private async Task ForwardCommandsAsync(IEventSubscription<ActionCommand> commands, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var command in commands.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var isSessionCommand = command.ActionId.StartsWith(SessionCommands.Prefix, StringComparison.Ordinal);
+                SensorClient? target;
+                await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    if (!isSessionCommand && !_ipcEntitySources.ContainsKey(command.ActionId))
+                    {
+                        // An entity of the service itself; its own handler takes care of it.
+                        continue;
+                    }
+
+                    target = _active is { } active && (isSessionCommand || active.Entities.ContainsKey(command.ActionId)) ? active : null;
+                }
+                finally
+                {
+                    _gate.Release();
+                }
+
+                if (target is null)
+                {
+                    LogNoClientForCommand(logger, command.ActionId);
+                    continue;
+                }
+
+                try
+                {
+                    await target.Stream.WriteAsync(new CommandMessage(command), cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidDataException)
+                {
+                    LogCommandNotDelivered(logger, ex, command.ActionId, target.Name);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            await commands.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Notices when another user's session comes to the front, which no tray reports by itself.</summary>
+    private async Task WatchSessionsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(options.Value.SessionCheckInterval);
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    if (_sensorClients.Count > 0)
+                    {
+                        await ReselectAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    _gate.Release();
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
         }
     }
 
@@ -108,7 +209,7 @@ public sealed partial class IpcServer(
         await using (pipe.ConfigureAwait(false))
         {
             var stream = new IpcMessageStream(pipe);
-            var connectionId = Guid.NewGuid();
+            SensorClient? client = null;
             var clientName = "unknown";
             var pendingRequests = new List<Task>();
             try
@@ -127,19 +228,20 @@ public sealed partial class IpcServer(
                 LogClientConnected(logger, clientName, hello.Role, isElevatedAdministrator);
                 if (hello.Role == IpcClientRole.Sensors)
                 {
-                    _sensorClients[connectionId] = clientName;
+                    client = new SensorClient(
+                        clientName, _sessions.GetClientSessionId(pipe, clientName), stream, Interlocked.Increment(ref _connections));
+                    await AddClientAsync(client, cancellationToken).ConfigureAwait(false);
                 }
 
                 while (await stream.ReadAsync(cancellationToken).ConfigureAwait(false) is { } message)
                 {
                     switch (message)
                     {
-                        case EntityRegistrationMessage registration when hello.Role == IpcClientRole.Sensors:
-                            await RegisterAsync(registration.Entity, new EntityOwner(connectionId, clientName), cancellationToken)
-                                .ConfigureAwait(false);
+                        case EntityRegistrationMessage registration when client is not null:
+                            await RegisterAsync(client, registration.Entity, cancellationToken).ConfigureAwait(false);
                             break;
-                        case TelemetryMessage telemetry when hello.Role == IpcClientRole.Sensors:
-                            await PublishAsync(telemetry.Reading, clientName, cancellationToken).ConfigureAwait(false);
+                        case TelemetryMessage telemetry when client is not null:
+                            await PublishAsync(client, telemetry.Reading, cancellationToken).ConfigureAwait(false);
                             break;
                         case IpcRequest request when hello.Role == IpcClientRole.Control:
                             // Answered concurrently so a slow connection test does not hold up status polling,
@@ -171,8 +273,10 @@ public sealed partial class IpcServer(
             }
             finally
             {
-                _sensorClients.TryRemove(connectionId, out _);
-                await MarkEntitiesUnavailableAsync(connectionId, cancellationToken).ConfigureAwait(false);
+                if (client is not null)
+                {
+                    await RemoveClientAsync(client, cancellationToken).ConfigureAwait(false);
+                }
 
                 // Let in-flight answers finish, or fail on the closed pipe, before the pipe is disposed.
                 await Task.WhenAll(pendingRequests).ConfigureAwait(false);
@@ -223,7 +327,9 @@ public sealed partial class IpcServer(
             return request switch
             {
                 GetStatusRequest => new StatusResponse(
-                    request.RequestId, AddIpcDetails(await control.GetStatusAsync(cancellationToken).ConfigureAwait(false))),
+                    request.RequestId,
+                    await AddIpcDetailsAsync(await control.GetStatusAsync(cancellationToken).ConfigureAwait(false), cancellationToken)
+                        .ConfigureAwait(false)),
                 GetSettingsRequest => new SettingsResponse(
                     request.RequestId, await control.GetSettingsAsync(cancellationToken).ConfigureAwait(false)),
                 GetLogsRequest logs => new LogsResponse(
@@ -248,15 +354,26 @@ public sealed partial class IpcServer(
     }
 
     /// <summary>Adds what only the IPC server knows: which trays are connected and which entities they registered.</summary>
-    private ServiceStatus AddIpcDetails(ServiceStatus status) => status with
+    private async Task<ServiceStatus> AddIpcDetailsAsync(ServiceStatus status, CancellationToken cancellationToken)
     {
-        SensorClients = [.. _sensorClients.Values.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)],
-        Entities =
-        [
-            .. status.Entities.Select(entity =>
-                _ipcEntityOwners.TryGetValue(entity.Entity.Id, out var owner) ? entity with { Source = owner.ClientName } : entity),
-        ],
-    };
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return status with
+            {
+                SensorClients = [.. _sensorClients.Select(client => client.Name).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)],
+                Entities =
+                [
+                    .. status.Entities.Select(entity =>
+                        _ipcEntitySources.TryGetValue(entity.Entity.Id, out var source) ? entity with { Source = source } : entity),
+                ],
+            };
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 
     private static bool IsElevatedAdministrator(NamedPipeServerStream pipe)
     {
@@ -281,40 +398,17 @@ public sealed partial class IpcServer(
         return isAdministrator;
     }
 
-    private async Task RegisterAsync(EntityDescriptor entity, EntityOwner owner, CancellationToken cancellationToken)
+    private async Task AddClientAsync(SensorClient client, CancellationToken cancellationToken)
     {
-        if (!entity.Kind.ReportsState())
-        {
-            // Commands cannot be routed back to a client yet.
-            LogRegistrationRejected(logger, owner.ClientName, entity.Id, "only sensors can be registered over IPC");
-            return;
-        }
-
-        if (registry.TryGet(entity.Id, out _) && !_ipcEntityOwners.ContainsKey(entity.Id))
-        {
-            LogRegistrationRejected(logger, owner.ClientName, entity.Id, "the id belongs to a service entity");
-            return;
-        }
-
-        var isNew = _ipcEntityOwners.TryAdd(entity.Id, owner);
-        if (!isNew)
-        {
-            _ipcEntityOwners[entity.Id] = owner;
-        }
-
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await registry.RegisterAsync(entity, cancellationToken).ConfigureAwait(false);
-            await registry.SetAvailabilityAsync(entity.Id, isAvailable: true, cancellationToken).ConfigureAwait(false);
+            _sensorClients.Add(client);
+            await ReselectAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (ArgumentException ex)
+        finally
         {
-            if (isNew)
-            {
-                _ipcEntityOwners.TryRemove(entity.Id, out _);
-            }
-
-            LogRegistrationRejected(logger, owner.ClientName, entity.Id, ex.Message);
+            _gate.Release();
         }
     }
 
@@ -322,36 +416,183 @@ public sealed partial class IpcServer(
     /// A client that went away can no longer report, so its sensors must not keep showing their last value:
     /// a "user active" that stays on after sign-out would mislead every automation that reads it.
     /// </summary>
-    private async Task MarkEntitiesUnavailableAsync(Guid connectionId, CancellationToken cancellationToken)
+    private async Task RemoveClientAsync(SensorClient client, CancellationToken cancellationToken)
     {
-        // When the service itself is stopping, the engines report everything unavailable anyway.
-        if (cancellationToken.IsCancellationRequested)
+        await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            _sensorClients.Remove(client);
+
+            // When the service itself is stopping, the engines report everything unavailable anyway.
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                await ReselectAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task RegisterAsync(SensorClient client, EntityDescriptor entity, CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (registry.TryGet(entity.Id, out _) && !_ipcEntitySources.ContainsKey(entity.Id))
+            {
+                LogRegistrationRejected(logger, client.Name, entity.Id, "the id belongs to a service entity");
+                return;
+            }
+
+            if (!client.Entities.ContainsKey(entity.Id) && client.Entities.Count >= MaxEntitiesPerClient)
+            {
+                LogRegistrationRejected(logger, client.Name, entity.Id, "the client registered too many entities");
+                return;
+            }
+
+            client.Entities[entity.Id] = entity;
+            if (client == _active)
+            {
+                await ExposeAsync(client, entity, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task PublishAsync(SensorClient client, TelemetryEvent reading, CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (!client.Entities.ContainsKey(reading.SensorId))
+            {
+                LogReadingRejected(logger, client.Name, reading.SensorId);
+                return;
+            }
+
+            // Kept even while another tray is the one reported, so this one's values are there when it takes over.
+            reading = reading with { Source = client.Name };
+            client.Readings[reading.SensorId] = reading;
+            if (client == _active)
+            {
+                await bus.PublishAsync(reading, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <summary>Makes sure the right tray is the one reported, after a tray came or went or the session in use changed.</summary>
+    private async Task ReselectAsync(CancellationToken cancellationToken)
+    {
+        var next = Choose();
+        if (next == _active)
         {
             return;
         }
 
-        foreach (var (entityId, owner) in _ipcEntityOwners)
+        _active = next;
+        if (next is not null)
         {
-            // Another connection of the same user may have taken the entity over since.
-            if (owner.ConnectionId == connectionId)
+            LogActiveClient(logger, next.Name, next.SessionId);
+            foreach (var entity in next.Entities.Values.ToArray())
             {
-                await registry.SetAvailabilityAsync(entityId, isAvailable: false, CancellationToken.None).ConfigureAwait(false);
+                await ExposeAsync(next, entity, cancellationToken).ConfigureAwait(false);
+            }
+
+            foreach (var reading in next.Readings.Values)
+            {
+                if (next.Entities.ContainsKey(reading.SensorId))
+                {
+                    await bus.PublishAsync(reading, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        foreach (var entityId in _ipcEntitySources.Keys)
+        {
+            if (next is null || !next.Entities.ContainsKey(entityId))
+            {
+                await registry.SetAvailabilityAsync(entityId, isAvailable: false, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
-    private async Task PublishAsync(TelemetryEvent reading, string clientName, CancellationToken cancellationToken)
+    /// <summary>
+    /// The tray of the session on the computer's own screen; failing that, of a session somebody is connected to,
+    /// i.e. over Remote Desktop. Among several, the one that connected last.
+    /// </summary>
+    private SensorClient? Choose()
     {
-        if (!_ipcEntityOwners.ContainsKey(reading.SensorId))
+        var console = _sessions.ConsoleSessionId;
+        SensorClient? connected = null;
+        foreach (var client in _sensorClients.OrderByDescending(client => client.Order))
         {
-            LogReadingRejected(logger, clientName, reading.SensorId);
-            return;
+            if (client.SessionId is { } session && session == console)
+            {
+                return client;
+            }
+
+            // A session that cannot be determined is given the benefit of the doubt.
+            connected ??= client.SessionId is not { } id || _sessions.IsConnected(id) ? client : null;
         }
 
-        await bus.PublishAsync(reading with { Source = clientName }, cancellationToken).ConfigureAwait(false);
+        return connected;
     }
 
-    private sealed record EntityOwner(Guid ConnectionId, string ClientName);
+    private async Task ExposeAsync(SensorClient client, EntityDescriptor entity, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Another user's tray may be another version, with the same id for a different kind of entity;
+            // Home Assistant keeps kinds apart, so the old one has to go first.
+            if (registry.TryGet(entity.Id, out var existing) && existing.Kind != entity.Kind)
+            {
+                await registry.UnregisterAsync(entity.Id, cancellationToken).ConfigureAwait(false);
+            }
+
+            await registry.RegisterAsync(entity, cancellationToken).ConfigureAwait(false);
+            _ipcEntitySources[entity.Id] = client.Name;
+            await registry.SetAvailabilityAsync(entity.Id, isAvailable: true, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ArgumentException ex)
+        {
+            client.Entities.Remove(entity.Id);
+            LogRegistrationRejected(logger, client.Name, entity.Id, ex.Message);
+        }
+    }
+
+    /// <param name="order">Counts connections, so the latest one can be told.</param>
+    private sealed class SensorClient(string name, uint? sessionId, IpcMessageStream stream, long order)
+    {
+        public string Name => name;
+
+        public uint? SessionId => sessionId;
+
+        public IpcMessageStream Stream => stream;
+
+        public long Order => order;
+
+        public Dictionary<string, EntityDescriptor> Entities { get; } = new(StringComparer.Ordinal);
+
+        public Dictionary<string, TelemetryEvent> Readings { get; } = new(StringComparer.Ordinal);
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Reporting the session entities of IPC client '{ClientName}' (session {SessionId}).")]
+    private static partial void LogActiveClient(ILogger logger, string clientName, uint? sessionId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Nothing was done about the command for '{ActionId}': the tray app that would carry it out is not running in the session in use.")]
+    private static partial void LogNoClientForCommand(ILogger logger, string actionId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The command for '{ActionId}' could not be sent to IPC client '{ClientName}'.")]
+    private static partial void LogCommandNotDelivered(ILogger logger, Exception exception, string actionId, string clientName);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Cannot create pipe '{PipeName}', so the tray app and the settings window cannot reach this service. Is another copy of the HADA service running? Trying again until it works.")]
     private static partial void LogPipeUnavailable(ILogger logger, Exception exception, string pipeName);

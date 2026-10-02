@@ -20,9 +20,23 @@ public enum CustomSensorType
     /// for a USB-C dock's network adapter. Shows up as a binary sensor.
     /// </summary>
     DeviceConnected,
+
+    /// <summary>
+    /// A button in Home Assistant that runs a PowerShell command when pressed. The service runs it, so it has the
+    /// service's rights and no desktop.
+    /// </summary>
+    CommandButton,
+
+    /// <summary>
+    /// A button in Home Assistant that starts a program, opens a document or opens an address when pressed, on
+    /// the desktop of the signed-in user.
+    /// </summary>
+    LaunchButton,
 }
 
-/// <summary>A sensor defined by the user in the settings window (or under <c>CustomSensors:Items</c> in appsettings.json).</summary>
+/// <summary>
+/// A sensor or button defined by the user in the settings window (or under <c>CustomSensors:Items</c> in appsettings.json).
+/// </summary>
 public sealed record CustomSensorDefinition
 {
     public const int MinIntervalSeconds = 2;
@@ -39,7 +53,13 @@ public sealed record CustomSensorDefinition
     /// <summary>Whether sensors of this type are on or off, as opposed to having a text or a number as their value.</summary>
     public bool IsBinary => Type is CustomSensorType.ProcessRunning or CustomSensorType.DeviceConnected;
 
-    /// <summary>The text, the process name, the PowerShell command or the device id, depending on <see cref="Type"/>.</summary>
+    /// <summary>Whether this is something Home Assistant presses, as opposed to a sensor that reports a value.</summary>
+    public bool IsButton => Type is CustomSensorType.CommandButton or CustomSensorType.LaunchButton;
+
+    /// <summary>
+    /// The text, the process name, the PowerShell command, the device id or the program to start, depending on
+    /// <see cref="Type"/>.
+    /// </summary>
     public string Value { get; init; } = string.Empty;
 
     /// <summary>Unit of measurement. Set it only for numeric values; Home Assistant then treats the sensor as a measurement.</summary>
@@ -58,7 +78,7 @@ public sealed record CustomSensorDefinition
             Id = id.Length > 0 ? id : ToId(name),
             Name = name,
             Value = Value.Trim(),
-            Unit = IsBinary ? string.Empty : Unit.Trim(),
+            Unit = IsBinary || IsButton ? string.Empty : Unit.Trim(),
         };
     }
 

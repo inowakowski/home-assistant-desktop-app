@@ -88,6 +88,134 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static unsafe partial int QueryDisplayConfig(
         uint flags, ref uint pathCount, DisplayConfigPath* paths, ref uint modeCount, byte* modes, nint currentTopology);
+
+    /// <summary>Injects keyboard or mouse input into the calling session. Returns how many events were injected.</summary>
+    [LibraryImport("user32.dll", SetLastError = true)]
+    public static unsafe partial uint SendInput(uint count, Input* inputs, int size);
+
+    /// <summary>The desktop's own window (Program Manager), or 0 when no shell is running.</summary>
+    [LibraryImport("user32.dll")]
+    public static partial nint GetShellWindow();
+
+    [LibraryImport("user32.dll", EntryPoint = "PostMessageW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PostMessage(nint window, uint message, nint wParam, nint lParam);
+
+    /// <summary>Puts the computer to sleep, or hibernates it. Needs the shutdown privilege; returns once the computer is awake again.</summary>
+    [LibraryImport("powrprof.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SetSuspendState(
+        [MarshalAs(UnmanagedType.U1)] bool hibernate, [MarshalAs(UnmanagedType.U1)] bool force, [MarshalAs(UnmanagedType.U1)] bool wakeupEventsDisabled);
+
+    [LibraryImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool OpenProcessToken(nint process, uint desiredAccess, out nint token);
+
+    [LibraryImport("advapi32.dll", EntryPoint = "LookupPrivilegeValueW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool LookupPrivilegeValue(string? systemName, string name, out long luid);
+
+    /// <summary>Succeeds even when the privilege is not held; the last error is then <c>ERROR_NOT_ALL_ASSIGNED</c>.</summary>
+    [LibraryImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool AdjustTokenPrivileges(
+        nint token, [MarshalAs(UnmanagedType.Bool)] bool disableAll, in TokenPrivilege newState, uint bufferLength, nint previousState, nint returnLength);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool CloseHandle(nint handle);
+
+    [LibraryImport("ole32.dll")]
+    public static partial int PropVariantClear(ref PropVariant value);
+
+    /// <summary>Returns a Win32 error code.</summary>
+    [LibraryImport("wlanapi.dll")]
+    public static partial uint WlanOpenHandle(uint clientVersion, nint reserved, out uint negotiatedVersion, out nint client);
+
+    [LibraryImport("wlanapi.dll")]
+    public static partial uint WlanCloseHandle(nint client, nint reserved);
+
+    /// <summary>The returned WLAN_INTERFACE_INFO_LIST must be released with <see cref="WlanFreeMemory"/>.</summary>
+    [LibraryImport("wlanapi.dll")]
+    public static partial uint WlanEnumInterfaces(nint client, nint reserved, out nint interfaces);
+
+    /// <summary>The returned data must be released with <see cref="WlanFreeMemory"/>.</summary>
+    [LibraryImport("wlanapi.dll")]
+    public static partial uint WlanQueryInterface(
+        nint client, in Guid interfaceId, int opCode, nint reserved, out uint dataSize, out nint data, nint valueType);
+
+    [LibraryImport("wlanapi.dll")]
+    public static partial void WlanFreeMemory(nint memory);
+
+    /// <summary>Reads a Windows Notification Facility state. Undocumented, but stable since Windows 8. Returns an NTSTATUS.</summary>
+    [LibraryImport("ntdll.dll")]
+    public static unsafe partial int NtQueryWnfStateData(
+        in ulong stateName, nint typeId, nint explicitScope, out uint changeStamp, byte* buffer, ref uint bufferSize);
+}
+
+/// <summary>INPUT: a type followed by a union, of which the mouse member is the largest.</summary>
+[StructLayout(LayoutKind.Sequential)]
+internal struct Input
+{
+    public const uint Mouse = 0;
+    public const uint Keyboard = 1;
+
+    public uint Type;
+    public InputUnion Data;
+}
+
+[StructLayout(LayoutKind.Explicit)]
+internal struct InputUnion
+{
+    [FieldOffset(0)]
+    public MouseInput Mouse;
+
+    [FieldOffset(0)]
+    public KeyboardInput Keyboard;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct MouseInput
+{
+    public int X;
+    public int Y;
+    public uint MouseData;
+    public uint Flags;
+    public uint Time;
+    public nuint ExtraInfo;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct KeyboardInput
+{
+    public ushort VirtualKey;
+    public ushort ScanCode;
+    public uint Flags;
+    public uint Time;
+    public nuint ExtraInfo;
+}
+
+/// <summary>TOKEN_PRIVILEGES holding one privilege; the structure is packed to 4 bytes.</summary>
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
+internal struct TokenPrivilege
+{
+    public uint Count;
+    public long Luid;
+    public uint Attributes;
+}
+
+/// <summary>PROPVARIANT on 64-bit Windows; only string values are read from it.</summary>
+[StructLayout(LayoutKind.Sequential)]
+internal struct PropVariant
+{
+    public const ushort TypeWideString = 31;
+
+    public ushort Type;
+    public ushort Reserved1;
+    public ushort Reserved2;
+    public ushort Reserved3;
+    public nint Value;
+    public nint Value2;
 }
 
 [StructLayout(LayoutKind.Sequential)]
