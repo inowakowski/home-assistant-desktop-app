@@ -1,0 +1,75 @@
+# The documentation site. Pages are the Markdown files in docs/; build with "mkdocs build", preview with "mkdocs serve".
+site_name: HADA
+site_description: Home Assistant Desktop App – connects a Windows computer to Home Assistant.
+site_url: https://inowakowski.github.io/home-assistant-desktop-app/
+repo_url: https://github.com/inowakowski/home-assistant-desktop-app
+repo_name: inowakowski/home-assistant-desktop-app
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Ignacy Nowakowski. MIT license.
+
+theme:
+  name: material
+  logo: assets/img/logo.png
+  favicon: assets/img/logo.png
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - tables
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: getting-started/installation.md
+      - First setup: getting-started/first-setup.md
+      - Updating: getting-started/updating.md
+  - What it does:
+      - Sensors: features/sensors.md
+      - Controls: features/controls.md
+      - Notifications: features/notifications.md
+      - Custom sensors and buttons: features/custom-entities.md
+      - Several users on one computer: features/several-users.md
+      - The HADA window: window.md
+  - Home Assistant:
+      - MQTT engine: home-assistant/mqtt.md
+      - WebSocket engine: home-assistant/websocket.md
+      - Automation examples: home-assistant/examples.md
+  - Reference:
+      - Configuration: reference/configuration.md
+      - Logs: reference/logs.md
+      - Security: reference/security.md
+      - Known limitations: reference/limitations.md
+      - Troubleshooting: reference/troubleshooting.md
+      - FAQ: faq.md
+  - Development:
+      - Architecture: development/architecture.md
+      - Building and running: development/building.md
+      - Adding entities in code: development/adding-entities.md
+  - Changelog: changelog.md

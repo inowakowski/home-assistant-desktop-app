@@ -1,0 +1,2 @@
+# What builds the documentation site; see docs/development/building.md.
+mkdocs-material==9.7.7
