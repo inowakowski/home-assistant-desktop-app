@@ -53,8 +53,7 @@ public sealed class DashboardWindow : Window
         {
             var environment = await CoreWebView2Environment.CreateAsync(
                 browserExecutableFolder: null,
-                userDataFolder: Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HADA", "dashboard"));
+                userDataFolder: Path.Combine(TrayPaths.DataFolder, "dashboard"));
             await _browser.EnsureCoreWebView2Async(environment);
             _browser.CoreWebView2.NavigationCompleted += (_, args) => _firstNavigation.TrySetResult(args.IsSuccess);
             _browser.CoreWebView2.Navigate(_address.AbsoluteUri);

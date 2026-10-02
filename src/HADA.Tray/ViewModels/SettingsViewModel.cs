@@ -51,6 +51,10 @@ public sealed class SettingsViewModel : ObservableObject
     private bool _checkUpdatesAutomatically = true;
     private bool _includePrereleases;
 
+    /// <param name="isElevated">
+    /// Whether this window may change settings: the administrator window of the installed app, or any window of
+    /// a portable copy.
+    /// </param>
     public SettingsViewModel(ServiceControlClient client, bool isElevated)
     {
         _client = client;

@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.Http;
+using HADA.Core;
 using System.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
@@ -20,16 +21,15 @@ namespace HADA.Tray.Session;
 /// <param name="fallback">Shows a plain notification, when a toast cannot be shown.</param>
 public sealed partial class ToastPresenter(Action<string> actionPressed, Action<string, string> fallback, ILogger logger)
 {
-    /// <summary>Identifies HADA's notifications to Windows; the name shown is "HADA".</summary>
-    public const string AppId = "HADA.Tray";
+    /// <summary>Identifies this copy's notifications to Windows; the name shown is "HADA".</summary>
+    public static string AppId { get; } = "HADA.Tray" + AppInstance.Suffix;
 
     private const int MaxKeptToasts = 20;
     private const long MaxImageBytes = 5 * 1024 * 1024;
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
 
-    private static readonly string DataFolder =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HADA");
+    private static readonly string DataFolder = TrayPaths.DataFolder;
 
     private readonly List<ToastNotification> _shown = [];
     private bool _isRegistered;

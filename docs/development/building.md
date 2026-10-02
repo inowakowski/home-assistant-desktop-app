@@ -36,6 +36,7 @@ Tray command-line options:
 | `--background` | Start without opening the window, e.g. at sign-in |
 | `--autostart` | Marks a start made by Windows at sign-in. The tray exits again if the user turned **Start with Windows** off |
 | `--page overview\|connections\|entities\|custom\|settings\|logs` | Open the window on a specific page (`custom` is **Custom entities**) |
+| `--exit` | Tell the tray app that is already running to exit; in a portable copy that stops its service too |
 | `--dashboard` | Run as the [dashboard window](../window.md#the-dashboard-window) |
 | `--settings` | Run as the window, without tray icon or sensors. This is how the tray opens the window, and how **Unlock editing** reopens it as administrator |
 
@@ -46,7 +47,7 @@ Tray command-line options:
 .\scripts\Publish-HADA.ps1
 ```
 
-This creates `artifacts\installer\HADA-<version>-x64.msi` and `HADA-<version>-arm64.msi`; either computer can build both. The GitHub workflow in `.github/workflows/build.yml` builds the same two files and attaches them to each run. The installer project (WiX) is in `installer/` and is deliberately not part of the solution, so `dotnet build` stays fast.
+This creates `artifacts\installer\HADA-<version>-x64.msi` and `HADA-<version>-arm64.msi`, and next to them the [portable](../getting-started/portable.md) `HADA-<version>-<x64|arm64>-portable.zip`; either computer can build both architectures. The GitHub workflow in `.github/workflows/build.yml` builds the same two files and attaches them to each run. The installer project (WiX) is in `installer/` and is deliberately not part of the solution, so `dotnet build` stays fast.
 
 ## Building this documentation
 

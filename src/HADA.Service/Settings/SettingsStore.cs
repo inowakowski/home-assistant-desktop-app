@@ -35,7 +35,10 @@ public sealed record StoredSettings
 /// The folder is limited to SYSTEM, administrators and the account running the service, and secrets are also
 /// encrypted with DPAPI, so a copy of the file is useless on another machine.
 /// </summary>
-public sealed class SettingsStore(string? folderPath = null)
+/// <param name="protectFolder">
+/// False for a portable copy, whose folder belongs to the user who unpacked it and is left as it is.
+/// </param>
+public sealed class SettingsStore(string? folderPath = null, bool protectFolder = true)
 {
     private static readonly byte[] Entropy = "HADA.Settings.v1"u8.ToArray();
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -75,8 +78,14 @@ public sealed class SettingsStore(string? folderPath = null)
         File.Move(temporaryPath, FilePath, overwrite: true);
     }
 
+    /// <summary>
+    /// Who can decrypt saved secrets: any process on this computer, which the installed service needs because it
+    /// runs as SYSTEM, or only the current user, for a portable copy. Set once, before settings are loaded.
+    /// </summary>
+    public static DataProtectionScope SecretScope { get; set; } = DataProtectionScope.LocalMachine;
+
     public static string Protect(string secret) =>
-        Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(secret), Entropy, DataProtectionScope.LocalMachine));
+        Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(secret), Entropy, SecretScope));
 
     /// <summary>Returns <see langword="null"/> when there is no secret or it was encrypted on another machine.</summary>
     public static string? TryUnprotect(string? protectedSecret)
@@ -89,7 +98,7 @@ public sealed class SettingsStore(string? folderPath = null)
         try
         {
             return Encoding.UTF8.GetString(
-                ProtectedData.Unprotect(Convert.FromBase64String(protectedSecret), Entropy, DataProtectionScope.LocalMachine));
+                ProtectedData.Unprotect(Convert.FromBase64String(protectedSecret), Entropy, SecretScope));
         }
         catch (Exception ex) when (ex is CryptographicException or FormatException)
         {
@@ -116,6 +125,12 @@ public sealed class SettingsStore(string? folderPath = null)
 
     private void EnsureFolder()
     {
+        if (!protectFolder)
+        {
+            Directory.CreateDirectory(FolderPath);
+            return;
+        }
+
         using var identity = WindowsIdentity.GetCurrent();
         SecurityIdentifier[] owners =
         [

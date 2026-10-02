@@ -9,6 +9,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
 using HADA.Core.Logging;
+using HADA.Core;
 using HADA.Core.Abstractions;
 using HADA.Core.Models;
 using HADA.Ipc;
@@ -39,6 +40,7 @@ namespace HADA.Tray;
 /// <c>--autostart</c> marks a start made by Windows at sign-in; the tray then exits if the user turned autostart off.
 /// <c>--settings</c> runs as the window, without tray icon or sensors.
 /// <c>--dashboard</c> runs as the dashboard window, showing the address chosen on the Settings page.
+/// <c>--exit</c> tells the tray app that is already running to exit, and does nothing else.
 /// <c>--page overview|connections|entities|custom|settings|logs</c> chooses the page the window opens on.
 /// </para>
 /// </remarks>
@@ -51,6 +53,7 @@ public partial class App : Application
     private const string BackgroundArgument = "--background";
     private const string SettingsArgument = "--settings";
     private const string DashboardArgument = "--dashboard";
+    private const string ExitArgument = "--exit";
     private const string PageArgument = "--page";
     private const int AnyProcess = -1;
 
@@ -62,6 +65,9 @@ public partial class App : Application
     private IHost? _host;
     private TrayIcon? _trayIcon;
     private GlobalHotkeys? _hotkeys;
+    private PortableService? _portableService;
+    private EventWaitHandle? _exitSignal;
+    private RegisteredWaitHandle? _exitRegistration;
     private MainWindow? _mainWindow;
     private Window? _roleWindow;
     private bool _isShowingError;
@@ -76,8 +82,7 @@ public partial class App : Application
         _fileLog = new FileLoggerProvider(new FileLoggerOptions
         {
             FilePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "HADA",
+                TrayPaths.DataFolder,
                 "logs",
                 isDashboard ? "dashboard-window.log" : isWindow ? "settings-window.log" : "tray.log"),
         });
@@ -121,6 +126,8 @@ public partial class App : Application
     {
         _showWindowRegistration?.Unregister(null);
         _showWindowSignal?.Dispose();
+        _exitRegistration?.Unregister(null);
+        _exitSignal?.Dispose();
         _hotkeys?.Dispose();
         _trayIcon?.Dispose();
         if (_host is not null)
@@ -128,6 +135,9 @@ public partial class App : Application
             _host.StopAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
             _host.Dispose();
         }
+
+        // After the tray's own sensors, so the service is still there to hear them go.
+        _portableService?.Dispose();
 
         _singleInstance?.Dispose();
         _fileLog?.Dispose();
@@ -143,7 +153,22 @@ public partial class App : Application
             return;
         }
 
-        _singleInstance = new Mutex(initiallyOwned: true, @"Local\HADA.Tray", out var isFirstInstance);
+        if (HasArgument(e, ExitArgument))
+        {
+            // Asks the tray app of this copy to exit, e.g. before a portable copy's folders are replaced.
+            if (EventWaitHandle.TryOpenExisting(AppInstance.TrayExitEventName, out var exit))
+            {
+                using (exit)
+                {
+                    exit.Set();
+                }
+            }
+
+            Shutdown();
+            return;
+        }
+
+        _singleInstance = new Mutex(initiallyOwned: true, @"Local\HADA.Tray" + AppInstance.Suffix, out var isFirstInstance);
         if (!isFirstInstance)
         {
             // The tray is already running in this session; starting HADA again means "show me the window".
@@ -152,7 +177,20 @@ public partial class App : Application
             return;
         }
 
-        var builder = Host.CreateApplicationBuilder(e.Args);
+        _exitSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, AppInstance.TrayExitEventName);
+        _exitRegistration = ThreadPool.RegisterWaitForSingleObject(
+            _exitSignal, (_, _) => Dispatcher.InvokeAsync(() => Shutdown()), state: null, Timeout.Infinite, executeOnlyOnce: true);
+
+        if (AppInstance.PortableRoot is { } portableRoot)
+        {
+            // Nobody installed a service for a portable copy; its tray app runs one for as long as it runs itself.
+            _portableService = new PortableService(portableRoot, _logger);
+            _portableService.Start();
+        }
+
+        // Rooted at the program's own folder: the folder it happens to be started from must not be searched for settings files.
+        var builder = Host.CreateApplicationBuilder(
+            new HostApplicationBuilderSettings { Args = e.Args, ContentRootPath = AppContext.BaseDirectory });
         builder.Logging.AddProvider(_fileLog!);
 
         builder.Services.AddSessionServices();
@@ -240,8 +278,8 @@ public partial class App : Application
     /// <summary>The dashboard window: one per user; asked for again, the one that is open comes to the front.</summary>
     private void StartDashboard()
     {
-        const string Name = @"Local\HADA.Dashboard";
-        if (!UserPreferences.TryGetDashboardAddress(UserPreferences.DashboardUrl, out var address) || !TakeWindowRole(Name))
+        if (!UserPreferences.TryGetDashboardAddress(UserPreferences.DashboardUrl, out var address)
+            || !TakeWindowRole(@"Local\HADA.Dashboard" + AppInstance.Suffix))
         {
             Shutdown();
             return;
@@ -291,7 +329,7 @@ public partial class App : Application
     {
         // One window per user and privilege level: the administrator copy opened with "Unlock editing" may run
         // next to the normal one for a moment, while that one is closing.
-        if (!TakeWindowRole(Elevation.IsElevated ? @"Local\HADA.Window.Admin" : @"Local\HADA.Window"))
+        if (!TakeWindowRole((Elevation.IsElevated ? @"Local\HADA.Window.Admin" : @"Local\HADA.Window") + AppInstance.Suffix))
         {
             Shutdown();
             return;
@@ -311,7 +349,8 @@ public partial class App : Application
         ApplicationThemeManager.ApplySystemTheme(true);
 
         var client = new ServiceControlClient(new IpcOptions { ClientName = $"ui:{Environment.UserName}" });
-        var viewModel = new MainViewModel(client, Elevation.IsElevated, RequestElevation);
+        // The settings of a portable copy are its user's own; there is no administrator window to unlock.
+        var viewModel = new MainViewModel(client, Elevation.IsElevated && !AppInstance.IsPortable, AppInstance.IsPortable, RequestElevation);
         _mainWindow = new MainWindow(viewModel, PageNames.Find(page));
         _roleWindow = _mainWindow;
         _mainWindow.Closed += (_, _) => Shutdown();

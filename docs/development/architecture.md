@@ -31,3 +31,7 @@
 | `HADA.Tray` | Tray app host, notifications, the media playback sensor (Windows Runtime) and the settings window (WPF-UI, Polish and English) |
 | `HADA.Tests` | xUnit tests |
 | `installer` | WiX project that packs the published apps into an MSI. Built by `scripts\Publish-HADA.ps1`, not by the solution |
+
+## Installed and portable
+
+The same two programs run in two ways, told apart by `AppInstance` in `HADA.Core`: a file named `HADA.portable` one folder above the program makes it a [portable copy](../getting-started/portable.md). Everything processes find each other by (the pipe, the single-instance mutexes, the stop and exit events) carries a suffix derived from the copy's folder, empty for the installed app, so copies never meet. In a portable copy the tray app starts `HADA.Service.exe` as a child process and stops it on exit, settings and logs go to the copy's `data` folder, and per-user preferences go to a JSON file there instead of the registry.

@@ -262,7 +262,7 @@
                                     <ui:TextBlock
                                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                         FontTypography="Caption"
-                                        Text="{l:Tr Autostart_Detail}"
+                                        Text="{Binding AutostartDetail}"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                                 <ui:ToggleSwitch

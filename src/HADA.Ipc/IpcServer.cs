@@ -244,7 +244,8 @@ public sealed partial class IpcServer(
                 clientName = hello.ClientName.Length > MaxClientNameLength ? hello.ClientName[..MaxClientNameLength] : hello.ClientName;
 
                 // Checked once, since a connection's identity cannot change. The hello has been read, which impersonation requires.
-                var isElevatedAdministrator = hello.Role == IpcClientRole.Control && IsElevatedAdministrator(pipe);
+                var isElevatedAdministrator = hello.Role == IpcClientRole.Control
+                    && (IsElevatedAdministrator(pipe) || (options.Value.TrustSameUser && IsSameUser(pipe)));
                 LogClientConnected(logger, clientName, hello.Role, isElevatedAdministrator);
                 if (hello.Role == IpcClientRole.Sensors)
                 {
@@ -421,6 +422,26 @@ public sealed partial class IpcServer(
         }
 
         return isAdministrator;
+    }
+
+    private static bool IsSameUser(NamedPipeServerStream pipe)
+    {
+        var isSameUser = false;
+        try
+        {
+            using var server = WindowsIdentity.GetCurrent(TokenAccessLevels.Query);
+            pipe.RunAsClient(() =>
+            {
+                using var client = WindowsIdentity.GetCurrent(TokenAccessLevels.Query);
+                isSameUser = client.User is not null && client.User == server.User;
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SecurityException)
+        {
+            // Cannot tell who the client is, so treat it as somebody else.
+        }
+
+        return isSameUser;
     }
 
     private async Task AddClientAsync(SensorClient client, CancellationToken cancellationToken)
@@ -658,8 +679,8 @@ public sealed partial class IpcServer(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Dropped an IPC client that did not start with a supported hello message.")]
     private static partial void LogHandshakeRejected(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "IPC client '{ClientName}' connected ({Role}; elevated administrator: {IsElevatedAdministrator}).")]
-    private static partial void LogClientConnected(ILogger logger, string clientName, IpcClientRole role, bool isElevatedAdministrator);
+    [LoggerMessage(Level = LogLevel.Information, Message = "IPC client '{ClientName}' connected ({Role}; may change settings: {MayChangeSettings}).")]
+    private static partial void LogClientConnected(ILogger logger, string clientName, IpcClientRole role, bool mayChangeSettings);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "IPC client '{ClientName}' disconnected.")]
     private static partial void LogClientDisconnected(ILogger logger, string clientName);

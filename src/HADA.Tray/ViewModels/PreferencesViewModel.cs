@@ -13,13 +13,16 @@ public sealed record LanguageOption(string Code, string Label);
 /// Whether this is the administrator copy of the window. It may run under another account, where these switches
 /// would change that account's choices instead of the user's, so they are read-only there.
 /// </param>
-public sealed class PreferencesViewModel(bool isElevated) : ObservableObject
+/// <param name="isPortable">Whether this is a portable copy, where starting with Windows means something else.</param>
+public sealed class PreferencesViewModel(bool isElevated, bool isPortable = false) : ObservableObject
 {
     private readonly string _languageAtStart = UserPreferences.Language;
 
     public bool CanChange { get; } = !isElevated;
 
     public string Note { get; } = Loc.Get(isElevated ? "Preferences_PersonalElevated" : "Preferences_PersonalDetail");
+
+    public string AutostartDetail { get; } = Loc.Get(isPortable ? "Autostart_DetailPortable" : "Autostart_Detail");
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
     [

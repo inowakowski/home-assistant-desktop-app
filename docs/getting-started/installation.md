@@ -7,6 +7,8 @@
     - the [MQTT integration](https://www.home-assistant.io/integrations/mqtt/) and a broker, e.g. the Mosquitto add-on. This is the recommended way. The `notification` entity needs Home Assistant 2024.5 or newer.
     - a long-lived access token for an **administrator** account, for the WebSocket engine, which needs no broker but can do less.
 
+Without installing anything, and without administrator rights, there is the [portable version](portable.md).
+
 ## With the installer
 
 Download the installer that matches the computer from the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases): `HADA-<version>-x64.msi` for Intel and AMD processors, `HADA-<version>-arm64.msi` for ARM64. Each release also has a `SHA256SUMS.txt` to check the download against. The installers are self-contained, so the computer needs no .NET.

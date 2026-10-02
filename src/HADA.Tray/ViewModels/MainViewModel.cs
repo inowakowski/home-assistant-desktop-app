@@ -18,15 +18,20 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _isServiceReachable;
 
     /// <param name="requestElevation">Restarts the window as administrator; returns <see langword="false"/> if the user declined.</param>
-    public MainViewModel(ServiceControlClient client, bool isElevated, Func<bool> requestElevation)
+    /// <param name="isElevated">Whether this is the administrator copy of the window, opened with "Unlock editing".</param>
+    /// <param name="isPortable">
+    /// Whether this is a portable copy, whose settings belong to the user: they can be changed without an
+    /// administrator window, and it is updated by replacing its folders, not by an installer.
+    /// </param>
+    public MainViewModel(ServiceControlClient client, bool isElevated, bool isPortable, Func<bool> requestElevation)
     {
         _client = client;
         IsElevated = isElevated;
         WindowTitle = Loc.Get(isElevated ? "App_TitleElevated" : "App_Title");
         Overview = new OverviewViewModel(target => NavigationRequested?.Invoke(target));
-        Updates = new UpdateViewModel(client, isElevated);
-        Preferences = new PreferencesViewModel(isElevated);
-        Settings = new SettingsViewModel(client, isElevated);
+        Updates = new UpdateViewModel(client, isElevated, isPortable);
+        Preferences = new PreferencesViewModel(isElevated, isPortable);
+        Settings = new SettingsViewModel(client, isElevated || isPortable);
         Entities = new EntitiesViewModel(Settings);
         Logs = new LogsViewModel(client);
         UnlockCommand = new RelayCommand(
@@ -37,7 +42,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
                     Settings.Feedback.Show(Loc.Get("Settings_LockedTitle"), Loc.Get("Settings_ElevationDeclined"), InfoBarSeverity.Warning);
                 }
             },
-            () => !isElevated);
+            () => !isElevated && !isPortable);
 
         _refreshTimer = new DispatcherTimer { Interval = RefreshInterval };
         _refreshTimer.Tick += async (_, _) => await RefreshAsync();
