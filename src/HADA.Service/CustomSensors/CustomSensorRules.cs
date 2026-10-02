@@ -55,6 +55,7 @@ public static partial class CustomSensorRules
         MediaCaptureSensor.CameraEntityId,
         MicrophoneMuteSensor.EntityId,
         ExternalDisplaySensor.EntityId,
+        GpuLoadSensor.EntityId,
         NetworkSensor.AddressEntityId,
         NetworkSensor.WifiEntityId,
         ActiveUserSensor.EntityId,
@@ -106,6 +107,18 @@ public static partial class CustomSensorRules
             return $"Custom sensor '{label}' has an unknown type.";
         }
 
+        if (sensor.Type == CustomSensorType.QuickAction)
+        {
+            // A shortcut is optional; the tray menu is always there. One without Ctrl, Alt or Win would take a plain
+            // key away from every other program.
+            return sensor.Value.Length == 0
+                || (KeyCombination.TryParse(sensor.Value, out var shortcut)
+                    && shortcut.VirtualKey != 0
+                    && (shortcut.Modifiers & (KeyModifiers.Ctrl | KeyModifiers.Alt | KeyModifiers.Win)) != 0)
+                ? null
+                : $"The shortcut of quick action '{label}' must be a key with Ctrl, Alt or Win, such as Ctrl+Alt+L.";
+        }
+
         if (sensor.Value.Length == 0)
         {
             return sensor.Type switch
@@ -115,6 +128,7 @@ public static partial class CustomSensorRules
                 CustomSensorType.DeviceConnected => $"Custom sensor '{label}' needs a device ID, such as VID_0BDA&PID_8153.",
                 CustomSensorType.CommandButton => $"Custom button '{label}' needs a PowerShell command.",
                 CustomSensorType.LaunchButton => $"Custom button '{label}' needs a program, document or address to open.",
+                CustomSensorType.KeysButton => $"Custom button '{label}' needs a key combination, such as Ctrl+Shift+M.",
                 _ => $"Custom sensor '{label}' needs a value.",
             };
         }
@@ -139,6 +153,11 @@ public static partial class CustomSensorRules
         if (sensor.Type == CustomSensorType.ProcessRunning && sensor.Value.AsSpan().ContainsAny(PathCharacters))
         {
             return $"Custom sensor '{label}' needs a process name such as 'chrome', not a path.";
+        }
+
+        if (sensor.Type == CustomSensorType.KeysButton && !KeyCombination.TryParse(sensor.Value, out _))
+        {
+            return $"'{sensor.Value}' of custom button '{label}' is not a key combination. Use keys joined by +, such as Ctrl+Shift+M, F11 or MediaNext.";
         }
 
         if (sensor.Unit.Length > MaxUnitLength)
@@ -185,7 +204,10 @@ public static partial class CustomSensorRules
     {
         Id = sensor.Id,
         Name = sensor.Name,
-        Kind = sensor.IsButton ? EntityKind.Button : sensor.IsBinary ? EntityKind.BinarySensor : EntityKind.Sensor,
+        Kind = sensor.IsTrigger ? EntityKind.Trigger
+            : sensor.IsButton ? EntityKind.Button
+            : sensor.IsBinary ? EntityKind.BinarySensor
+            : EntityKind.Sensor,
         Icon = sensor.Type switch
         {
             CustomSensorType.ProcessRunning => "mdi:application-cog-outline",
@@ -193,6 +215,8 @@ public static partial class CustomSensorRules
             CustomSensorType.DeviceConnected => "mdi:usb-port",
             CustomSensorType.CommandButton => "mdi:console-line",
             CustomSensorType.LaunchButton => "mdi:rocket-launch",
+            CustomSensorType.KeysButton => "mdi:keyboard",
+            CustomSensorType.QuickAction => "mdi:gesture-tap-button",
             _ => "mdi:form-textbox",
         },
 

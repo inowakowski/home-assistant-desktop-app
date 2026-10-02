@@ -8,7 +8,7 @@ Open it by double-clicking the HADA tray icon, or choose **Open HADA** from its 
 | **Connections** | MQTT and Home Assistant settings, each with a **Test connection** button |
 | **Entities** | A switch per entity to choose what is shared with Home Assistant and what Home Assistant may do. Disabled entities are removed from Home Assistant. The power buttons start switched off |
 | **Custom entities** | Your own sensors (a fixed text, whether a program is running or a device is connected, the output of a PowerShell command) and buttons (run a PowerShell command, start a program) |
-| **Settings** | [Updates](getting-started/updating.md): the installed version, **Check now**, and whether to check by itself. And three settings of your own, which need no administrator rights: **Start with Windows**, the language of the window (Polish, English, or as Windows), and how long without input until `user_active` turns off |
+| **Settings** | [Updates](getting-started/updating.md): the installed version, **Check now**, and whether to check by itself. And settings of your own, which need no administrator rights: **Start with Windows**, the language of the window (Polish, English, or as Windows), the address of the [dashboard window](#the-dashboard-window), and how long without input until `user_active` turns off |
 | **Logs** | Recent service log entries, filterable by level, with copy to clipboard |
 
 **Changing settings requires administrator rights.** Anyone signed in can see status and logs, but the pages are read-only until you choose **Unlock editing**. That reopens the window as administrator (a UAC prompt). The service checks this itself, so a non-elevated client cannot save settings or run connection tests.
@@ -17,6 +17,23 @@ Saved settings take effect immediately: the affected connection restarts. Passwo
 
 
 ![The Overview page](assets/img/overview.png)
+
+## The tray icon's menu
+
+Right-click the HADA icon in the notification area:
+
+- your [quick actions](features/custom-entities.md#quick-actions), if you defined any
+- **Open HADA**, which a double-click on the icon does as well
+- **Home Assistant dashboard**, if you set an address for it
+- **Exit**, which stops the tray app and with it the session sensors and controls; the service keeps running
+
+## The dashboard window
+
+*New in 1.1.0, a pre-release.*
+
+Enter an address on the **Settings** page, under **Home Assistant dashboard**, for example `http://homeassistant.local:8123/lovelace/desk`. The tray icon's menu then offers **Home Assistant dashboard**: a small window near the notification area showing that address.
+
+It is a browser of its own, built on the Microsoft Edge WebView2 Runtime that Windows 11 includes and Windows 10 usually has. You sign in to Home Assistant in it once; the sign-in is kept in your user profile, under `%LocalAppData%\HADA\dashboard`. Like the HADA window it is a separate process that exists only while it is open.
 
 ## Memory use
 

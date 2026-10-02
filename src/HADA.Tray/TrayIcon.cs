@@ -12,7 +12,10 @@ internal static class AppIcon
     public static Uri Uri { get; } = new("pack://application:,,,/HADA.Tray;component/Assets/hada.ico");
 }
 
-/// <summary>Notification-area icon showing whether the service is reachable, with Open and Exit commands.</summary>
+/// <summary>
+/// Notification-area icon showing whether the service is reachable. Its menu opens the window and, when they are
+/// set up, the dashboard window and the quick actions.
+/// </summary>
 internal sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
@@ -20,18 +23,28 @@ internal sealed class TrayIcon : IDisposable
     private readonly Font _boldFont;
     private readonly Icon _appIcon;
     private readonly DispatcherTimer _statusTimer;
+    private readonly Action _open;
+    private readonly Action _openDashboard;
+    private readonly Action _exit;
+    private IReadOnlyList<(string Name, string Shortcut, Action Chosen)> _quickActions = [];
 
-    public TrayIcon(Func<bool> isConnected, Action open, Action exit)
+    /// <param name="openDashboard">Opens the dashboard window; offered only while an address for it is set.</param>
+    public TrayIcon(Func<bool> isConnected, Action open, Action openDashboard, Action exit)
     {
+        _open = open;
+        _openDashboard = openDashboard;
+        _exit = exit;
         _menu = new ContextMenuStrip { ShowImageMargin = false };
         _boldFont = new Font(_menu.Font, System.Drawing.FontStyle.Bold);
-        _menu.Items.Add(new ToolStripMenuItem(Loc.Get("Tray_Open"), image: null, (_, _) => open()) { Font = _boldFont });
-        _menu.Items.Add(new ToolStripSeparator());
-        _menu.Items.Add(Loc.Get("Tray_Exit"), image: null, (_, _) => exit());
 
-        // Windows Forms menus know nothing about dark mode; colour the menu each time it opens, so it follows the
-        // system theme even when that changes while the tray is running.
-        _menu.Opening += (_, _) => ApplyTheme(MenuTheme.ForSystem());
+        // Built each time it opens: the dashboard address is a setting another process may have changed, and
+        // Windows Forms menus know nothing about dark mode, so the colours are those of the theme at that moment.
+        _menu.Opening += (_, _) =>
+        {
+            BuildMenu();
+            ApplyTheme(MenuTheme.ForSystem());
+        };
+        BuildMenu();
 
         using (var resource = System.Windows.Application.GetResourceStream(AppIcon.Uri)!.Stream)
         {
@@ -46,10 +59,41 @@ internal sealed class TrayIcon : IDisposable
             Visible = true,
         };
         _icon.DoubleClick += (_, _) => open();
+        _icon.BalloonTipClicked += (_, _) => open();
 
         _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _statusTimer.Tick += (_, _) => _icon.Text = Loc.Get(isConnected() ? "Tray_Connected" : "Tray_Waiting");
         _statusTimer.Start();
+    }
+
+    /// <summary>The quick actions to offer at the top of the menu, each with its keyboard shortcut if it has one.</summary>
+    public void SetQuickActions(IReadOnlyList<(string Name, string Shortcut, Action Chosen)> actions) => _quickActions = actions;
+
+    private void BuildMenu()
+    {
+        _menu.Items.Clear();
+        foreach (var (name, shortcut, chosen) in _quickActions)
+        {
+            _menu.Items.Add(new ToolStripMenuItem(name, image: null, (_, _) => chosen())
+            {
+                // Shown at the right edge, as menus show shortcuts; the shortcut itself is registered elsewhere.
+                ShortcutKeyDisplayString = shortcut.Length > 0 ? shortcut : null,
+            });
+        }
+
+        if (_quickActions.Count > 0)
+        {
+            _menu.Items.Add(new ToolStripSeparator());
+        }
+
+        _menu.Items.Add(new ToolStripMenuItem(Loc.Get("Tray_Open"), image: null, (_, _) => _open()) { Font = _boldFont });
+        if (UserPreferences.DashboardUrl.Length > 0)
+        {
+            _menu.Items.Add(Loc.Get("Tray_Dashboard"), image: null, (_, _) => _openDashboard());
+        }
+
+        _menu.Items.Add(new ToolStripSeparator());
+        _menu.Items.Add(Loc.Get("Tray_Exit"), image: null, (_, _) => _exit());
     }
 
     /// <summary>

@@ -9,7 +9,9 @@ HADA connects a Windows computer to [Home Assistant](https://www.home-assistant.
 - **Reports the computer's state.** Whether the screen is on, the session locked, somebody at the keyboard; what is playing; whether the microphone or camera is in use; battery, network, disks and more. See [Sensors](features/sensors.md).
 - **Takes commands.** Volume and mute, media keys, the display, lock, sleep and shut down. See [Controls](features/controls.md).
 - **Shows notifications** sent from Home Assistant. See [Notifications](features/notifications.md).
-- **Lets you add your own** sensors and buttons without writing code: whether a program runs, whether a dock is connected, the output of a PowerShell command, a button that starts a program. See [Custom sensors and buttons](features/custom-entities.md).
+- **Lets you add your own** sensors and buttons without writing code: whether a program runs, whether a dock is connected, the output of a PowerShell command, a button that starts a program or presses keys. See [Custom sensors and buttons](features/custom-entities.md).
+- **Starts automations from the computer.** Quick actions in the tray icon's menu, each with a keyboard shortcut if you like, and buttons on notifications. See [Quick actions](features/custom-entities.md#quick-actions).
+- **Shows your dashboard** in a small window opened from the tray icon. See [The dashboard window](window.md#the-dashboard-window).
 
 ## How it is built
 

@@ -23,6 +23,7 @@
 
   <data name="Tray_Open" xml:space="preserve"><value>Otwórz HADA</value></data>
   <data name="Tray_Exit" xml:space="preserve"><value>Zakończ</value></data>
+  <data name="Tray_Dashboard" xml:space="preserve"><value>Pulpit Home Assistant</value></data>
   <data name="Tray_Connected" xml:space="preserve"><value>HADA: połączono z usługą</value></data>
   <data name="Tray_Waiting" xml:space="preserve"><value>HADA: oczekiwanie na usługę</value></data>
 
@@ -63,6 +64,12 @@
   <data name="Preferences_LanguageAuto" xml:space="preserve"><value>Zgodnie z Windows</value></data>
   <data name="Preferences_Idle" xml:space="preserve"><value>Próg aktywności</value></data>
   <data name="Preferences_IdleDetail" xml:space="preserve"><value>Po ilu sekundach od ostatniego użycia klawiatury lub myszy sensor „User active” się wyłącza.</value></data>
+  <data name="Preferences_Dashboard" xml:space="preserve"><value>Pulpit Home Assistant</value></data>
+  <data name="Preferences_DashboardDetail" xml:space="preserve"><value>Adres pokazywany w małym oknie otwieranym z menu ikony w zasobniku. Zostaw puste, jeśli nie chcesz takiego okna.</value></data>
+  <data name="Dashboard_Title" xml:space="preserve"><value>HADA – Home Assistant</value></data>
+  <data name="Dashboard_Failed" xml:space="preserve"><value>Nie można pokazać pulpitu: {0}
+
+Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 zawiera, a w Windows 10 może go brakować.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Uruchamiaj z systemem Windows</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Uruchamia aplikację Tray, a z nią sensory i sterowanie sesji, po zalogowaniu. Usługa HADA zawsze startuje razem z Windows.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>Usługa HADA</value></data>
@@ -96,6 +103,7 @@
   <data name="Entity_Switch" xml:space="preserve"><value>Przełącznik</value></data>
   <data name="Entity_Number" xml:space="preserve"><value>Liczba</value></data>
   <data name="Entity_Notify" xml:space="preserve"><value>Powiadomienie</value></data>
+  <data name="Entity_Trigger" xml:space="preserve"><value>Wyzwalacz</value></data>
   <data name="Entity_Disabled" xml:space="preserve"><value>Wyłączona</value></data>
   <data name="Entity_Unavailable" xml:space="preserve"><value>Niedostępna – aplikacja Tray nie działa albo przy komputerze jest inny użytkownik</value></data>
   <data name="Source_Service" xml:space="preserve"><value>Usługa</value></data>
@@ -141,8 +149,8 @@
   <data name="Validation_UrlRequired" xml:space="preserve"><value>Najpierw wpisz adres Home Assistant.</value></data>
   <data name="Validation_Url" xml:space="preserve"><value>Adres Home Assistant musi zaczynać się od http:// lub https://.</value></data>
   <data name="Validation_EventType" xml:space="preserve"><value>Typ zdarzenia poleceń nie może być pusty ani zawierać spacji.</value></data>
-  <data name="Validation_CustomName" xml:space="preserve"><value>Własne encje: każdy sensor i przycisk musi mieć nazwę.</value></data>
-  <data name="Validation_CustomValue" xml:space="preserve"><value>Własne encje: „{0}” nie ma wartości, nazwy procesu, polecenia ani programu.</value></data>
+  <data name="Validation_CustomName" xml:space="preserve"><value>Własne encje: każda pozycja musi mieć nazwę.</value></data>
+  <data name="Validation_CustomValue" xml:space="preserve"><value>Własne encje: „{0}” nie ma wartości, nazwy procesu, polecenia, programu ani klawiszy.</value></data>
   <data name="Error_ServiceUnavailable" xml:space="preserve"><value>Usługa HADA nie działa lub jest nieosiągalna.</value></data>
   <data name="Error_Unauthorized" xml:space="preserve"><value>Ta operacja wymaga uprawnień administratora.</value></data>
   <data name="Error_UnexpectedTitle" xml:space="preserve"><value>Nieoczekiwany błąd</value></data>
@@ -167,6 +175,7 @@
   <data name="EntityHint_do_not_disturb" xml:space="preserve"><value>Włączony, gdy Windows wstrzymuje powiadomienia (Nie przeszkadzać).</value></data>
   <data name="EntityHint_media_playback" xml:space="preserve"><value>Informuje, czy coś jest odtwarzane. Wysyła tytuł, wykonawcę, album i aplikację jako atrybuty.</value></data>
   <data name="EntityHint_update_available" xml:space="preserve"><value>Włączony, gdy wydano nowszą wersję HADA. Usługa raz dziennie pyta GitHub, chyba że wyłączysz to na stronie Ustawienia.</value></data>
+  <data name="EntityHint_gpu_load" xml:space="preserve"><value>Obciążenie procesora graficznego, tak jak pokazuje je Menedżer zadań.</value></data>
   <data name="EntityHint_sleep" xml:space="preserve"><value>Pozwala Home Assistant uśpić ten komputer. Wyłączony, dopóki go nie włączysz.</value></data>
   <data name="EntityHint_hibernate" xml:space="preserve"><value>Pozwala Home Assistant zahibernować ten komputer. Wyłączony, dopóki go nie włączysz.</value></data>
   <data name="EntityHint_shutdown" xml:space="preserve"><value>Pozwala Home Assistant wyłączyć ten komputer. Aplikacje z niezapisaną pracą nadal mogą się sprzeciwić. Wyłączony, dopóki go nie włączysz.</value></data>
@@ -177,12 +186,12 @@
   <data name="EntityHint_volume_level" xml:space="preserve"><value>Pozwala Home Assistant ustawić głośność domyślnego urządzenia odtwarzającego.</value></data>
   <data name="EntityHint_audio_mute" xml:space="preserve"><value>Pozwala Home Assistant wyciszać domyślne urządzenie odtwarzające.</value></data>
   <data name="EntityHint_microphone_mute" xml:space="preserve"><value>Pozwala Home Assistant wyciszać domyślny mikrofon w Windows.</value></data>
-  <data name="EntityHint_notification" xml:space="preserve"><value>Wiadomości wysłane do tej encji są pokazywane jako powiadomienia Windows.</value></data>
+  <data name="EntityHint_notification" xml:space="preserve"><value>Wiadomości wysłane do tej encji są pokazywane jako powiadomienia Windows, z obrazkiem i przyciskami, jeśli wiadomość je zawiera.</value></data>
 
-  <data name="Custom_Title" xml:space="preserve"><value>Własne sensory i przyciski</value></data>
-  <data name="Custom_Subtitle" xml:space="preserve"><value>Zdefiniuj własne sensory: stały tekst, informację, czy program jest uruchomiony albo czy urządzenie (np. stacja USB-C) jest podłączone, lub wynik polecenia PowerShell. Oraz własne przyciski do naciskania z Home Assistant: uruchomienie polecenia PowerShell albo programu na Twoim pulpicie.</value></data>
-  <data name="Custom_Empty" xml:space="preserve"><value>Nic tu jeszcze nie ma. Dodaj sensor, aby wysyłać własną wartość do Home Assistant, albo przycisk, który Home Assistant będzie mógł nacisnąć.</value></data>
-  <data name="Custom_Add" xml:space="preserve"><value>Dodaj sensor lub przycisk</value></data>
+  <data name="Custom_Title" xml:space="preserve"><value>Własne sensory, przyciski i szybkie akcje</value></data>
+  <data name="Custom_Subtitle" xml:space="preserve"><value>Własne sensory: stały tekst, informacja, czy program jest uruchomiony albo urządzenie podłączone, wynik polecenia PowerShell. Własne przyciski do naciskania z Home Assistant: uruchomienie polecenia, programu albo naciśnięcie klawiszy. Oraz szybkie akcje: pozycje w menu ikony w zasobniku, opcjonalnie ze skrótem klawiszowym, które uruchamiają automatyzację w Home Assistant.</value></data>
+  <data name="Custom_Empty" xml:space="preserve"><value>Nic tu jeszcze nie ma. Dodaj sensor, aby wysyłać własną wartość do Home Assistant, przycisk, który Home Assistant będzie mógł nacisnąć, albo szybką akcję, która uruchomi automatyzację z tego komputera.</value></data>
+  <data name="Custom_Add" xml:space="preserve"><value>Dodaj</value></data>
   <data name="Custom_Remove" xml:space="preserve"><value>Usuń</value></data>
   <data name="Custom_Name" xml:space="preserve"><value>Nazwa</value></data>
   <data name="Custom_Id" xml:space="preserve"><value>ID</value></data>
@@ -194,6 +203,10 @@
   <data name="Custom_TypeDevice" xml:space="preserve"><value>Sensor: urządzenie podłączone</value></data>
   <data name="Custom_TypeCommandButton" xml:space="preserve"><value>Przycisk: polecenie PowerShell</value></data>
   <data name="Custom_TypeLaunchButton" xml:space="preserve"><value>Przycisk: uruchom program</value></data>
+  <data name="Custom_TypeKeysButton" xml:space="preserve"><value>Przycisk: naciśnij klawisze</value></data>
+  <data name="Custom_TypeQuickAction" xml:space="preserve"><value>Szybka akcja (menu, skrót)</value></data>
+  <data name="Custom_ValueKeysButton" xml:space="preserve"><value>Klawisze do naciśnięcia, połączone znakiem +</value></data>
+  <data name="Custom_ValueQuickAction" xml:space="preserve"><value>Skrót klawiszowy (opcjonalnie)</value></data>
   <data name="Custom_ValueCommandButton" xml:space="preserve"><value>Polecenie – uruchamiane po naciśnięciu przycisku</value></data>
   <data name="Custom_ValueLaunchButton" xml:space="preserve"><value>Program, dokument lub adres do otwarcia</value></data>
   <data name="Custom_ValueDevice" xml:space="preserve"><value>Identyfikator urządzenia lub jego fragment</value></data>
@@ -205,6 +218,7 @@
   <data name="Custom_Interval" xml:space="preserve"><value>Sprawdzaj co (sekundy)</value></data>
   <data name="Custom_PowerShellNote" xml:space="preserve"><value>Polecenia PowerShell, zarówno sensorów, jak i przycisków, uruchamia usługa HADA z uprawnieniami systemowymi, a nie Ty, więc nie widzą Twojego pulpitu ani plików i ustawień Twojego konta. Polecenie sensora, które kończy się błędem lub trwa dłużej niż 30 sekund, jest zgłaszane na stronie Logi; polecenie przycisku może trwać do 10 minut.</value></data>
   <data name="Custom_ButtonNote" xml:space="preserve"><value>Program uruchamiany przyciskiem działa na pulpicie zalogowanego użytkownika, z jego uprawnieniami, więc aplikacja Tray musi być uruchomiona. Ścieżkę zawierającą spacje ujmij w cudzysłów.</value></data>
+  <data name="Custom_QuickActionNote" xml:space="preserve"><value>Szybka akcja sama nic nie robi na tym komputerze. Pojawia się w menu ikony w zasobniku oraz jako wyzwalacz tego urządzenia w Home Assistant; to, co robi, określasz automatyzacją opartą na tym wyzwalaczu.</value></data>
 
   <data name="Logs_Title" xml:space="preserve"><value>Logi</value></data>
   <data name="Logs_Subtitle" xml:space="preserve"><value>Ostatnie komunikaty usługi HADA.</value></data>

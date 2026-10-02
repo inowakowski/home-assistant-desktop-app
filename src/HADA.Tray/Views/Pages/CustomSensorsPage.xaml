@@ -212,6 +212,12 @@
                 FontTypography="Caption"
                 Text="{l:Tr Custom_ButtonNote}"
                 TextWrapping="Wrap" />
+            <ui:TextBlock
+                Margin="0,6,0,0"
+                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                FontTypography="Caption"
+                Text="{l:Tr Custom_QuickActionNote}"
+                TextWrapping="Wrap" />
         </StackPanel>
         </ScrollViewer>
     </Grid>

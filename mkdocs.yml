@@ -54,7 +54,7 @@ nav:
       - Sensors: features/sensors.md
       - Controls: features/controls.md
       - Notifications: features/notifications.md
-      - Custom sensors and buttons: features/custom-entities.md
+      - Custom sensors, buttons, quick actions: features/custom-entities.md
       - Several users on one computer: features/several-users.md
       - The HADA window: window.md
   - Home Assistant:

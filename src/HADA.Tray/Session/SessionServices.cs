@@ -46,6 +46,11 @@ public static class SessionServices
         services.AddHostedService<DisplayActions>();
         services.AddHostedService<NotificationAction>();
         services.AddHostedService<LaunchAction>();
+        services.AddHostedService<KeyPressAction>();
+
+        // What the user can tell Home Assistant from here.
+        services.AddSingleton<QuickActions>();
+        services.AddHostedService(provider => provider.GetRequiredService<QuickActions>());
         return services;
     }
 }

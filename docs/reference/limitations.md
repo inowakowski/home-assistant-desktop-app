@@ -8,3 +8,6 @@
 - **Screen off on Modern Standby devices:** many laptops, most ARM64 ones included, go to sleep within seconds of the screen turning off and drop the network. `display_on` is sent as `off` first, but if the connection is already gone, Home Assistant shows the device as unavailable instead.
 - **Microphone and camera:** detection reads the usage history Windows keeps for its privacy settings. Apps that bypass it are not seen, and an app that crashed while using the device may be reported as still using it until Windows restarts.
 - **Lists in `appsettings.json`:** a list saved from the window (disabled and enabled entities, custom sensors and buttons) overrides the file's list entry by entry, so entries beyond the saved list's length still apply. Keep such lists in one place.
+- **Keys pressed by HADA:** key buttons and the media keys are injected into the user's session. Windows drops injected keys while a program running as administrator has the focus, and never lets them reach its own secure shortcuts (`Ctrl+Alt+Del`, `Win+L`).
+- **Buttons of notifications** are reported only by the tray app that showed the notification and is still running.
+- **GPU load** comes from Windows' performance counters, which Task Manager uses too. Temperatures are not reported: reading them needs a kernel driver, which HADA does not install.

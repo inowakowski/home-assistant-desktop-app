@@ -10,13 +10,49 @@ data:
   message: The washing machine is done.
 ```
 
-To choose the title, publish JSON to the entity's topic instead:
+## Title, picture and buttons
+
+*Pictures and buttons are new in 1.1.0, a pre-release; 1.0.0 shows the title and the message.*
+
+For more than a plain text, publish JSON to the entity's topic instead:
 
 ```yaml
 action: mqtt.publish
 data:
   topic: hada/laptop/notification/set
-  payload: '{"title": "Laundry", "message": "The washing machine is done."}'
+  payload: >-
+    {
+      "title": "Front door",
+      "message": "Someone is at the door.",
+      "image": "http://homeassistant.local:8123/local/door.jpg",
+      "actions": [
+        { "action": "open_door", "title": "Open" },
+        { "action": "ignore", "title": "Ignore" }
+      ]
+    }
 ```
 
-Windows shows at most 63 characters of a title and 255 of a message; longer ones are cut off. While **Do not disturb** is on, Windows puts the notification in the notification centre without showing it. With the WebSocket engine, see [WebSocket engine](../home-assistant/websocket.md).
+- `title` replaces *Home Assistant* as the heading.
+- `image` is an `http` or `https` address of a PNG, JPEG, GIF or BMP of at most 5 MB. The computer fetches it, so it must be reachable from there without signing in. A picture that cannot be fetched is left out; the notification still shows.
+- `actions` become buttons, five at most. `action` is an ID of your choice (letters, digits, `_`, `-`, `.`), `title` what the button says.
+
+When a button is pressed, HADA publishes its `action` to `hada/{device}/event/notification_action`:
+
+```yaml
+automation:
+  - alias: Open the door from the notification
+    triggers:
+      - trigger: mqtt
+        topic: hada/laptop/event/notification_action
+        payload: open_door
+    actions:
+      - action: lock.unlock
+        target:
+          entity_id: lock.front_door
+```
+
+A press is reported only while the tray app that showed the notification is still running. A notification found in the notification centre after the computer was restarted can no longer report its buttons.
+
+## Good to know
+
+While **Do not disturb** is on, Windows puts the notification in the notification centre without showing it. With the WebSocket engine, see [WebSocket engine](../home-assistant/websocket.md).

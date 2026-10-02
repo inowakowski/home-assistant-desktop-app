@@ -186,6 +186,26 @@ public sealed class HaWebSocketEngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task What_happens_on_the_computer_is_fired_as_an_event()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "toggle_lamp", Name = "Toggle lamp", Kind = EntityKind.Trigger });
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "no_such_action" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "toggle_lamp" });
+
+        await WaitUntilAsync(() => Array.Exists(_homeAssistant.SocketMessages, m => m.GetProperty("type").GetString() == "fire_event"));
+        var fired = Assert.Single(_homeAssistant.SocketMessages, m => m.GetProperty("type").GetString() == "fire_event");
+        Assert.Equal("hada_event", fired.GetProperty("event_type").GetString());
+        var data = fired.GetProperty("event_data");
+        Assert.Equal("testpc", data.GetProperty("device_id").GetString());
+        Assert.Equal("quick_action", data.GetProperty("name").GetString());
+        Assert.Equal("toggle_lamp", data.GetProperty("value").GetString());
+    }
+
+    [Fact]
     public async Task A_switch_is_shown_as_a_binary_sensor_and_a_number_as_a_sensor()
     {
         await _registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });

@@ -56,6 +56,17 @@ public sealed class PreferencesViewModel(bool isElevated) : ObservableObject
     /// <summary>The window keeps the language it was opened in; this says a reopening is due.</summary>
     public bool IsLanguageChanged => UserPreferences.Language != _languageAtStart;
 
+    /// <summary>Kept only when it is an http or https address; anything else clears it.</summary>
+    public string DashboardUrl
+    {
+        get => UserPreferences.DashboardUrl;
+        set
+        {
+            UserPreferences.DashboardUrl = value ?? string.Empty;
+            OnPropertyChanged();
+        }
+    }
+
     public double? IdleSeconds
     {
         get => UserPreferences.IdleSeconds;

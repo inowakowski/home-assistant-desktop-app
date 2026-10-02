@@ -438,7 +438,8 @@ public sealed class SettingsViewModel : ObservableObject
                     return Loc.Get("Validation_CustomName");
                 }
 
-                if (sensor.Value.Length == 0)
+                // A quick action may do without a shortcut; everything else needs what it is about.
+                if (sensor.Value.Length == 0 && sensor.Type != CustomSensorType.QuickAction)
                 {
                     return Loc.Format("Validation_CustomValue", sensor.Name);
                 }

@@ -2,6 +2,14 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.1.0 (pre-release)
+
+- **Quick actions:** entries in the tray icon's menu, optionally with a global keyboard shortcut, that show up in Home Assistant as triggers of the device.
+- **Notifications with a picture and buttons.** A pressed button is reported back to Home Assistant.
+- **Button: press keys**, a custom button that presses a key combination on the desktop.
+- **Dashboard window:** a small window showing a Home Assistant address, opened from the tray icon's menu.
+- **`gpu_load` sensor**, and the adapter's `mac_address` as an attribute of `ip_address`.
+
 ## 1.0.0
 
 The first stable version. It is 0.5.0 with one change:

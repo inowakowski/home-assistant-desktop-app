@@ -112,6 +112,7 @@ public static class ServiceHost
         builder.Services.AddHostedService<ActiveUserSensor>();
         builder.Services.AddHostedService<NetworkSensor>();
         builder.Services.AddHostedService<DiskUsageSensor>();
+        builder.Services.AddHostedService<GpuLoadSensor>();
         builder.Services.AddHostedService<LockScreenAction>();
         builder.Services.AddHostedService<PowerActions>();
         builder.Services.AddHostedService(services => services.GetRequiredService<UpdateChecker>());

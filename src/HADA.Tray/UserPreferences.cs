@@ -17,6 +17,7 @@ internal static class UserPreferences
     private const string KeyPath = @"Software\HADA";
     private const string LanguageValue = "Language";
     private const string IdleValue = "IdleSeconds";
+    private const string DashboardValue = "DashboardUrl";
 
     /// <summary><c>pl</c>, <c>en</c>, or empty to follow Windows' display language.</summary>
     public static string Language
@@ -46,6 +47,31 @@ internal static class UserPreferences
             key.SetValue(IdleValue, Math.Clamp(value, MinIdleSeconds, MaxIdleSeconds), RegistryValueKind.DWord);
         }
     }
+
+    /// <summary>
+    /// The Home Assistant address the dashboard window shows; empty for no dashboard window. Only <c>http</c> and
+    /// <c>https</c> addresses are kept.
+    /// </summary>
+    public static string DashboardUrl
+    {
+        get => Read(DashboardValue) is string url && TryGetDashboardAddress(url, out _) ? url : string.Empty;
+        set
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(KeyPath);
+            if (TryGetDashboardAddress(value, out var address))
+            {
+                key.SetValue(DashboardValue, address.AbsoluteUri, RegistryValueKind.String);
+            }
+            else
+            {
+                key.DeleteValue(DashboardValue, throwOnMissingValue: false);
+            }
+        }
+    }
+
+    public static bool TryGetDashboardAddress(string? text, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Uri? address) =>
+        Uri.TryCreate(text?.Trim(), UriKind.Absolute, out address)
+        && (address.Scheme == Uri.UriSchemeHttp || address.Scheme == Uri.UriSchemeHttps);
 
     /// <summary>A preference that cannot be read is simply not set; the defaults then apply.</summary>
     private static object? Read(string name)

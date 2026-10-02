@@ -185,6 +185,74 @@ public sealed class CustomSensorTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_keys_button_asks_the_tray_to_press_the_configured_keys()
+    {
+        _options.Set(Options(new CustomSensorDefinition { Id = "mute_call", Name = "Mute call", Type = CustomSensorType.KeysButton, Value = "Ctrl+Shift+M" }));
+        await _host.StartAsync(CancellationToken.None);
+        using var timeout = new CancellationTokenSource(Timeout);
+        while (!_registry.TryGet("mute_call", out _))
+        {
+            await Task.Delay(20, timeout.Token);
+        }
+
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await _bus.PublishAsync(new ActionCommand { ActionId = "mute_call", Origin = "mqtt" });
+
+        ActionCommand press;
+        do
+        {
+            press = await ReadAsync(commands);
+        }
+        while (press.ActionId != SessionCommands.PressKeys);
+
+        Assert.Equal("Ctrl+Shift+M", press.Value);
+    }
+
+    [Fact]
+    public async Task Quick_actions_become_triggers_and_the_tray_is_told_about_them()
+    {
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        _options.Set(Options(
+            new CustomSensorDefinition { Name = "Toggle lamp", Type = CustomSensorType.QuickAction, Value = "Ctrl+Alt+L" },
+            new CustomSensorDefinition { Name = "Movie scene", Type = CustomSensorType.QuickAction },
+            new CustomSensorDefinition { Name = "Room", Type = CustomSensorType.Text, Value = "Office" }));
+
+        await _host.StartAsync(CancellationToken.None);
+
+        var told = await ReadAsync(commands);
+        Assert.Equal(SessionCommands.QuickActions, told.ActionId);
+        Assert.Equal(
+            [new QuickActionInfo("movie_scene", "Movie scene", string.Empty), new QuickActionInfo("toggle_lamp", "Toggle lamp", "Ctrl+Alt+L")],
+            QuickActionInfo.Deserialize(told.Value));
+        Assert.True(_registry.TryGet("toggle_lamp", out var entity));
+        Assert.Equal(EntityKind.Trigger, entity.Kind);
+
+        // Removing them all tells the tray so, with an empty list.
+        _options.Set(Options());
+        Assert.Empty(QuickActionInfo.Deserialize((await ReadAsync(commands)).Value));
+        Assert.False(_registry.TryGet("toggle_lamp", out _));
+    }
+
+    [Theory]
+    [InlineData(CustomSensorType.QuickAction, "", true)]
+    [InlineData(CustomSensorType.QuickAction, "Ctrl+Alt+L", true)]
+    [InlineData(CustomSensorType.QuickAction, "L", false)] // would take the plain key away from every program
+    [InlineData(CustomSensorType.QuickAction, "Shift+L", false)]
+    [InlineData(CustomSensorType.QuickAction, "Ctrl", false)]
+    [InlineData(CustomSensorType.QuickAction, "Ctrl+Banana", false)]
+    [InlineData(CustomSensorType.KeysButton, "Ctrl+Shift+M", true)]
+    [InlineData(CustomSensorType.KeysButton, "F11", true)]
+    [InlineData(CustomSensorType.KeysButton, "Win", true)]
+    [InlineData(CustomSensorType.KeysButton, "", false)]
+    [InlineData(CustomSensorType.KeysButton, "Ctrl+Banana", false)]
+    public void Keys_and_shortcuts_are_checked_when_settings_are_saved(CustomSensorType type, string value, bool isValid)
+    {
+        var definition = new CustomSensorDefinition { Name = "Keys", Type = type, Value = value }.Normalize();
+
+        Assert.Equal(isValid, CustomSensorRules.Validate(definition) is null);
+    }
+
+    [Fact]
     public async Task Changed_settings_add_replace_and_remove_sensors()
     {
         await using var changes = _bus.Subscribe<EntityRegistryChange>();

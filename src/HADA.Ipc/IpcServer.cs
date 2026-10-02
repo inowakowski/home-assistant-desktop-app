@@ -50,6 +50,9 @@ public sealed partial class IpcServer(
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly List<SensorClient> _sensorClients = [];
     private readonly Dictionary<string, string> _ipcEntitySources = new(StringComparer.Ordinal);
+
+    // The latest of each command that describes a state rather than an action; told to every tray that takes over.
+    private readonly Dictionary<string, ActionCommand> _stickyCommands = new(StringComparer.Ordinal);
     private SensorClient? _active;
     private long _connections;
 
@@ -145,6 +148,18 @@ public sealed partial class IpcServer(
                         continue;
                     }
 
+                    var isSticky = SessionCommands.IsSticky(command.ActionId);
+                    if (isSticky)
+                    {
+                        _stickyCommands[command.ActionId] = command;
+                    }
+
+                    if (isSticky && _active is null)
+                    {
+                        // Nobody to tell yet; the first tray to connect is told.
+                        continue;
+                    }
+
                     target = _active is { } active && (isSessionCommand || active.Entities.ContainsKey(command.ActionId)) ? active : null;
                 }
                 finally
@@ -158,14 +173,7 @@ public sealed partial class IpcServer(
                     continue;
                 }
 
-                try
-                {
-                    await target.Stream.WriteAsync(new CommandMessage(command), cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidDataException)
-                {
-                    LogCommandNotDelivered(logger, ex, command.ActionId, target.Name);
-                }
+                await SendCommandAsync(target, command, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -174,6 +182,18 @@ public sealed partial class IpcServer(
         finally
         {
             await commands.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task SendCommandAsync(SensorClient target, ActionCommand command, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await target.Stream.WriteAsync(new CommandMessage(command), cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidDataException or OperationCanceledException)
+        {
+            LogCommandNotDelivered(logger, ex, command.ActionId, target.Name);
         }
     }
 
@@ -242,6 +262,9 @@ public sealed partial class IpcServer(
                             break;
                         case TelemetryMessage telemetry when client is not null:
                             await PublishAsync(client, telemetry.Reading, cancellationToken).ConfigureAwait(false);
+                            break;
+                        case DeviceEventMessage happened when client is not null:
+                            await PublishAsync(client, happened.Event, cancellationToken).ConfigureAwait(false);
                             break;
                         case IpcRequest request when hello.Role == IpcClientRole.Control:
                             // Answered concurrently so a slow connection test does not hold up status polling,
@@ -491,6 +514,27 @@ public sealed partial class IpcServer(
         }
     }
 
+    private async Task PublishAsync(SensorClient client, DeviceEvent deviceEvent, CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Only what happens at the computer counts: a quick action of a user who was switched away from is nothing
+            // Home Assistant should act on. Engines check that a quick action is one that exists.
+            if (client != _active || !deviceEvent.IsWellFormed)
+            {
+                LogEventRejected(logger, client.Name, deviceEvent.Name);
+                return;
+            }
+
+            await bus.PublishAsync(deviceEvent with { Source = client.Name }, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     /// <summary>Makes sure the right tray is the one reported, after a tray came or went or the session in use changed.</summary>
     private async Task ReselectAsync(CancellationToken cancellationToken)
     {
@@ -515,6 +559,12 @@ public sealed partial class IpcServer(
                 {
                     await bus.PublishAsync(reading, cancellationToken).ConfigureAwait(false);
                 }
+            }
+
+            // Not awaited: a tray that is slow to read must not hold up everybody else's readings.
+            foreach (var command in _stickyCommands.Values)
+            {
+                _ = SendCommandAsync(next, command, CancellationToken.None);
             }
         }
 
@@ -586,6 +636,9 @@ public sealed partial class IpcServer(
 
         public Dictionary<string, TelemetryEvent> Readings { get; } = new(StringComparer.Ordinal);
     }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Ignored the event '{EventName}' from IPC client '{ClientName}': it is malformed, or the client is not the one at the computer.")]
+    private static partial void LogEventRejected(ILogger logger, string clientName, string eventName);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Reporting the session entities of IPC client '{ClientName}' (session {SessionId}).")]
     private static partial void LogActiveClient(ILogger logger, string clientName, uint? sessionId);

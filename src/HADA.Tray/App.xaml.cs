@@ -9,6 +9,8 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
 using HADA.Core.Logging;
+using HADA.Core.Abstractions;
+using HADA.Core.Models;
 using HADA.Ipc;
 using HADA.Tray.Localization;
 using HADA.Tray.Session;
@@ -36,6 +38,7 @@ namespace HADA.Tray;
 /// <c>--background</c> starts the tray without opening the window (use it for sign-in startup).
 /// <c>--autostart</c> marks a start made by Windows at sign-in; the tray then exits if the user turned autostart off.
 /// <c>--settings</c> runs as the window, without tray icon or sensors.
+/// <c>--dashboard</c> runs as the dashboard window, showing the address chosen on the Settings page.
 /// <c>--page overview|connections|entities|custom|settings|logs</c> chooses the page the window opens on.
 /// </para>
 /// </remarks>
@@ -47,6 +50,7 @@ public partial class App : Application
 {
     private const string BackgroundArgument = "--background";
     private const string SettingsArgument = "--settings";
+    private const string DashboardArgument = "--dashboard";
     private const string PageArgument = "--page";
     private const int AnyProcess = -1;
 
@@ -57,14 +61,17 @@ public partial class App : Application
     private ILogger _logger = NullLogger.Instance;
     private IHost? _host;
     private TrayIcon? _trayIcon;
+    private GlobalHotkeys? _hotkeys;
     private MainWindow? _mainWindow;
+    private Window? _roleWindow;
     private bool _isShowingError;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // The window runs next to the tray, so each writes its own file.
+        // The windows run next to the tray, so each writes its own file.
+        var isDashboard = HasArgument(e, DashboardArgument);
         var isWindow = HasArgument(e, SettingsArgument);
         _fileLog = new FileLoggerProvider(new FileLoggerOptions
         {
@@ -72,7 +79,7 @@ public partial class App : Application
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "HADA",
                 "logs",
-                isWindow ? "settings-window.log" : "tray.log"),
+                isDashboard ? "dashboard-window.log" : isWindow ? "settings-window.log" : "tray.log"),
         });
         _logger = _fileLog.CreateLogger(typeof(App).FullName!);
 
@@ -88,7 +95,11 @@ public partial class App : Application
         {
             ApplyLanguage();
             var page = GetArgumentValue(e, PageArgument);
-            if (isWindow)
+            if (isDashboard)
+            {
+                StartDashboard();
+            }
+            else if (isWindow)
             {
                 StartWindow(page);
             }
@@ -110,6 +121,7 @@ public partial class App : Application
     {
         _showWindowRegistration?.Unregister(null);
         _showWindowSignal?.Dispose();
+        _hotkeys?.Dispose();
         _trayIcon?.Dispose();
         if (_host is not null)
         {
@@ -151,9 +163,38 @@ public partial class App : Application
         await Task.Run(() => _host.StartAsync());
 
         var ipc = _host.Services.GetRequiredService<IpcClient>();
-        _trayIcon = new TrayIcon(() => ipc.IsConnected, () => OpenWindow(page: null), () => Shutdown());
-        _host.Services.GetRequiredService<NotificationPresenter>().Show =
-            (title, message) => Dispatcher.InvokeAsync(() => _trayIcon?.ShowNotification(title, message));
+        _trayIcon = new TrayIcon(
+            () => ipc.IsConnected, () => OpenWindow(page: null), () => StartCopy(DashboardArgument), () => Shutdown());
+
+        // Notifications: toasts, which can carry a picture and buttons; the icon's plain balloon when a toast fails.
+        var bus = _host.Services.GetRequiredService<IEventBus>();
+        var toasts = new ToastPresenter(
+            action => _ = bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = action }).AsTask(),
+            (title, message) => Dispatcher.InvokeAsync(() => _trayIcon?.ShowNotification(title, message)),
+            _logger);
+        try
+        {
+            toasts.EnsureRegistered();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            // Tried again with the first notification, which falls back to the icon's balloon if it still fails.
+            LogToastRegistrationFailed(_logger, ex.Message);
+        }
+
+        _host.Services.GetRequiredService<NotificationPresenter>().Show = request => _ = toasts.ShowAsync(request);
+
+        // Quick actions: in the icon's menu, and under their shortcuts. Hotkeys belong to this, the message-pumping thread.
+        _hotkeys = new GlobalHotkeys(_logger);
+        var quickActions = _host.Services.GetRequiredService<QuickActions>();
+        void ShowQuickActions(IReadOnlyList<QuickActionInfo> actions) => Dispatcher.InvokeAsync(() =>
+        {
+            _trayIcon?.SetQuickActions([.. actions.Select(action => (action.Name, action.Hotkey, (Action)(() => quickActions.Choose(action))))]);
+            _hotkeys?.Set(actions.Select(action => (action.Hotkey, action.Name, (Action)(() => quickActions.Choose(action)))));
+        });
+        quickActions.Changed += ShowQuickActions;
+        ShowQuickActions(quickActions.Current);
+
         _host.Services.GetRequiredService<IHostApplicationLifetime>()
             .ApplicationStopping.Register(() => Dispatcher.InvokeAsync(() => Shutdown()));
 
@@ -166,14 +207,25 @@ public partial class App : Application
     /// <summary>Starts the window as its own process; if one is open already, that process brings it to the front instead.</summary>
     private void OpenWindow(string? page)
     {
+        if (page is null)
+        {
+            StartCopy(SettingsArgument);
+        }
+        else
+        {
+            StartCopy(SettingsArgument, PageArgument, page);
+        }
+    }
+
+    /// <summary>Starts this program again in another of its roles: the settings window or the dashboard window.</summary>
+    private void StartCopy(params string[] arguments)
+    {
         try
         {
             var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
-            start.ArgumentList.Add(SettingsArgument);
-            if (page is not null)
+            foreach (var argument in arguments)
             {
-                start.ArgumentList.Add(PageArgument);
-                start.ArgumentList.Add(page);
+                start.ArgumentList.Add(argument);
             }
 
             Process.Start(start)?.Dispose();
@@ -185,11 +237,29 @@ public partial class App : Application
         }
     }
 
-    private void StartWindow(string? page)
+    /// <summary>The dashboard window: one per user; asked for again, the one that is open comes to the front.</summary>
+    private void StartDashboard()
     {
-        // One window per user and privilege level: the administrator copy opened with "Unlock editing" may run
-        // next to the normal one for a moment, while that one is closing.
-        var name = Elevation.IsElevated ? @"Local\HADA.Window.Admin" : @"Local\HADA.Window";
+        const string Name = @"Local\HADA.Dashboard";
+        if (!UserPreferences.TryGetDashboardAddress(UserPreferences.DashboardUrl, out var address) || !TakeWindowRole(Name))
+        {
+            Shutdown();
+            return;
+        }
+
+        var window = new DashboardWindow(address);
+        _roleWindow = window;
+        window.Closed += (_, _) => Shutdown();
+        window.Show();
+        window.Activate();
+    }
+
+    /// <summary>
+    /// Makes this process the one showing a kind of window. Returns <see langword="false"/> when another process
+    /// already is; that one is then asked to bring its window to the front.
+    /// </summary>
+    private bool TakeWindowRole(string name)
+    {
         _singleInstance = new Mutex(initiallyOwned: true, name, out var isFirstInstance);
         if (!isFirstInstance)
         {
@@ -204,8 +274,7 @@ public partial class App : Application
                 }
             }
 
-            Shutdown();
-            return;
+            return false;
         }
 
         _showWindowSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, name + ".Show");
@@ -215,6 +284,18 @@ public partial class App : Application
             state: null,
             Timeout.Infinite,
             executeOnlyOnce: false);
+        return true;
+    }
+
+    private void StartWindow(string? page)
+    {
+        // One window per user and privilege level: the administrator copy opened with "Unlock editing" may run
+        // next to the normal one for a moment, while that one is closing.
+        if (!TakeWindowRole(Elevation.IsElevated ? @"Local\HADA.Window.Admin" : @"Local\HADA.Window"))
+        {
+            Shutdown();
+            return;
+        }
 
         // Software rendering: on some graphics drivers, notably on ARM64, setting up hardware rendering alone
         // takes over 200 MB, and these pages have nothing a CPU cannot draw instantly.
@@ -232,6 +313,7 @@ public partial class App : Application
         var client = new ServiceControlClient(new IpcOptions { ClientName = $"ui:{Environment.UserName}" });
         var viewModel = new MainViewModel(client, Elevation.IsElevated, RequestElevation);
         _mainWindow = new MainWindow(viewModel, PageNames.Find(page));
+        _roleWindow = _mainWindow;
         _mainWindow.Closed += (_, _) => Shutdown();
         _mainWindow.Show();
         _mainWindow.Activate();
@@ -239,17 +321,17 @@ public partial class App : Application
 
     private void BringWindowToFront()
     {
-        if (_mainWindow is null)
+        if (_roleWindow is null)
         {
             return;
         }
 
-        if (_mainWindow.WindowState == WindowState.Minimized)
+        if (_roleWindow.WindowState == WindowState.Minimized)
         {
-            _mainWindow.WindowState = WindowState.Normal;
+            _roleWindow.WindowState = WindowState.Normal;
         }
 
-        _mainWindow.Activate();
+        _roleWindow.Activate();
     }
 
     private bool RequestElevation()
@@ -309,6 +391,9 @@ public partial class App : Application
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool AllowSetForegroundWindow(int processId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Notifications could not be registered with Windows: {Reason}")]
+    private static partial void LogToastRegistrationFailed(ILogger logger, string reason);
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "HADA could not start.")]
     private static partial void LogStartFailed(ILogger logger, Exception exception);

@@ -9,6 +9,7 @@ namespace HADA.Ipc;
 [JsonDerivedType(typeof(EntityRegistrationMessage), "entity")]
 [JsonDerivedType(typeof(TelemetryMessage), "telemetry")]
 [JsonDerivedType(typeof(CommandMessage), "command")]
+[JsonDerivedType(typeof(DeviceEventMessage), "deviceEvent")]
 [JsonDerivedType(typeof(GetStatusRequest), "getStatus")]
 [JsonDerivedType(typeof(StatusResponse), "status")]
 [JsonDerivedType(typeof(GetSettingsRequest), "getSettings")]
@@ -35,6 +36,9 @@ public sealed record TelemetryMessage(TelemetryEvent Reading) : IpcMessage;
 /// <see cref="SessionCommands"/> the service needs done in the user's session.
 /// </summary>
 public sealed record CommandMessage(ActionCommand Command) : IpcMessage;
+
+/// <summary>From a sensor client to the service: something happened in the user's session, e.g. a quick action was chosen.</summary>
+public sealed record DeviceEventMessage(DeviceEvent Event) : IpcMessage;
 
 /// <summary>A request from a control client; the matching response carries the same id.</summary>
 public abstract record IpcRequest(Guid RequestId) : IpcMessage;

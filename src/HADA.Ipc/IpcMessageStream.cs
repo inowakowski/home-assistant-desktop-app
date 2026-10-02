@@ -18,9 +18,10 @@ public sealed class IpcMessageStream(Stream stream)
     /// <summary>
     /// Version 2 added client roles and the control requests; version 3 binary sensors and custom sensors;
     /// version 4 commands from the service to the tray, and switches, numbers and notifications;
-    /// version 5 update settings and the request to look for an update now.
+    /// version 5 update settings and the request to look for an update now;
+    /// version 6 events from the tray, quick actions and richer notifications.
     /// </summary>
-    public const int ProtocolVersion = 5;
+    public const int ProtocolVersion = 6;
 
     /// <summary>Caps how much memory a misbehaving peer can make the other side allocate.</summary>
     public const int MaxMessageBytes = 256 * 1024;

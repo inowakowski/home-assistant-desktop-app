@@ -32,6 +32,18 @@ public enum CustomSensorType
     /// the desktop of the signed-in user.
     /// </summary>
     LaunchButton,
+
+    /// <summary>
+    /// A button in Home Assistant that presses a key combination, such as <c>Ctrl+Shift+M</c>, on the desktop of the
+    /// signed-in user.
+    /// </summary>
+    KeysButton,
+
+    /// <summary>
+    /// The other direction: an entry in the tray icon's menu, optionally with a keyboard shortcut, that Home
+    /// Assistant can start an automation from. Shows up as a trigger of the device.
+    /// </summary>
+    QuickAction,
 }
 
 /// <summary>
@@ -54,11 +66,14 @@ public sealed record CustomSensorDefinition
     public bool IsBinary => Type is CustomSensorType.ProcessRunning or CustomSensorType.DeviceConnected;
 
     /// <summary>Whether this is something Home Assistant presses, as opposed to a sensor that reports a value.</summary>
-    public bool IsButton => Type is CustomSensorType.CommandButton or CustomSensorType.LaunchButton;
+    public bool IsButton => Type is CustomSensorType.CommandButton or CustomSensorType.LaunchButton or CustomSensorType.KeysButton;
+
+    /// <summary>Whether this is something the user does on the computer, for Home Assistant to react to.</summary>
+    public bool IsTrigger => Type == CustomSensorType.QuickAction;
 
     /// <summary>
-    /// The text, the process name, the PowerShell command, the device id or the program to start, depending on
-    /// <see cref="Type"/>.
+    /// The text, the process name, the PowerShell command, the device id, the program to start or the key
+    /// combination, depending on <see cref="Type"/>. For a quick action it is its keyboard shortcut, and may be empty.
     /// </summary>
     public string Value { get; init; } = string.Empty;
 
@@ -78,7 +93,7 @@ public sealed record CustomSensorDefinition
             Id = id.Length > 0 ? id : ToId(name),
             Name = name,
             Value = Value.Trim(),
-            Unit = IsBinary || IsButton ? string.Empty : Unit.Trim(),
+            Unit = IsBinary || IsButton || IsTrigger ? string.Empty : Unit.Trim(),
         };
     }
 

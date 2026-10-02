@@ -67,6 +67,10 @@ public sealed class ActionTests : IAsyncDisposable
 
         // Moving the pointer by nothing is harmless, but fails like any other input if the structures are laid out wrong.
         Assert.True(InputSimulator.NudgeMouse(pixels: 0));
+
+        // So is a Shift pressed and released by itself; it goes the way of every key combination.
+        Assert.True(InputSimulator.Press(new KeyCombination(KeyModifiers.Shift, 0)));
+        Assert.False(InputSimulator.Press(default(KeyCombination)));
     }
 
     [Theory]

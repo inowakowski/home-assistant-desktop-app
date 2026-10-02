@@ -48,6 +48,8 @@ public sealed class CustomSensorViewModel : ObservableObject
         new(CustomSensorType.DeviceConnected, Loc.Get("Custom_TypeDevice")),
         new(CustomSensorType.CommandButton, Loc.Get("Custom_TypeCommandButton")),
         new(CustomSensorType.LaunchButton, Loc.Get("Custom_TypeLaunchButton")),
+        new(CustomSensorType.KeysButton, Loc.Get("Custom_TypeKeysButton")),
+        new(CustomSensorType.QuickAction, Loc.Get("Custom_TypeQuickAction")),
     ];
 
     public double MinInterval => CustomSensorDefinition.MinIntervalSeconds;
@@ -158,6 +160,8 @@ public sealed class CustomSensorViewModel : ObservableObject
         CustomSensorType.DeviceConnected => "Custom_ValueDevice",
         CustomSensorType.CommandButton => "Custom_ValueCommandButton",
         CustomSensorType.LaunchButton => "Custom_ValueLaunchButton",
+        CustomSensorType.KeysButton => "Custom_ValueKeysButton",
+        CustomSensorType.QuickAction => "Custom_ValueQuickAction",
         _ => "Custom_ValueText",
     });
 
@@ -167,6 +171,8 @@ public sealed class CustomSensorViewModel : ObservableObject
         CustomSensorType.PowerShell => "(Get-Process).Count",
         CustomSensorType.DeviceConnected => "VID_0BDA&PID_8153",
         CustomSensorType.CommandButton => "Restart-Service Spooler",
+        CustomSensorType.KeysButton => "Ctrl+Shift+M",
+        CustomSensorType.QuickAction => "Ctrl+Alt+L",
         CustomSensorType.LaunchButton => "\"C:\\Program Files\\App\\app.exe\" --option",
         _ => string.Empty,
     };
@@ -176,7 +182,7 @@ public sealed class CustomSensorViewModel : ObservableObject
 
     /// <summary>A fixed text is sent once, and a button waits to be pressed; there is nothing to repeat.</summary>
     public bool ShowsInterval =>
-        Type is not (CustomSensorType.Text or CustomSensorType.CommandButton or CustomSensorType.LaunchButton);
+        Type is CustomSensorType.ProcessRunning or CustomSensorType.PowerShell or CustomSensorType.DeviceConnected;
 
     public CustomSensorDefinition ToDefinition() => new CustomSensorDefinition
     {

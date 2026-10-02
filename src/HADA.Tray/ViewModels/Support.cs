@@ -102,6 +102,7 @@ internal static class EntityVisuals
         "do_not_disturb" => SymbolRegular.AlertOff24,
         "media_playback" => SymbolRegular.MusicNote224,
         "update_available" => SymbolRegular.ArrowDownload24,
+        "gpu_load" => SymbolRegular.DeveloperBoard24,
         "sleep" or "hibernate" => SymbolRegular.WeatherMoon24,
         "shutdown" => SymbolRegular.Power24,
         "restart" => SymbolRegular.ArrowClockwise24,
@@ -122,6 +123,7 @@ internal static class EntityVisuals
             EntityKind.BinarySensor or EntityKind.Switch => SymbolRegular.ToggleLeft24,
             EntityKind.Number => SymbolRegular.NumberSymbol24,
             EntityKind.Notify => SymbolRegular.Alert24,
+            EntityKind.Trigger => SymbolRegular.Flash24,
             _ => SymbolRegular.Pulse24,
         },
     };
@@ -133,6 +135,7 @@ internal static class EntityVisuals
         EntityKind.Switch => "Entity_Switch",
         EntityKind.Number => "Entity_Number",
         EntityKind.Notify => "Entity_Notify",
+        EntityKind.Trigger => "Entity_Trigger",
         _ => "Entity_Sensor",
     });
 

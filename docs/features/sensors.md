@@ -8,8 +8,9 @@ What HADA tells Home Assistant about the computer. Every sensor can be turned of
 |---|---|---|---|
 | `cpu_load` | sensor (%) | Service | System-wide CPU load, updated every 10 s |
 | `memory_usage` | sensor (%) | Service | Physical memory in use |
+| `gpu_load` | sensor (%) | Service | How busy the graphics processor is, as Task Manager shows it. Not on computers whose graphics driver does not report it |
 | `disk_c_usage`, `disk_d_usage`, … | sensor (%) | Service | One per built-in drive: how full it is. `free_gb` and `total_gb` are attributes |
-| `ip_address` | sensor | Service | The IPv4 address of the connection Windows routes through. `interface` and `connection_type` (`ethernet`, `wifi`, `other`) are attributes |
+| `ip_address` | sensor | Service | The IPv4 address of the connection Windows routes through. `interface`, `connection_type` (`ethernet`, `wifi`, `other`) and `mac_address`, which Wake-on-LAN needs, are attributes |
 | `wifi_network` | sensor | Service | Only on computers with Wi-Fi. The name of the connected network, `not_connected` otherwise. `signal` (%) is an attribute |
 | `display_on` | binary sensor | Service | On while the screen is on. `display_state` (`on`, `dimmed`, `off`) is an attribute. Reported the moment it changes |
 | `session_locked` | binary sensor | Service | On while Windows is locked or showing the sign-in screen |

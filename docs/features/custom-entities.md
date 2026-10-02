@@ -1,4 +1,4 @@
-# Custom sensors and buttons
+# Custom sensors, buttons and quick actions
 
 ![The Custom entities page](../assets/img/custom-entities.png)
 
@@ -18,7 +18,40 @@ And your own buttons, which Home Assistant can press from a dashboard or an auto
 | **Button: PowerShell command** | A command, e.g. `Start-ScheduledTask -TaskName Backup` | In the service, so as SYSTEM when installed, without a desktop. It may take up to 10 minutes; pressing the button again meanwhile is ignored |
 | **Button: start a program** | A program with its arguments, a document, or an address: `"C:\Program Files\App\app.exe" --option`, `notepad`, `https://example.com` | On the desktop of the signed-in user, with that user's rights, so the tray app must be running. Put a path that contains spaces in quotes |
 
+| **Button: press keys** | A key combination, e.g. `Ctrl+Shift+M`, `F11` or `MediaNext` | On the desktop of the signed-in user, as if typed; the program that has the focus gets the keys |
+
 What a button does is fixed in settings. Home Assistant can only press it; it cannot send a command of its own.
+
+Keys are joined by `+`: any of `Ctrl`, `Alt`, `Shift` and `Win`, then at most one key: a letter, a digit, `F1` to `F24`, or one of `Enter`, `Tab`, `Space`, `Esc`, `Backspace`, `Delete`, `Insert`, `Home`, `End`, `PageUp`, `PageDown`, `Up`, `Down`, `Left`, `Right`, `PrintScreen`, `Pause`, `VolumeUp`, `VolumeDown`, `VolumeMute`, `MediaPlayPause`, `MediaNext`, `MediaPrevious`, `MediaStop`. Windows keeps its own secure shortcuts, such as `Ctrl+Alt+Del` and `Win+L`, out of reach, and ignores injected keys while a program running as administrator has the focus.
+
+## Quick actions
+
+*New in 1.1.0, a pre-release.*
+
+A quick action goes the other way: it lets you start something in Home Assistant from the computer. Add one with the type **Quick action** and give it a name; a keyboard shortcut is optional, and must include `Ctrl`, `Alt` or `Win`.
+
+- It appears in the menu of the HADA tray icon, with its shortcut next to it.
+- The shortcut works whichever program has the focus. If another program already uses it, the menu entry still works, and the tray app's log says so.
+- In Home Assistant it appears as a **trigger of the device**: in the automation editor choose **Device**, the computer, and the quick action's name.
+
+By itself a quick action does nothing; an automation says what it does:
+
+```yaml
+automation:
+  - alias: Toggle the desk lamp from the laptop
+    triggers:
+      - trigger: mqtt
+        topic: hada/laptop/event/quick_action
+        payload: toggle_lamp
+    actions:
+      - action: light.toggle
+        target:
+          entity_id: light.desk_lamp
+```
+
+The payload is the quick action's ID. With several users signed in, only the quick actions of the user at the computer reach Home Assistant.
+
+## Details
 
 - The **ID** is the entity ID. Leave it empty to derive it from the name (`Gra włączona` → `gra_wlaczona`).
 - Set a **unit** only for numbers. Home Assistant then treats the sensor as a measurement and draws a graph.

@@ -6,8 +6,9 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 
 - **Sensors:** screen, session lock, user activity, active window, media playback, microphone and camera in use, volume, audio device, battery, network, Wi-Fi, disks, CPU, memory and more.
 - **Controls:** volume and mute, media keys, display off and wake, lock, sleep, hibernate, shut down, restart.
-- **Notifications** from Home Assistant, shown as Windows notifications.
-- **Your own sensors and buttons** without code: whether a program runs or a device is connected, the output of a PowerShell command, a button that runs a command or starts a program.
+- **Notifications** from Home Assistant, with pictures and buttons.
+- **Your own sensors and buttons** without code: whether a program runs or a device is connected, the output of a PowerShell command, a button that runs a command, starts a program or presses keys.
+- **Quick actions:** start Home Assistant automations from the tray icon's menu or a keyboard shortcut. A small window for your dashboard.
 - A Windows service plus a small tray app: about 15 MB and 20 to 25 MB of memory. Works with nobody signed in.
 - MQTT discovery, or a direct WebSocket connection. x64 and ARM64, Windows 10 (1809+) and 11. Polish and English.
 

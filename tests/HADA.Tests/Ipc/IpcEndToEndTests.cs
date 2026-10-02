@@ -181,6 +181,47 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task What_the_user_does_in_the_tray_reaches_the_service()
+    {
+        var (serviceBus, serviceRegistry) = CreateServiceSide();
+        await using var serviceEvents = serviceBus.Subscribe<DeviceEvent>();
+        await StartServerAsync(serviceBus, serviceRegistry);
+        var client = await StartClientAsync();
+        await _trayRegistry.RegisterAsync(Sensor("audio_volume"));
+        await WaitUntilAsync(() => client.IsConnected && serviceRegistry.TryGet("audio_volume", out _));
+
+        await _trayBus.PublishAsync(new DeviceEvent { Name = "availability", Value = "offline" });
+        await _trayBus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "toggle_lamp" });
+
+        var happened = await ReadAsync(serviceEvents);
+        Assert.Equal((DeviceEvent.QuickAction, "toggle_lamp", "test-tray"), (happened.Name, happened.Value, happened.Source));
+        Assert.False(serviceEvents.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task A_tray_that_connects_later_is_told_the_quick_actions_as_they_are_now()
+    {
+        var (serviceBus, serviceRegistry) = CreateServiceSide();
+        await StartServerAsync(serviceBus, serviceRegistry);
+
+        // Published before any tray is there, and replaced once: only the latest matters.
+        await serviceBus.PublishAsync(new ActionCommand { ActionId = SessionCommands.QuickActions, Value = "[]" });
+        await serviceBus.PublishAsync(new ActionCommand { ActionId = SessionCommands.QuickActions, Value = """[{"id":"a","name":"A","hotkey":""}]""" });
+        await Task.Delay(200);
+
+        await using var trayCommands = _trayBus.Subscribe<ActionCommand>();
+        await StartClientAsync();
+
+        var told = await ReadAsync(trayCommands);
+        Assert.Equal(SessionCommands.QuickActions, told.ActionId);
+        Assert.Equal("A", Assert.Single(QuickActionInfo.Deserialize(told.Value)).Name);
+
+        // And again when they change while it is connected.
+        await serviceBus.PublishAsync(new ActionCommand { ActionId = SessionCommands.QuickActions, Value = "[]" });
+        Assert.Empty(QuickActionInfo.Deserialize((await ReadAsync(trayCommands)).Value));
+    }
+
+    [Fact]
     public async Task With_several_users_signed_in_only_the_one_at_the_computer_is_reported()
     {
         var sessions = new FakeSessions { ConsoleSessionId = 1 };

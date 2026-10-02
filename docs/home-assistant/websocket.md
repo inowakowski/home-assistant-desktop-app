@@ -28,7 +28,29 @@ Sensors appear as `sensor.{device}_{entity}`, e.g. `sensor.desktop_01_cpu_load`,
     message: The washing machine is done.
 ```
 
-`device_id` is required, so a single event never targets every PC at once.
+`device_id` is required, so a single event never targets every PC at once. A notification also takes `image` and `actions`, as described under [Notifications](../features/notifications.md).
+
+## Events from the computer
+
+When a [quick action](../features/custom-entities.md#quick-actions) is chosen, or a button of a notification is pressed, HADA fires the event `hada_event` in Home Assistant:
+
+```yaml
+automation:
+  - alias: Toggle the desk lamp from the laptop
+    triggers:
+      - trigger: event
+        event_type: hada_event
+        event_data:
+          device_id: desktop_01
+          name: quick_action
+          value: toggle_lamp
+    actions:
+      - action: light.toggle
+        target:
+          entity_id: light.desk_lamp
+```
+
+`name` is `quick_action` or `notification_action`; `value` is the quick action's ID, or the `action` of the button.
 
 ## Limitations
 

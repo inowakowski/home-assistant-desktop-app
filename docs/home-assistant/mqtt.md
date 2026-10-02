@@ -30,4 +30,7 @@ With `{device}` being the Device ID:
 | `hada/{device}/{entity}/availability` | `online` / `offline` (retained). `offline` while the entity's source is away, e.g. the tray app's sensors after sign-out |
 | `hada/{device}/{entity}/state` | State (retained). Binary sensors and switches report `on` / `off` |
 | `hada/{device}/{entity}/attributes` | Sensor attributes as JSON (retained) |
-| `hada/{device}/{entity}/set` | Command: `PRESS` for a button, `on` / `off` for a switch, the value for a number, the message (or JSON with `title` and `message`) for `notification`. Anything else is ignored, as are retained commands |
+| `homeassistant/device_automation/{device}/{entity}/config` | Discovery config of a [quick action](../features/custom-entities.md#quick-actions) as a trigger of the device (retained; emptied when it is removed) |
+| `hada/{device}/event/quick_action` | A quick action was chosen; the payload is its ID. Not retained |
+| `hada/{device}/event/notification_action` | A button of a [notification](../features/notifications.md) was pressed; the payload is its `action`. Not retained |
+| `hada/{device}/{entity}/set` | Command: `PRESS` for a button, `on` / `off` for a switch, the value for a number, the message (or JSON with `message` and optionally `title`, `image` and `actions`) for `notification`. Anything else is ignored, as are retained commands |

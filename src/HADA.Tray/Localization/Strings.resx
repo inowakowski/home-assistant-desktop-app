@@ -23,6 +23,7 @@
 
   <data name="Tray_Open" xml:space="preserve"><value>Open HADA</value></data>
   <data name="Tray_Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Tray_Dashboard" xml:space="preserve"><value>Home Assistant dashboard</value></data>
   <data name="Tray_Connected" xml:space="preserve"><value>HADA: connected to the service</value></data>
   <data name="Tray_Waiting" xml:space="preserve"><value>HADA: waiting for the service</value></data>
 
@@ -63,6 +64,12 @@
   <data name="Preferences_LanguageAuto" xml:space="preserve"><value>Same as Windows</value></data>
   <data name="Preferences_Idle" xml:space="preserve"><value>Activity threshold</value></data>
   <data name="Preferences_IdleDetail" xml:space="preserve"><value>How many seconds after the last keyboard or mouse input the "User active" sensor turns off.</value></data>
+  <data name="Preferences_Dashboard" xml:space="preserve"><value>Home Assistant dashboard</value></data>
+  <data name="Preferences_DashboardDetail" xml:space="preserve"><value>An address to show in a small window opened from the tray icon's menu. Leave empty for no such window.</value></data>
+  <data name="Dashboard_Title" xml:space="preserve"><value>HADA – Home Assistant</value></data>
+  <data name="Dashboard_Failed" xml:space="preserve"><value>The dashboard cannot be shown: {0}
+
+It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Windows 10 may lack.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors and controls, when you sign in. The HADA service always starts with Windows.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>HADA service</value></data>
@@ -96,6 +103,7 @@
   <data name="Entity_Switch" xml:space="preserve"><value>Switch</value></data>
   <data name="Entity_Number" xml:space="preserve"><value>Number</value></data>
   <data name="Entity_Notify" xml:space="preserve"><value>Notification</value></data>
+  <data name="Entity_Trigger" xml:space="preserve"><value>Trigger</value></data>
   <data name="Entity_Disabled" xml:space="preserve"><value>Disabled</value></data>
   <data name="Entity_Unavailable" xml:space="preserve"><value>Unavailable – the tray app is not running, or another user is at the computer</value></data>
   <data name="Source_Service" xml:space="preserve"><value>Service</value></data>
@@ -141,8 +149,8 @@
   <data name="Validation_UrlRequired" xml:space="preserve"><value>Enter the Home Assistant URL first.</value></data>
   <data name="Validation_Url" xml:space="preserve"><value>The Home Assistant URL must start with http:// or https://.</value></data>
   <data name="Validation_EventType" xml:space="preserve"><value>The command event type must not be empty or contain spaces.</value></data>
-  <data name="Validation_CustomName" xml:space="preserve"><value>Custom entities: every sensor and button needs a name.</value></data>
-  <data name="Validation_CustomValue" xml:space="preserve"><value>Custom entities: "{0}" has no value, process name, command or program.</value></data>
+  <data name="Validation_CustomName" xml:space="preserve"><value>Custom entities: every entry needs a name.</value></data>
+  <data name="Validation_CustomValue" xml:space="preserve"><value>Custom entities: "{0}" has no value, process name, command, program or keys.</value></data>
   <data name="Error_ServiceUnavailable" xml:space="preserve"><value>The HADA service is not running or cannot be reached.</value></data>
   <data name="Error_Unauthorized" xml:space="preserve"><value>This action requires administrator rights.</value></data>
   <data name="Error_UnexpectedTitle" xml:space="preserve"><value>Unexpected error</value></data>
@@ -167,6 +175,7 @@
   <data name="EntityHint_do_not_disturb" xml:space="preserve"><value>On while Windows holds notifications back (Do not disturb).</value></data>
   <data name="EntityHint_media_playback" xml:space="preserve"><value>Whether media is playing. Sends the title, artist, album and app as attributes.</value></data>
   <data name="EntityHint_update_available" xml:space="preserve"><value>On when a newer HADA was released. The service asks GitHub once a day, unless that is turned off on the Settings page.</value></data>
+  <data name="EntityHint_gpu_load" xml:space="preserve"><value>How busy the graphics processor is, as Task Manager shows it.</value></data>
   <data name="EntityHint_sleep" xml:space="preserve"><value>Lets Home Assistant put this computer to sleep. Off until you turn it on.</value></data>
   <data name="EntityHint_hibernate" xml:space="preserve"><value>Lets Home Assistant hibernate this computer. Off until you turn it on.</value></data>
   <data name="EntityHint_shutdown" xml:space="preserve"><value>Lets Home Assistant shut this computer down. Apps with unsaved work can still object. Off until you turn it on.</value></data>
@@ -177,12 +186,12 @@
   <data name="EntityHint_volume_level" xml:space="preserve"><value>Lets Home Assistant set the volume of the default playback device.</value></data>
   <data name="EntityHint_audio_mute" xml:space="preserve"><value>Lets Home Assistant mute and unmute the default playback device.</value></data>
   <data name="EntityHint_microphone_mute" xml:space="preserve"><value>Lets Home Assistant mute and unmute the default microphone in Windows.</value></data>
-  <data name="EntityHint_notification" xml:space="preserve"><value>Messages sent to this entity are shown to you as Windows notifications.</value></data>
+  <data name="EntityHint_notification" xml:space="preserve"><value>Messages sent to this entity are shown as Windows notifications, with a picture and buttons if the message has them.</value></data>
 
-  <data name="Custom_Title" xml:space="preserve"><value>Custom sensors and buttons</value></data>
-  <data name="Custom_Subtitle" xml:space="preserve"><value>Define your own sensors: a fixed text, whether a program is running, whether a device such as a USB-C dock is connected, or the result of a PowerShell command. And your own buttons for Home Assistant to press: run a PowerShell command, or start a program on your desktop.</value></data>
-  <data name="Custom_Empty" xml:space="preserve"><value>Nothing here yet. Add a sensor to send your own value to Home Assistant, or a button for Home Assistant to press.</value></data>
-  <data name="Custom_Add" xml:space="preserve"><value>Add sensor or button</value></data>
+  <data name="Custom_Title" xml:space="preserve"><value>Custom sensors, buttons and quick actions</value></data>
+  <data name="Custom_Subtitle" xml:space="preserve"><value>Your own sensors: a fixed text, whether a program is running or a device is connected, the result of a PowerShell command. Your own buttons for Home Assistant to press: run a command, start a program, press keys. And quick actions: entries in the tray icon's menu, optionally with a keyboard shortcut, that start an automation in Home Assistant.</value></data>
+  <data name="Custom_Empty" xml:space="preserve"><value>Nothing here yet. Add a sensor to send your own value to Home Assistant, a button for Home Assistant to press, or a quick action to start an automation from this computer.</value></data>
+  <data name="Custom_Add" xml:space="preserve"><value>Add</value></data>
   <data name="Custom_Remove" xml:space="preserve"><value>Remove</value></data>
   <data name="Custom_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Custom_Id" xml:space="preserve"><value>ID</value></data>
@@ -194,6 +203,10 @@
   <data name="Custom_TypeDevice" xml:space="preserve"><value>Sensor: device connected</value></data>
   <data name="Custom_TypeCommandButton" xml:space="preserve"><value>Button: PowerShell command</value></data>
   <data name="Custom_TypeLaunchButton" xml:space="preserve"><value>Button: start a program</value></data>
+  <data name="Custom_TypeKeysButton" xml:space="preserve"><value>Button: press keys</value></data>
+  <data name="Custom_TypeQuickAction" xml:space="preserve"><value>Quick action (tray menu, shortcut)</value></data>
+  <data name="Custom_ValueKeysButton" xml:space="preserve"><value>Keys to press, joined by +</value></data>
+  <data name="Custom_ValueQuickAction" xml:space="preserve"><value>Keyboard shortcut (optional)</value></data>
   <data name="Custom_ValueCommandButton" xml:space="preserve"><value>Command – run when the button is pressed</value></data>
   <data name="Custom_ValueLaunchButton" xml:space="preserve"><value>Program, document or address to open</value></data>
   <data name="Custom_ValueDevice" xml:space="preserve"><value>Device ID, or a part of it</value></data>
@@ -205,6 +218,7 @@
   <data name="Custom_Interval" xml:space="preserve"><value>Check every (seconds)</value></data>
   <data name="Custom_PowerShellNote" xml:space="preserve"><value>PowerShell commands, of sensors and of buttons, are run by the HADA service with system rights, not as you, so they cannot see your desktop or your user's files and settings. A sensor's command that fails or takes longer than 30 seconds is reported on the Logs page; a button's command may take up to 10 minutes.</value></data>
   <data name="Custom_ButtonNote" xml:space="preserve"><value>A program a button starts runs on the desktop of whoever is signed in, with that user's rights, so the tray app must be running. Put a path that contains spaces in quotes.</value></data>
+  <data name="Custom_QuickActionNote" xml:space="preserve"><value>A quick action does nothing on this computer by itself. It appears in the tray icon's menu and as a trigger of this device in Home Assistant; build an automation on that trigger to say what it does.</value></data>
 
   <data name="Logs_Title" xml:space="preserve"><value>Logs</value></data>
   <data name="Logs_Subtitle" xml:space="preserve"><value>Recent messages from the HADA service.</value></data>

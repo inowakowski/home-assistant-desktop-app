@@ -306,6 +306,29 @@
                             </Grid>
                         </Border>
 
+                        <Border Style="{StaticResource SettingRow}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Preferences_Dashboard}" />
+                                    <ui:TextBlock
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        FontTypography="Caption"
+                                        Text="{l:Tr Preferences_DashboardDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ui:TextBox
+                                    Grid.Column="1"
+                                    Width="320"
+                                    VerticalAlignment="Center"
+                                    PlaceholderText="http://homeassistant.local:8123"
+                                    Text="{Binding DashboardUrl, UpdateSourceTrigger=LostFocus}" />
+                            </Grid>
+                        </Border>
+
                         <Border BorderThickness="0" Style="{StaticResource SettingRow}">
                             <Grid>
                                 <Grid.ColumnDefinitions>

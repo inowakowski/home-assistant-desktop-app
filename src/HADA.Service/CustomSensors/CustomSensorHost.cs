@@ -81,11 +81,16 @@ public sealed partial class CustomSensorHost(
                 }
 
                 var button = running.Definition;
-                if (button.Type == CustomSensorType.LaunchButton)
+                if (button.Type is CustomSensorType.LaunchButton or CustomSensorType.KeysButton)
                 {
-                    // The service has no desktop; the tray app in the user's session starts it.
+                    // The service has no desktop; the tray app in the user's session starts the program or presses the keys.
                     await bus.PublishAsync(
-                        new ActionCommand { ActionId = SessionCommands.Launch, Value = button.Value, Origin = command.Origin },
+                        new ActionCommand
+                        {
+                            ActionId = button.Type == CustomSensorType.LaunchButton ? SessionCommands.Launch : SessionCommands.PressKeys,
+                            Value = button.Value,
+                            Origin = command.Origin,
+                        },
                         cancellationToken);
                     LogPressed(logger, button.Id, command.Origin);
                 }
@@ -169,13 +174,24 @@ public sealed partial class CustomSensorHost(
             await registry.RegisterAsync(CustomSensorRules.ToEntity(sensor), cancellationToken);
             var stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-            // A button has nothing to read; it waits to be pressed.
+            // A button has nothing to read; it waits to be pressed. A quick action waits to be chosen, in the tray app.
             _running[id] = new RunningSensor(
                 sensor,
                 stopping,
-                sensor.IsButton ? Task.CompletedTask : Task.Run(() => RunAsync(sensor, stopping.Token), CancellationToken.None));
+                sensor.IsButton || sensor.IsTrigger ? Task.CompletedTask : Task.Run(() => RunAsync(sensor, stopping.Token), CancellationToken.None));
             LogStarted(logger, sensor.Id, sensor.Type);
         }
+
+        // The tray app shows the quick actions in its menu and listens for their shortcuts. Told on every change,
+        // an empty list included, so removed ones disappear there too.
+        var quickActions = wanted.Values
+            .Where(sensor => sensor.IsTrigger)
+            .OrderBy(sensor => sensor.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(sensor => new QuickActionInfo(sensor.Id, sensor.Name, sensor.Value))
+            .ToArray();
+        await bus.PublishAsync(
+            new ActionCommand { ActionId = SessionCommands.QuickActions, Value = QuickActionInfo.Serialize(quickActions) },
+            cancellationToken);
     }
 
     private async Task StopSensorAsync(string id)

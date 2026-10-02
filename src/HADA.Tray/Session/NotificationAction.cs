@@ -6,16 +6,20 @@ using Microsoft.Extensions.Logging;
 
 namespace HADA.Tray.Session;
 
-/// <summary>Where notifications from Home Assistant are shown; the tray icon plugs itself in once it exists.</summary>
+/// <summary>A notification to show: its texts, and optionally a picture and buttons.</summary>
+/// <param name="ImageUrl">An <c>http</c> or <c>https</c> address, or <see langword="null"/>.</param>
+public sealed record NotificationRequest(string Title, string Message, string? ImageUrl, IReadOnlyList<NotificationButton> Buttons);
+
+/// <summary>Where notifications from Home Assistant are shown; the tray plugs itself in once it is ready.</summary>
 public sealed class NotificationPresenter
 {
-    /// <summary>Shows a notification with a title and a message. May be called from any thread.</summary>
-    public Action<string, string>? Show { get; set; }
+    /// <summary>Shows a notification. May be called from any thread.</summary>
+    public Action<NotificationRequest>? Show { get; set; }
 }
 
 /// <summary>
 /// Exposes a notification entity: a message Home Assistant sends to it is shown to the signed-in user as a Windows
-/// notification. Lives in the tray app, which owns the notification-area icon the notification comes from.
+/// notification. Lives in the tray app, which notifications come from.
 /// </summary>
 public sealed partial class NotificationAction(
     IEventBus bus, IEntityRegistry registry, ILogger<NotificationAction> logger, NotificationPresenter presenter)
@@ -39,7 +43,11 @@ public sealed partial class NotificationAction(
 
         if (presenter.Show is { } show)
         {
-            show(command.GetParameter("title") is { Length: > 0 } title ? title : DefaultTitle, command.Value);
+            show(new NotificationRequest(
+                command.GetParameter(NotificationContent.Title) is { Length: > 0 } title ? title : DefaultTitle,
+                command.Value,
+                command.GetParameter(NotificationContent.Image),
+                NotificationContent.ParseButtons(command.GetParameter(NotificationContent.Actions))));
 
             // Not the text: what Home Assistant tells the user is none of the log's business.
             LogShown(Logger, command.Origin);

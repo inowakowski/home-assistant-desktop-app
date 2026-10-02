@@ -161,6 +161,10 @@ public sealed partial class IpcClient(
                     case EntityRegistered registration:
                         message = new EntityRegistrationMessage(registration.Entity);
                         break;
+                    case DeviceEvent deviceEvent:
+                        // Of the moment: not remembered, and not sent later if the service cannot be reached now.
+                        message = new DeviceEventMessage(deviceEvent);
+                        break;
                     default:
                         continue;
                 }

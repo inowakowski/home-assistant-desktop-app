@@ -107,3 +107,7 @@ public sealed class EjectAction(IEventBus bus, IEntityRegistry registry, ILogger
 - Where it runs follows the same rule as for sensors. Commands for tray entities reach the tray through the pipe by themselves.
 - Set `EnabledByDefault = false` for anything that should not work until the user switched it on, as `PowerActions` does. Anyone who can press the button in Home Assistant can trigger the action, so think about what it lets them do to the computer.
 - Reserve the ID in `BuiltInIds`, as for a sensor.
+
+## Something that happens
+
+A state that changes is a sensor. Something that happens and is gone, such as a quick action being chosen, is a `DeviceEvent`: publish one to the event bus, and the engines pass it to Home Assistant as described under [MQTT engine](../home-assistant/mqtt.md#topics) and [WebSocket engine](../home-assistant/websocket.md#events-from-the-computer). Its `Name` must be one the engines know (`DeviceEvent.QuickAction`, `DeviceEvent.NotificationAction`); add a constant there for a new kind.

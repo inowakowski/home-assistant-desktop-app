@@ -36,6 +36,7 @@ Tray command-line options:
 | `--background` | Start without opening the window, e.g. at sign-in |
 | `--autostart` | Marks a start made by Windows at sign-in. The tray exits again if the user turned **Start with Windows** off |
 | `--page overview\|connections\|entities\|custom\|settings\|logs` | Open the window on a specific page (`custom` is **Custom entities**) |
+| `--dashboard` | Run as the [dashboard window](../window.md#the-dashboard-window) |
 | `--settings` | Run as the window, without tray icon or sensors. This is how the tray opens the window, and how **Unlock editing** reopens it as administrator |
 
 

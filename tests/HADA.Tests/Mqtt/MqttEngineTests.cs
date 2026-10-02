@@ -246,6 +246,70 @@ public sealed class MqttEngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_quick_action_is_a_trigger_of_the_device_and_fires_when_chosen()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "toggle_lamp", Name = "Toggle lamp", Kind = EntityKind.Trigger });
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        using (var config = JsonDocument.Parse((await WaitForMessageAsync("homeassistant/device_automation/testpc/toggle_lamp/config")).Payload))
+        {
+            var root = config.RootElement;
+            Assert.Equal("trigger", root.GetProperty("automation_type").GetString());
+            Assert.Equal("hada/testpc/event/quick_action", root.GetProperty("topic").GetString());
+            Assert.Equal("toggle_lamp", root.GetProperty("payload").GetString());
+            Assert.Equal("Toggle lamp", root.GetProperty("subtype").GetString());
+            Assert.Equal("hada_testpc", root.GetProperty("device").GetProperty("identifiers")[0].GetString());
+            Assert.False(root.TryGetProperty("state_topic", out _));
+        }
+
+        // One that does not exist, or is not a quick action, fires nothing; neither does a malformed event.
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "no_such_action" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "cpu_load" });
+        await _bus.PublishAsync(new DeviceEvent { Name = "availability", Value = "offline" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "toggle_lamp" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = "open_door" });
+
+        await WaitForMessageAsync("hada/testpc/event/quick_action", "toggle_lamp");
+        await WaitForMessageAsync("hada/testpc/event/notification_action", "open_door");
+        Assert.Single(Snapshot(), message => message.Topic == "hada/testpc/event/quick_action");
+        Assert.DoesNotContain(Snapshot(), message => message.Topic == "hada/testpc/event/availability");
+
+        // Events are of the moment: nothing for Home Assistant to find after a restart.
+        Assert.Null(await _broker.GetRetainedMessageAsync("hada/testpc/event/quick_action"));
+
+        // Removing the quick action removes the trigger.
+        await _registry.UnregisterAsync("toggle_lamp");
+        await WaitForMessageAsync("homeassistant/device_automation/testpc/toggle_lamp/config", payload: string.Empty);
+    }
+
+    [Fact]
+    public async Task A_notification_sent_as_json_brings_its_picture_and_buttons()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "notification", Name = "Notification", Kind = EntityKind.Notify });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        await PublishAsync(
+            "hada/testpc/notification/set",
+            """{"title": "Front door", "message": "Someone is at the door.", "image": "https://example.com/door.jpg", "actions": [{"action": "open_door", "title": "Open"}]}""");
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        await using var enumerator = commands.ReadAllAsync(timeout.Token).GetAsyncEnumerator(timeout.Token);
+        Assert.True(await enumerator.MoveNextAsync());
+        var command = enumerator.Current;
+        Assert.Equal("Someone is at the door.", command.Value);
+        Assert.Equal("Front door", command.GetParameter(NotificationContent.Title));
+        Assert.Equal("https://example.com/door.jpg", command.GetParameter(NotificationContent.Image));
+        Assert.Equal(
+            [new NotificationButton("open_door", "Open")],
+            NotificationContent.ParseButtons(command.GetParameter(NotificationContent.Actions)));
+    }
+
+    [Fact]
     public async Task Entities_that_are_off_by_default_stay_out_of_home_assistant_until_switched_on()
     {
         await _registry.RegisterAsync(new EntityDescriptor { Id = "shutdown", Name = "Shut down", Kind = EntityKind.Button, EnabledByDefault = false });

@@ -5,7 +5,7 @@ Settings saved in the window are stored in `%ProgramData%\HADA\settings.json`:
 - The folder is accessible only to SYSTEM, administrators and the account running the service.
 - Passwords and tokens in the file are additionally encrypted with Windows DPAPI.
 - Each section saved from the window (MQTT, Home Assistant, entities, custom sensors and buttons, updates) replaces the same section of `appsettings.json`.
-- Your personal settings (start with Windows, language, activity threshold) are not in that file but under `HKCU\Software\HADA`, one set per user.
+- Your personal settings (start with Windows, language, dashboard address, activity threshold) are not in that file but under `HKCU\Software\HADA`, one set per user.
 
 You can also configure the service without the window, through `appsettings.json` next to `HADA.Service.exe`:
 
@@ -50,13 +50,14 @@ You can also configure the service without the window, through `appsettings.json
 | `HomeAssistant:BaseUrl` | *(empty = WebSocket engine off)* | Home Assistant URL, `http` or `https` |
 | `HomeAssistant:AccessToken` | – | Long-lived token of an administrator. See [Secrets](#secrets) |
 | `HomeAssistant:CommandEventType` | `hada_command` | Event type the WebSocket engine listens to for commands |
+| `HomeAssistant:DeviceEventType` | `hada_event` | Event type the WebSocket engine fires for quick actions and notification buttons |
 | `*:DeviceId` | machine name | Used in topics and entity IDs. Lowercased, and anything other than letters and digits becomes `_` (`DESKTOP-01` → `desktop_01`) |
 | `*:DeviceName` | machine name | Device and friendly-name prefix shown in Home Assistant |
 | `Entities:Disabled` | *(none)* | Entity IDs not shared with Home Assistant |
 | `Entities:Enabled` | *(none)* | IDs of the entities that are off unless listed here: `sleep`, `hibernate`, `shutdown`, `restart` |
 | `Updates:CheckAutomatically` | `true` | Whether the service asks GitHub for a newer version once a day |
 | `Updates:IncludePrereleases` | `false` | Whether versions marked as pre-release count as newer versions |
-| `CustomSensors:Items` | *(none)* | [Custom sensors and buttons](../features/custom-entities.md): `Name`, `Type` (`Text`, `ProcessRunning`, `PowerShell`, `DeviceConnected`, `CommandButton` or `LaunchButton`), `Value`, and optionally `Id`, `Unit` and `IntervalSeconds` |
+| `CustomSensors:Items` | *(none)* | [Custom sensors and buttons](../features/custom-entities.md): `Name`, `Type` (`Text`, `ProcessRunning`, `PowerShell`, `DeviceConnected`, `CommandButton`, `LaunchButton`, `KeysButton` or `QuickAction`), `Value`, and optionally `Id`, `Unit` and `IntervalSeconds` |
 
 > Configure **one** engine. With both configured, every sensor appears in Home Assistant twice.
 

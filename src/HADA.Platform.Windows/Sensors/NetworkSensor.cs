@@ -14,7 +14,8 @@ namespace HADA.Platform.Windows.Sensors;
 /// <param name="Address">The IPv4 address this computer uses to reach other networks.</param>
 /// <param name="InterfaceName">The connection's name in Windows, e.g. <c>Wi-Fi</c> or <c>Ethernet 2</c>.</param>
 /// <param name="ConnectionType"><c>ethernet</c>, <c>wifi</c> or <c>other</c>.</param>
-public sealed record NetworkAddressInfo(string Address, string InterfaceName, string ConnectionType);
+/// <param name="MacAddress">The adapter's hardware address as <c>AA:BB:CC:DD:EE:FF</c>, which Wake-on-LAN needs; empty when it has none.</param>
+public sealed record NetworkAddressInfo(string Address, string InterfaceName, string ConnectionType, string MacAddress = "");
 
 public static class NetworkAddress
 {
@@ -51,7 +52,11 @@ public static class NetworkAddress
             {
                 if (adapter.GetIPProperties().UnicastAddresses.Any(candidate => candidate.Address.Equals(local)))
                 {
-                    return new NetworkAddressInfo(local.ToString(), adapter.Name, TypeOf(adapter.NetworkInterfaceType));
+                    return new NetworkAddressInfo(
+                        local.ToString(),
+                        adapter.Name,
+                        TypeOf(adapter.NetworkInterfaceType),
+                        string.Join(':', adapter.GetPhysicalAddress().GetAddressBytes().Select(part => part.ToString("X2", System.Globalization.CultureInfo.InvariantCulture))));
                 }
             }
         }
@@ -207,7 +212,12 @@ public sealed class NetworkSensor(IEventBus bus, IEntityRegistry registry) : Bac
                 await publisher.PublishAsync(
                     AddressEntityId,
                     address.Address,
-                    new Dictionary<string, object?> { ["interface"] = address.InterfaceName, ["connection_type"] = address.ConnectionType },
+                    new Dictionary<string, object?>
+                    {
+                        ["interface"] = address.InterfaceName,
+                        ["connection_type"] = address.ConnectionType,
+                        ["mac_address"] = address.MacAddress,
+                    },
                     stoppingToken);
             }
 

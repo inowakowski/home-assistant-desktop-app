@@ -27,6 +27,12 @@ public enum EntityKind
 
     /// <summary>Receives messages from Home Assistant; <see cref="Models.ActionCommand.Value"/> is the message text.</summary>
     Notify,
+
+    /// <summary>
+    /// Something the user does on the computer that Home Assistant can start an automation from, such as a quick
+    /// action. It has no state and takes no commands; a <see cref="Models.DeviceEvent"/> carrying its id says it happened.
+    /// </summary>
+    Trigger,
 }
 
 /// <summary>The two states of an <see cref="EntityKind.BinarySensor"/>, as Home Assistant spells them.</summary>

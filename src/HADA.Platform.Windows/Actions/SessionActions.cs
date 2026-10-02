@@ -169,3 +169,44 @@ public sealed partial class LaunchAction(IEventBus bus, ILogger<LaunchAction> lo
     [LoggerMessage(Level = LogLevel.Error, Message = "Starting '{File}' failed: {Reason}")]
     private static partial void LogFailed(ILogger logger, string file, string reason);
 }
+
+/// <summary>
+/// Presses key combinations for the service on the user's desktop. Like <see cref="LaunchAction"/> it runs in the
+/// tray app and has no entity of its own: the service sends <see cref="SessionCommands.PressKeys"/> with the
+/// combination the administrator configured for the button that was pressed.
+/// </summary>
+public sealed partial class KeyPressAction(IEventBus bus, ILogger<KeyPressAction> logger) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await using var commands = bus.Subscribe<ActionCommand>();
+        try
+        {
+            await foreach (var command in commands.ReadAllAsync(stoppingToken))
+            {
+                if (command.ActionId != SessionCommands.PressKeys)
+                {
+                    continue;
+                }
+
+                if (!KeyCombination.TryParse(command.Value, out var combination))
+                {
+                    LogNotACombination(logger, command.Value);
+                }
+                else if (!InputSimulator.Press(combination))
+                {
+                    LogFailed(logger, combination.ToString(), Marshal.GetLastPInvokeError());
+                }
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "'{Text}' is not a key combination; nothing was pressed.")]
+    private static partial void LogNotACombination(ILogger logger, string? text);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Pressing {Combination} failed with error {Error}.")]
+    private static partial void LogFailed(ILogger logger, string combination, int error);
+}

@@ -26,6 +26,12 @@ public sealed class HaWebSocketOptions
     /// </summary>
     public string CommandEventType { get; set; } = "hada_command";
 
+    /// <summary>
+    /// Event type fired in Home Assistant when something happens on the computer, with data
+    /// <c>{ "device_id": "...", "name": "quick_action", "value": "..." }</c>.
+    /// </summary>
+    public string DeviceEventType { get; set; } = "hada_event";
+
     /// <summary>A ping is sent at this interval; the connection is dropped if nothing arrives for two intervals.</summary>
     public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(30);
 

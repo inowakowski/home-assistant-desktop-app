@@ -147,6 +147,27 @@ internal static partial class NativeMethods
     [LibraryImport("wlanapi.dll")]
     public static partial void WlanFreeMemory(nint memory);
 
+    /// <summary>Returns a PDH status; 0 on success.</summary>
+    [LibraryImport("pdh.dll", EntryPoint = "PdhOpenQueryW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial uint PdhOpenQuery(string? dataSource, nint userData, out nint query);
+
+    /// <summary>Takes the counter's English name, so it works on a Windows in any language.</summary>
+    [LibraryImport("pdh.dll", EntryPoint = "PdhAddEnglishCounterW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial uint PdhAddEnglishCounter(nint query, string counterPath, nint userData, out nint counter);
+
+    [LibraryImport("pdh.dll")]
+    public static partial uint PdhCollectQueryData(nint query);
+
+    /// <summary>
+    /// With a null buffer returns <c>PDH_MORE_DATA</c> and the size needed. The buffer receives
+    /// <paramref name="itemCount"/> PDH_FMT_COUNTERVALUE_ITEM_W structures followed by their name strings.
+    /// </summary>
+    [LibraryImport("pdh.dll", EntryPoint = "PdhGetFormattedCounterArrayW")]
+    public static unsafe partial uint PdhGetFormattedCounterArray(nint counter, uint format, ref uint bufferSize, out uint itemCount, byte* buffer);
+
+    [LibraryImport("pdh.dll")]
+    public static partial uint PdhCloseQuery(nint query);
+
     /// <summary>Reads a Windows Notification Facility state. Undocumented, but stable since Windows 8. Returns an NTSTATUS.</summary>
     [LibraryImport("ntdll.dll")]
     public static unsafe partial int NtQueryWnfStateData(

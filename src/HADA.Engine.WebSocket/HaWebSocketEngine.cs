@@ -53,6 +53,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private Task _connectionLoop = Task.CompletedTask;
     private Task _telemetryLoop = Task.CompletedTask;
     private Task _registryLoop = Task.CompletedTask;
+    private Task _eventLoop = Task.CompletedTask;
     private volatile HaConnection? _connection;
     private volatile EngineConnectionState _state;
 
@@ -158,6 +159,10 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         _connectionLoop = Task.Run(() => MaintainConnectionAsync(token), CancellationToken.None);
         _telemetryLoop = Task.Run(() => ForwardTelemetryAsync(readings, token), CancellationToken.None);
         _registryLoop = Task.Run(() => FollowRegistryAsync(registryChanges, token), CancellationToken.None);
+
+        var events = _bus.Subscribe<DeviceEvent>(
+            new EventSubscriptionOptions { Capacity = 32, Backpressure = BackpressureMode.DropOldest });
+        _eventLoop = Task.Run(() => ForwardEventsAsync(events, token), CancellationToken.None);
         return Task.CompletedTask;
     }
 
@@ -172,6 +177,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         await _stopping.CancelAsync().ConfigureAwait(false);
         await _telemetryLoop.WaitAsync(cancellationToken).ConfigureAwait(false);
         await _registryLoop.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _eventLoop.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         if (_state == EngineConnectionState.Connected)
         {
@@ -394,9 +400,12 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             return;
         }
 
-        var parameters = entity.Kind == EntityKind.Notify && ReadText(data, "title") is { Length: > 0 } title
-            ? new Dictionary<string, object?> { ["title"] = title }
-            : null;
+        Dictionary<string, object?>? parameters = null;
+        if (entity.Kind == EntityKind.Notify)
+        {
+            NotificationContent.TryRead(data, out _, out parameters);
+        }
+
         var command = new ActionCommand { ActionId = entity.Id, Value = value, Origin = Name };
         try
         {
@@ -446,6 +455,52 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         finally
         {
             await readings.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Fires what happens on the computer as a Home Assistant event of the type <see cref="HaWebSocketOptions.DeviceEventType"/>,
+    /// with <c>device_id</c>, <c>name</c> and <c>value</c> as its data.
+    /// </summary>
+    private async Task ForwardEventsAsync(IEventSubscription<DeviceEvent> events, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var deviceEvent in events.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var isExposed = deviceEvent.IsWellFormed
+                    && (deviceEvent.Name != DeviceEvent.QuickAction
+                        || (TryGetExposed(deviceEvent.Value, out var trigger) && trigger.Kind == EntityKind.Trigger));
+                if (!isExposed || _connection is not { } connection || _state != EngineConnectionState.Connected)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    await connection.SendAsync(
+                            new
+                            {
+                                id = connection.NextId(),
+                                type = "fire_event",
+                                event_type = _options.DeviceEventType,
+                                event_data = new { device_id = _deviceId, name = deviceEvent.Name, value = deviceEvent.Value },
+                            },
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is WebSocketException or InvalidOperationException or ObjectDisposedException)
+                {
+                    // The connection is going down; the connection loop reports that.
+                }
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        finally
+        {
+            await events.DisposeAsync().ConfigureAwait(false);
         }
     }
 

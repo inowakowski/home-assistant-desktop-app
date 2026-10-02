@@ -3,7 +3,10 @@ using HADA.Core.Entities;
 
 namespace HADA.Engine.Mqtt;
 
-/// <summary>Topic layout: <c>{base}/{device}/availability</c>, <c>{base}/{device}/{entity}/state|set</c>.</summary>
+/// <summary>
+/// Topic layout: <c>{base}/{device}/availability</c>, <c>{base}/{device}/{entity}/state|set</c>,
+/// <c>{base}/{device}/event/{name}</c>.
+/// </summary>
 internal sealed class MqttTopics
 {
     private const string CommandSuffix = "/set";
@@ -38,6 +41,9 @@ internal sealed class MqttTopics
 
     /// <summary>Whether the entity's own source is there, e.g. the tray app for session sensors.</summary>
     public string EntityAvailability(string entityId) => _devicePrefix + entityId + "/availability";
+
+    /// <summary>Where a kind of <see cref="Core.Models.DeviceEvent"/> is published; the payload says which one happened.</summary>
+    public string Event(string name) => _devicePrefix + "event/" + name;
 
     public string Discovery(EntityDescriptor entity) =>
         $"{_discoveryPrefix}/{Component(entity.Kind)}/{DeviceId}/{entity.Id}/config";
@@ -75,6 +81,7 @@ internal sealed class MqttTopics
         EntityKind.Switch => "switch",
         EntityKind.Number => "number",
         EntityKind.Notify => "notify",
+        EntityKind.Trigger => "device_automation",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 }

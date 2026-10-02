@@ -134,6 +134,7 @@ public class SystemReaderTests
             Assert.True(System.Net.IPAddress.TryParse(network.Address, out var address));
             Assert.False(System.Net.IPAddress.IsLoopback(address));
             Assert.Contains(network.ConnectionType, new[] { "ethernet", "wifi", "other" });
+            Assert.Matches("^([0-9A-F]{2}(:[0-9A-F]{2})*)?$", network.MacAddress);
         }
     }
 
@@ -165,6 +166,23 @@ public class SystemReaderTests
         });
         Assert.False(DiskUsageSensor.IsEntityId("disk_usage"));
         Assert.False(DiskUsageSensor.IsEntityId("disk_1_usage"));
+    }
+
+    [Fact]
+    public void Gpu_load_is_a_percentage_where_windows_reports_it()
+    {
+        // Not reported on a computer without a graphics driver that has these counters, such as some build agents.
+        using var gpu = GpuLoad.TryOpen();
+        if (gpu is null)
+        {
+            return;
+        }
+
+        Thread.Sleep(300);
+        if (gpu.TryRead() is { } load)
+        {
+            Assert.InRange(load, 0, 100);
+        }
     }
 
     [Fact]
