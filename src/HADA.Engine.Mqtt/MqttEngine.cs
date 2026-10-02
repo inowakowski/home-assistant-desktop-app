@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -23,6 +24,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private const string Offline = "offline";
     private const string PressPayload = "PRESS";
     private const int MaxStateLength = 255;
+    private const int ShortLivedConnectionsBeforeWarning = 3;
 
     private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(10);
 
@@ -189,6 +191,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
     private async Task MaintainConnectionAsync(CancellationToken cancellationToken)
     {
         var retryDelay = _options.MinReconnectDelay;
+        var shortLivedConnections = 0;
         while (!cancellationToken.IsCancellationRequested)
         {
             try
@@ -196,10 +199,25 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 _state = EngineConnectionState.Connecting;
                 _disconnected = NewSignal();
                 await ConnectAsync(cancellationToken).ConfigureAwait(false);
-                retryDelay = _options.MinReconnectDelay;
+                var connectedAt = Stopwatch.GetTimestamp();
 
                 await _disconnected.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
                 _state = EngineConnectionState.Disconnected;
+
+                // A broker lets one client per client id in and drops the previous one, so two computers (or two
+                // copies of the service) sharing a Device ID throw each other out the moment they connect. Only a
+                // connection that lasted counts as recovered; otherwise the delay keeps growing, instead of both
+                // sides reconnecting every other second forever.
+                if (Stopwatch.GetElapsedTime(connectedAt) >= _options.StableConnectionTime)
+                {
+                    retryDelay = _options.MinReconnectDelay;
+                    shortLivedConnections = 0;
+                }
+                else if (++shortLivedConnections == ShortLivedConnectionsBeforeWarning)
+                {
+                    LogConnectionKeepsDropping(_logger, _topics.DeviceId);
+                }
+
                 LogDisconnected(_logger, retryDelay);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -403,10 +421,14 @@ public sealed partial class MqttEngine : ICommunicationEngine
     {
         await ClearPendingRemovalsAsync(cancellationToken).ConfigureAwait(false);
 
-        foreach (var entity in _registry.Entities)
+        var entities = _registry.Entities;
+        foreach (var entity in entities)
         {
             await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
         }
+
+        var enabled = entities.Count(entity => _filter.IsEnabled(entity.Id));
+        LogAnnounced(_logger, enabled, _options.DiscoveryPrefix, _topics.DeviceId, entities.Count - enabled);
 
         foreach (var reading in _lastReadings.Values)
         {
@@ -530,6 +552,13 @@ public sealed partial class MqttEngine : ICommunicationEngine
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to MQTT broker {Host}:{Port} as device '{DeviceId}'.")]
     private static partial void LogConnected(ILogger logger, string host, int port, string deviceId);
+
+    // What Home Assistant should now show; the first thing to compare when entities are missing there.
+    [LoggerMessage(Level = LogLevel.Information, Message = "Announced {Count} entities to Home Assistant on '{DiscoveryPrefix}/<type>/{DeviceId}/<entity>/config'; {Disabled} disabled ones were removed.")]
+    private static partial void LogAnnounced(ILogger logger, int count, string discoveryPrefix, string deviceId, int disabled);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The MQTT connection keeps dropping right after it is made. Another HADA is probably connected with the same Device ID '{DeviceId}': every computer needs its own, and only one copy of the service may run. Retrying less and less often.")]
+    private static partial void LogConnectionKeepsDropping(ILogger logger, string deviceId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Disconnected from MQTT broker; reconnecting in {RetryDelay}.")]
     private static partial void LogDisconnected(ILogger logger, TimeSpan retryDelay);

@@ -96,7 +96,7 @@ Open it by double-clicking the HADA tray icon, or choose **Open HADA** from its 
 
 | Page | What it shows |
 |---|---|
-| **Overview** | Whether the service is running, the state of both connections, whether the tray is connected, and every entity with its latest value |
+| **Overview** | Whether the service is running, the state of both connections, whether the tray is connected, the **Start with Windows** switch, and every entity with its latest value |
 | **Connections** | MQTT and Home Assistant settings, each with a **Test connection** button |
 | **Entities** | A switch per entity to choose what is shared with Home Assistant. Disabled entities are removed from Home Assistant |
 | **Custom sensors** | Your own sensors: a fixed text, whether a program is running, or the output of a PowerShell command |
@@ -208,6 +208,7 @@ Tray command-line options:
 | Option | Effect |
 |---|---|
 | `--background` | Start without opening the window, e.g. at sign-in |
+| `--autostart` | Marks a start made by Windows at sign-in. The tray exits again if the user turned **Start with Windows** off |
 | `--page overview\|connections\|entities\|custom\|logs` | Open the window on a specific page |
 | `--settings` | Open only the window, without tray icon or sensors. Used when relaunching as administrator |
 
@@ -227,7 +228,7 @@ Double-click the installer that matches the computer and follow the three pages.
 
 - copies HADA to `C:\Program Files\HADA`
 - registers the `HADA` service (LocalSystem, starts with Windows, restarts a minute after a crash) and starts it
-- starts the tray app at sign-in for every user, and adds **HADA** to the Start menu
+- starts the tray app at sign-in for every user, and adds **HADA** to the Start menu. Each user can turn this off with **Start with Windows** on the Overview page; the service itself always starts with Windows
 - offers to open the HADA window on the last page, where you choose **Unlock editing** and set up a connection
 
 To update, run a newer installer; it replaces the old version and keeps the settings. To remove HADA, use **Settings → Apps → Installed apps**. Settings and logs in `%ProgramData%\HADA` are left in place; delete that folder to forget them.
@@ -269,7 +270,7 @@ sc.exe delete HADA
 #### 3. Start the tray at sign-in
 
 ```powershell
-New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "HADA.Tray" -Value '"C:\Program Files\HADA\tray\HADA.Tray.exe" --background' -PropertyType String -Force
+New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "HADA.Tray" -Value '"C:\Program Files\HADA\tray\HADA.Tray.exe" --background --autostart' -PropertyType String -Force
 ```
 
 Only one tray instance runs per user session. Then open the window from the tray icon and configure a connection.
@@ -431,6 +432,18 @@ await foreach (var command in commands.ReadAllAsync(stoppingToken))
 ```
 
 `src/HADA.Platform.Windows/Actions/LockScreenAction.cs` is the complete example. Anyone who can press the button in Home Assistant can trigger the action, so think about what it lets them do to the computer.
+
+## Troubleshooting
+
+Start with the **Logs** page, or `%ProgramData%\HADA\logs\service.log`.
+
+| What you see | Likely cause and what to do |
+|---|---|
+| The log repeats *Disconnected from MQTT broker* every few seconds, or says the connection *keeps dropping right after it is made* | Two HADA services are connected with the same **Device ID**. A broker allows one connection per ID and drops the other. Give every computer its own Device ID, and make sure only one copy of the service runs on each: a development build started with `dotnet run` counts as one |
+| The window says the service is not running although it is | Another copy of the service held the `HADA.Session` pipe when this one started. The service takes the pipe over within seconds of the other copy exiting; the log says when |
+| The device is in Home Assistant, but entities are missing | Each time it connects, the service logs *Announced N entities to Home Assistant*. If N is what you expect, the reason is on the Home Assistant side: look under **Settings → System → Logs** for `mqtt` entries. If N is too low, the entities are switched off on the **Entities** page or the tray app is not connected |
+| Sensors show *unknown* right after they appear | Should not happen from 0.2.0 on, where states are retained. With an older version, wait for the value to change |
+| Every sensor appears twice | Both MQTT and the WebSocket engine are configured. Clear the Home Assistant URL, or the broker host |
 
 ## Security notes
 

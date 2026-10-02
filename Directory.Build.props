@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- One version for the assemblies, the installer and what Home Assistant shows as the device's software version. -->
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <Product>HADA – Home Assistant Desktop App</Product>
     <Authors>Ignacy Nowakowski</Authors>
 

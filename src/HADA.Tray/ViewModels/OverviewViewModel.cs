@@ -16,13 +16,34 @@ public sealed class OverviewViewModel : ObservableObject
     private readonly StatusCardViewModel _tray = new(Loc.Get("Card_Tray"), SymbolRegular.WindowApps24);
     private bool _hasNoEntities = true;
 
-    public OverviewViewModel()
+    /// <param name="isElevated">Whether this is the administrator copy of the window, opened with "Unlock editing".</param>
+    public OverviewViewModel(bool isElevated)
     {
         Cards = [_service, _mqtt, _homeAssistant, _tray];
+        CanChangeAutostart = !isElevated;
+        AutostartDetail = Loc.Get(isElevated ? "Autostart_Elevated" : "Autostart_Detail");
         SetUnavailable();
     }
 
     public IReadOnlyList<StatusCardViewModel> Cards { get; }
+
+    /// <summary>
+    /// Autostart is a per-user choice. The administrator window may run under another account, where the switch
+    /// would change that account's choice instead of the user's, so it is read-only there.
+    /// </summary>
+    public bool CanChangeAutostart { get; }
+
+    public string AutostartDetail { get; }
+
+    public bool StartWithWindows
+    {
+        get => Autostart.IsEnabled;
+        set
+        {
+            Autostart.IsEnabled = value;
+            OnPropertyChanged();
+        }
+    }
 
     public ObservableCollection<EntityRowViewModel> Entities { get; } = [];
 

@@ -29,6 +29,9 @@
   <data name="Overview_Subtitle" xml:space="preserve"><value>Live status of the HADA service, its connections and entities.</value></data>
   <data name="Overview_Entities" xml:space="preserve"><value>Entities</value></data>
   <data name="Overview_NoEntities" xml:space="preserve"><value>No entities yet.</value></data>
+  <data name="Autostart_Title" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors, when you sign in. The HADA service always starts with Windows.</value></data>
+  <data name="Autostart_Elevated" xml:space="preserve"><value>This is your personal setting. Change it in the HADA window opened from the tray icon, not in this administrator window.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>HADA service</value></data>
   <data name="Card_Mqtt" xml:space="preserve"><value>MQTT</value></data>
   <data name="Card_HomeAssistant" xml:space="preserve"><value>Home Assistant (WebSocket)</value></data>

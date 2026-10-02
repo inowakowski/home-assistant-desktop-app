@@ -27,6 +27,7 @@ namespace HADA.Tray;
 /// </summary>
 /// <remarks>
 /// <c>--background</c> starts without opening the window (use it for sign-in startup).
+/// <c>--autostart</c> marks a start made by Windows at sign-in; the app then exits if the user turned autostart off.
 /// <c>--settings</c> opens only the window; it is used when relaunching elevated to edit settings.
 /// <c>--page overview|connections|entities|custom|logs</c> chooses the page the window opens on.
 /// </remarks>
@@ -98,6 +99,13 @@ public partial class App : Application
         {
             // Elevated copy started from "Unlock editing": just the window, and exit when it closes.
             ShowMainWindow(exitOnClose: true, initialPage);
+            return;
+        }
+
+        if (HasArgument(e, Autostart.Argument) && !Autostart.IsEnabled)
+        {
+            // Started by Windows at sign-in, but this user chose not to start HADA with Windows.
+            Shutdown();
             return;
         }
 

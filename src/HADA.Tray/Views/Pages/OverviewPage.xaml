@@ -60,8 +60,39 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
+            <ui:Card Padding="18,14">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border VerticalAlignment="Center" Style="{StaticResource IconTile}">
+                        <ui:SymbolIcon FontSize="22" Symbol="Power24" />
+                    </Border>
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="14,0,16,0"
+                        VerticalAlignment="Center">
+                        <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Autostart_Title}" />
+                        <ui:TextBlock
+                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                            FontTypography="Caption"
+                            Text="{Binding AutostartDetail}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ui:ToggleSwitch
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        IsChecked="{Binding StartWithWindows}"
+                        IsEnabled="{Binding CanChangeAutostart}"
+                        OffContent="{l:Tr Common_Off}"
+                        OnContent="{l:Tr Common_On}" />
+                </Grid>
+            </ui:Card>
+
             <ui:TextBlock
-                Margin="0,12,0,10"
+                Margin="0,24,0,10"
                 FontTypography="Subtitle"
                 Text="{l:Tr Overview_Entities}" />
             <ui:Card Padding="0">

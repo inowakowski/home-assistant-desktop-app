@@ -32,4 +32,10 @@ public sealed class MqttOptions
     public TimeSpan MinReconnectDelay { get; set; } = TimeSpan.FromSeconds(2);
 
     public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// A connection that lasted at least this long counts as working, and the next reconnect starts from
+    /// <see cref="MinReconnectDelay"/> again. Shorter ones make the delay grow.
+    /// </summary>
+    public TimeSpan StableConnectionTime { get; set; } = TimeSpan.FromSeconds(30);
 }

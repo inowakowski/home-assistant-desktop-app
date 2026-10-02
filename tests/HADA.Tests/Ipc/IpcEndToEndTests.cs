@@ -91,6 +91,28 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_service_that_finds_the_pipe_taken_takes_it_over_once_it_is_free()
+    {
+        _options.PipeRetryDelay = TimeSpan.FromMilliseconds(100);
+
+        // Another copy of the service got there first, as a development build left running would.
+        var (firstBus, firstRegistry) = CreateServiceSide();
+        var first = await StartServerAsync(firstBus, firstRegistry);
+
+        var (secondBus, secondRegistry) = CreateServiceSide();
+        await StartServerAsync(secondBus, secondRegistry);
+        await _trayRegistry.RegisterAsync(Sensor("audio_volume"));
+        await StartClientAsync();
+        await WaitUntilAsync(() => firstRegistry.TryGet("audio_volume", out _));
+        Assert.False(secondRegistry.TryGet("audio_volume", out _));
+
+        await first.StopAsync(CancellationToken.None);
+
+        // The second service must not have given up: the tray reconnects, and now reaches it.
+        await WaitUntilAsync(() => secondRegistry.TryGet("audio_volume", out _));
+    }
+
+    [Fact]
     public async Task Client_replays_entities_and_latest_reading_after_service_restart()
     {
         var (firstBus, firstRegistry) = CreateServiceSide();

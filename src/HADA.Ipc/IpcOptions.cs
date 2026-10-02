@@ -12,4 +12,7 @@ public sealed class IpcOptions
     public TimeSpan MinReconnectDelay { get; set; } = TimeSpan.FromSeconds(1);
 
     public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>How long the server waits before trying again to create a pipe that another process holds.</summary>
+    public TimeSpan PipeRetryDelay { get; set; } = TimeSpan.FromSeconds(10);
 }

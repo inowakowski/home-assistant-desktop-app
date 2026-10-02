@@ -234,6 +234,23 @@ public sealed class MqttEngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Two_engines_sharing_a_device_id_back_off_instead_of_reconnecting_forever()
+    {
+        // A broker allows one connection per client id, so each engine is thrown out when the other connects.
+        await using var first = CreateEngine();
+        await using var second = CreateEngine();
+        await first.StartAsync(CancellationToken.None);
+        await second.StartAsync(CancellationToken.None);
+
+        await Task.Delay(TimeSpan.FromSeconds(4));
+
+        // With a 100 ms delay that never grew there would be dozens of connections by now; with a delay that
+        // doubles after every short-lived connection, each engine manages only a handful.
+        var connections = Snapshot().Count(message => message.Topic == "hada/testpc/availability" && message.Payload == "online");
+        Assert.InRange(connections, 2, 16);
+    }
+
+    [Fact]
     public async Task Start_without_host_stays_idle()
     {
         await using var engine = new MqttEngine(

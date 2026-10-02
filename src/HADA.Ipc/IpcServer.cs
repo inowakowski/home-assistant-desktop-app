@@ -41,6 +41,7 @@ public sealed partial class IpcServer(
         var pipeName = options.Value.PipeName;
         var clients = new List<Task>();
         var isFirstInstance = true;
+        var isPipeUnavailable = false;
         try
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -61,9 +62,23 @@ public sealed partial class IpcServer(
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    // Most likely another process created the pipe first; refuse to share it.
-                    LogPipeUnavailable(logger, ex, pipeName);
-                    return;
+                    // Most likely another process created the pipe first, e.g. a second copy of the service.
+                    // Never share it, but keep trying: without the pipe the tray and the settings window cannot
+                    // reach this service, and the other process may go away.
+                    if (!isPipeUnavailable)
+                    {
+                        LogPipeUnavailable(logger, ex, pipeName);
+                        isPipeUnavailable = true;
+                    }
+
+                    await Task.Delay(options.Value.PipeRetryDelay, stoppingToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (isPipeUnavailable)
+                {
+                    LogPipeAvailable(logger, pipeName);
+                    isPipeUnavailable = false;
                 }
 
                 try
@@ -338,8 +353,11 @@ public sealed partial class IpcServer(
 
     private sealed record EntityOwner(Guid ConnectionId, string ClientName);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Session IPC disabled: cannot create pipe '{PipeName}'.")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Cannot create pipe '{PipeName}', so the tray app and the settings window cannot reach this service. Is another copy of the HADA service running? Trying again until it works.")]
     private static partial void LogPipeUnavailable(ILogger logger, Exception exception, string pipeName);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Pipe '{PipeName}' is available again; the tray app and the settings window can connect.")]
+    private static partial void LogPipeAvailable(ILogger logger, string pipeName);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Dropped an IPC client that did not start with a supported hello message.")]
     private static partial void LogHandshakeRejected(ILogger logger);

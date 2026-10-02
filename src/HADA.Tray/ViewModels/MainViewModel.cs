@@ -23,7 +23,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         _client = client;
         IsElevated = isElevated;
         WindowTitle = Loc.Get(isElevated ? "App_TitleElevated" : "App_Title");
-        Overview = new OverviewViewModel();
+        Overview = new OverviewViewModel(isElevated);
         Settings = new SettingsViewModel(client, isElevated);
         Entities = new EntitiesViewModel(Settings);
         Logs = new LogsViewModel(client);

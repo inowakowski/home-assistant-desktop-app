@@ -88,13 +88,16 @@
                         Advertise="yes" />
                 </File>
 
-                <!-- Starts the tray app, without its window, when any user signs in. -->
+                <!--
+                    Starts the tray app, without its window, when any user signs in. With the autostart argument the
+                    tray exits again if its user turned "Start with Windows" off in the HADA window.
+                -->
                 <RegistryValue
                     Root="HKLM"
                     Key="Software\Microsoft\Windows\CurrentVersion\Run"
                     Name="HADA.Tray"
                     Type="string"
-                    Value="&quot;[#TrayExeFile]&quot; --background" />
+                    Value="&quot;[#TrayExeFile]&quot; --background --autostart" />
             </Component>
 
             <Files Include="$(var.TrayDir)\**">
