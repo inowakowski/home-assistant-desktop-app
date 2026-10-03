@@ -30,8 +30,7 @@ jobs:
       - name: Build
         run: mkdocs build --strict
 
-      # The website Cloudflare Pages publishes: the landing page with the documentation under docs/.
-      - name: Build the website
+      - name: Build the landing page
         run: python scripts/build_site.py
 
       - uses: actions/upload-pages-artifact@v3
