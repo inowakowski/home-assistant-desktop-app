@@ -2,6 +2,13 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.3.0 (pre-release)
+
+Nothing new to see: this version changes what HADA is built on, and is a pre-release so that it gets tried before a stable version carries it.
+
+- HADA runs on .NET 10, the long-term release, instead of .NET 9, whose support ends in November 2026. The installers and the portable version bring it along, as before.
+- What is specific to Windows is kept apart from the rest, as groundwork for macOS and Linux versions. Those do not exist yet.
+
 ## 1.2.0
 
 A stable version, which also brings everything new in 1.1.0 to those who use stable versions.
