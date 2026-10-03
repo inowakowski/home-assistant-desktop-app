@@ -12,7 +12,7 @@ data:
 
 ## Title, picture and buttons
 
-*Pictures and buttons are new in 1.1.0, a pre-release; 1.0.0 shows the title and the message.*
+*Pictures and buttons are new in 1.1.0; 1.0.0 shows the title and the message.*
 
 For more than a plain text, publish JSON to the entity's topic instead:
 

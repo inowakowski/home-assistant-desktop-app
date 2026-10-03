@@ -2,7 +2,9 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## 1.2.0 (pre-release)
+## 1.2.0
+
+A stable version, which also brings everything new in 1.1.0 to those who use stable versions.
 
 - **Several Home Assistants at once:** any number of MQTT servers, up to eight, each with a name of its own, connected at the same time. Each has its own card on the Overview page; the buttons of a notification answer the Home Assistant that sent it.
 - **Broker names that stand for several addresses**, as `.local` names do, are tried address by address, IPv4 first, and the one that answered is remembered. The log says what a name stands for, and why a name could not be found.

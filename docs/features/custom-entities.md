@@ -26,7 +26,7 @@ Keys are joined by `+`: any of `Ctrl`, `Alt`, `Shift` and `Win`, then at most on
 
 ## Quick actions
 
-*New in 1.1.0, a pre-release.*
+*New in 1.1.0.*
 
 A quick action goes the other way: it lets you start something in Home Assistant from the computer. Add one with the type **Quick action** and give it a name; a keyboard shortcut is optional, and must include `Ctrl`, `Alt` or `Win`.
 

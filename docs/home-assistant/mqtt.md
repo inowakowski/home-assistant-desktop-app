@@ -21,7 +21,7 @@ If the service stops or loses its connection, all of the device's entities turn 
 
 ## Several Home Assistants at once
 
-*New in 1.2.0, a pre-release.*
+*New in 1.2.0.*
 
 A computer can report to more than one Home Assistant at the same time: one at home, one at the office and one in a holiday flat, say, each with automations of its own. Every Home Assistant is one MQTT server on the **Connections** page:
 

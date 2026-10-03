@@ -29,7 +29,7 @@ Right-click the HADA icon in the notification area:
 
 ## The dashboard window
 
-*New in 1.1.0, a pre-release.*
+*New in 1.1.0.*
 
 Enter an address on the **Settings** page, under **Home Assistant dashboard**, for example `http://homeassistant.local:8123/lovelace/desk`. The tray icon's menu then offers **Home Assistant dashboard**: a small window near the notification area showing that address.
 

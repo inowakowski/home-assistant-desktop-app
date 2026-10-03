@@ -1,6 +1,6 @@
 # Portable version
 
-*New in 1.2.0, a pre-release.*
+*New in 1.2.0.*
 
 HADA without installing it: unpack a folder and run it. No administrator rights, nothing registered with Windows, and everything it writes stays in that folder. Good for trying HADA out, for a computer where you may not install software, or for carrying it along.
 
