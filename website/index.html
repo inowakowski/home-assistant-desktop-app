@@ -23,7 +23,7 @@
     <div class="wrap">
       <a class="brand" href="/"><img src="/img/logo.png" alt="" width="32" height="32">HADA</a>
       <nav>
-        <a href="/docs/">Documentation</a>
+        <a href="{{DOCS_URL}}/">Documentation</a>
         <a href="https://github.com/inowakowski/home-assistant-desktop-app">GitHub</a>
         <a href="/pl/" lang="pl" hreflang="pl">Polski</a>
       </nav>
@@ -37,9 +37,9 @@
       <div class="buttons">
         <a class="button" data-asset="-x64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Download for x64</a>
         <a class="button" data-asset="-arm64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Download for ARM64</a>
-        <a class="button secondary" href="/docs/">Read the documentation</a>
+        <a class="button secondary" href="{{DOCS_URL}}/">Read the documentation</a>
       </div>
-      <p class="note">Version <span data-version>from the latest release</span> · Windows 10 (1809 or newer) and Windows 11 · free, MIT license · also as a <a href="/docs/getting-started/portable/">portable version</a></p>
+      <p class="note">Version <span data-version>from the latest release</span> · Windows 10 (1809 or newer) and Windows 11 · free, MIT license · also as a <a href="{{DOCS_URL}}/getting-started/portable/">portable version</a></p>
       <img class="shot" src="/img/overview.png" alt="The Overview page of the HADA window">
     </div>
 
@@ -104,15 +104,15 @@
         <h2>Start here</h2>
         <ul class="grid steps">
           <li class="card">
-            <h3><a href="/docs/getting-started/installation/">Install HADA</a></h3>
+            <h3><a href="{{DOCS_URL}}/getting-started/installation/">Install HADA</a></h3>
             <p>Run the installer, or unpack the portable version, which needs no administrator rights.</p>
           </li>
           <li class="card">
-            <h3><a href="/docs/getting-started/first-setup/">Connect it to Home Assistant</a></h3>
+            <h3><a href="{{DOCS_URL}}/getting-started/first-setup/">Connect it to Home Assistant</a></h3>
             <p>Open HADA from the tray icon and set up a connection to your MQTT broker or straight to Home Assistant.</p>
           </li>
           <li class="card">
-            <h3><a href="/docs/home-assistant/examples/">Use it in automations</a></h3>
+            <h3><a href="{{DOCS_URL}}/home-assistant/examples/">Use it in automations</a></h3>
             <p>Dim the lights when a film starts, switch the desk lamp off when you lock the computer.</p>
           </li>
         </ul>
