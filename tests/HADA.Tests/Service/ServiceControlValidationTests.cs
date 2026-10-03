@@ -7,10 +7,12 @@ public class ServiceControlValidationTests
 {
     private static readonly MqttSettings Broker = new("broker.local", 1883, false, "hada", "", "", "homeassistant", "hada") { Id = "default" };
 
+    private static readonly HomeAssistantSettings HomeAssistant =
+        new("http://homeassistant.local:8123", "", "", "hada_command") { Id = "default" };
+
     private static readonly SettingsUpdate Valid = new(
         [new MqttServerUpdate(Broker, SecretUpdate.Unchanged)],
-        new HomeAssistantSettings("http://homeassistant.local:8123", "", "", "hada_command"),
-        SecretUpdate.Unchanged,
+        [new HomeAssistantServerUpdate(HomeAssistant, SecretUpdate.Unchanged)],
         [],
         [ProcessSensor],
         [],
@@ -40,9 +42,17 @@ public class ServiceControlValidationTests
         { "host with spaces", WithBroker(Broker with { Host = "not a host" }) },
         { "wildcard topic", WithBroker(Broker with { BaseTopic = "hada/#" }) },
         { "empty discovery prefix", WithBroker(Broker with { DiscoveryPrefix = " / " }) },
-        { "ftp url", Valid with { HomeAssistant = Valid.HomeAssistant with { BaseUrl = "ftp://ha.local" } } },
-        { "relative url", Valid with { HomeAssistant = Valid.HomeAssistant with { BaseUrl = "ha.local:8123" } } },
-        { "event type with space", Valid with { HomeAssistant = Valid.HomeAssistant with { CommandEventType = "hada command" } } },
+        { "ftp url", WithHomeAssistant(HomeAssistant with { BaseUrl = "ftp://ha.local" }) },
+        { "relative url", WithHomeAssistant(HomeAssistant with { BaseUrl = "ha.local:8123" }) },
+        { "event type with space", WithHomeAssistant(HomeAssistant with { CommandEventType = "hada command" }) },
+        { "Home Assistant without an id", WithHomeAssistant(HomeAssistant with { Id = "" }) },
+        { "very long Home Assistant name", WithHomeAssistant(HomeAssistant with { Name = new string('x', 65) }) },
+        { "very long access token", Valid with { HomeAssistantServers = [new HomeAssistantServerUpdate(HomeAssistant, new SecretUpdate(SecretChange.Replace, new string('x', 5000)))] } },
+        { "two Home Assistants, one without a name", WithHomeAssistants(HomeAssistant with { Name = "Flat" }, HomeAssistant with { Id = "b", BaseUrl = "http://office.local:8123" }) },
+        { "two Home Assistants with one name", WithHomeAssistants(HomeAssistant with { Name = "Flat" }, HomeAssistant with { Id = "b", Name = "flat", BaseUrl = "http://office.local:8123" }) },
+        { "two Home Assistants with one id", WithHomeAssistants(HomeAssistant with { Name = "Flat" }, HomeAssistant with { Name = "Office", BaseUrl = "http://office.local:8123" }) },
+        { "one Home Assistant twice with one device id", WithHomeAssistants(HomeAssistant with { Name = "Flat" }, HomeAssistant with { Id = "b", Name = "Again", BaseUrl = "http://HOMEASSISTANT.local:8123/" }) },
+        { "more Home Assistants than allowed", WithHomeAssistants([.. Enumerable.Range(0, ServiceControl.MaxHomeAssistantServers + 1).Select(i => HomeAssistant with { Id = $"s{i}", Name = $"S{i}", BaseUrl = $"http://h{i}.local:8123" })]) },
         { "very long name", WithBroker(Broker with { DeviceName = new string('x', 300) }) },
         { "very long secret", Valid with { MqttServers = [new MqttServerUpdate(Broker, new SecretUpdate(SecretChange.Replace, new string('x', 5000)))] } },
         { "server without an id", WithBroker(Broker with { Id = "" }) },
@@ -77,11 +87,22 @@ public class ServiceControlValidationTests
     {
         var disabled = WithBroker(Broker with { Host = "" }) with
         {
-            HomeAssistant = Valid.HomeAssistant with { BaseUrl = "" },
+            HomeAssistantServers = [new HomeAssistantServerUpdate(HomeAssistant with { BaseUrl = "" }, SecretUpdate.Unchanged)],
         };
 
         Assert.Null(ServiceControl.Validate(disabled));
-        Assert.Null(ServiceControl.Validate(Valid with { MqttServers = [] }));
+        Assert.Null(ServiceControl.Validate(Valid with { MqttServers = [], HomeAssistantServers = [] }));
+    }
+
+    [Fact]
+    public void Several_named_Home_Assistants_pass_even_at_one_address_with_different_device_ids()
+    {
+        var servers = WithHomeAssistants(
+            HomeAssistant with { Name = "Mieszkanie" },
+            HomeAssistant with { Id = "b2", Name = "Biuro", BaseUrl = "https://office.example.com" },
+            HomeAssistant with { Id = "c3", Name = "Same address, other device", DeviceId = "desk-2" });
+
+        Assert.Null(ServiceControl.Validate(servers));
     }
 
     [Theory]
@@ -111,7 +132,11 @@ public class ServiceControlValidationTests
     {
         var unfinished = WithBrokers(Broker with { Name = "Flat" }, Broker with { Id = "b", Host = "not a host" }) with
         {
-            HomeAssistant = Valid.HomeAssistant with { BaseUrl = "not a url" },
+            HomeAssistantServers =
+            [
+                new HomeAssistantServerUpdate(HomeAssistant with { Name = "Flat" }, SecretUpdate.Unchanged),
+                new HomeAssistantServerUpdate(HomeAssistant with { Id = "b", BaseUrl = "not a url" }, SecretUpdate.Unchanged),
+            ],
             CustomSensors = [new CustomSensorDefinition { Name = "Unfinished", Type = CustomSensorType.PowerShell }],
         };
 
@@ -119,7 +144,10 @@ public class ServiceControlValidationTests
         Assert.Null(ServiceControl.Validate(unfinished, ConnectionTarget.Mqtt, "default"));
         Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.Mqtt, "b"));
         Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.Mqtt, "no-such-server"));
-        Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.HomeAssistant));
+        Assert.Null(ServiceControl.Validate(unfinished, ConnectionTarget.HomeAssistant));
+        Assert.Null(ServiceControl.Validate(unfinished, ConnectionTarget.HomeAssistant, "default"));
+        Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.HomeAssistant, "b"));
+        Assert.NotNull(ServiceControl.Validate(unfinished, ConnectionTarget.HomeAssistant, "no-such-server"));
     }
 
     [Fact]
@@ -146,11 +174,12 @@ public class ServiceControlValidationTests
     {
         var update = Valid with
         {
-            AccessToken = new SecretUpdate(SecretChange.Replace, "super-secret-token"),
+            HomeAssistantServers = [new HomeAssistantServerUpdate(HomeAssistant, new SecretUpdate(SecretChange.Replace, "super-secret-token"))],
             MqttServers = [new MqttServerUpdate(Broker, new SecretUpdate(SecretChange.Replace, "broker-password"))],
         };
 
         Assert.DoesNotContain("super-secret-token", update.ToString());
+        Assert.DoesNotContain("super-secret-token", update.HomeAssistantServers[0].ToString());
         Assert.DoesNotContain("broker-password", update.MqttServers[0].ToString());
     }
 
@@ -166,6 +195,11 @@ public class ServiceControlValidationTests
     private static SettingsUpdate WithCustomSensor(CustomSensorDefinition sensor) => Valid with { CustomSensors = [sensor] };
 
     private static SettingsUpdate WithBroker(MqttSettings broker) => WithBrokers(broker);
+
+    private static SettingsUpdate WithHomeAssistant(HomeAssistantSettings server) => WithHomeAssistants(server);
+
+    private static SettingsUpdate WithHomeAssistants(params HomeAssistantSettings[] servers) =>
+        Valid with { HomeAssistantServers = [.. servers.Select(server => new HomeAssistantServerUpdate(server, SecretUpdate.Unchanged))] };
 
     private static SettingsUpdate WithBrokers(params MqttSettings[] brokers) =>
         Valid with { MqttServers = [.. brokers.Select(broker => new MqttServerUpdate(broker, SecretUpdate.Unchanged))] };

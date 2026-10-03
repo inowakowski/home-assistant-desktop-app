@@ -1,6 +1,7 @@
 using System.IO;
 using System.Net.Http;
 using HADA.Core;
+using HADA.Core.Entities;
 using System.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
@@ -25,6 +26,12 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
     /// <summary>Identifies this copy's notifications to Windows; the name shown is "HADA".</summary>
     public static string AppId { get; } = "HADA.Tray" + AppInstance.Suffix;
 
+    /// <summary>
+    /// Marks what comes back from a pressed notification as an address to open rather than a button's action.
+    /// An action has no colon in it, so the two cannot be mistaken.
+    /// </summary>
+    private const string AddressPrefix = "open:";
+
     private const int MaxKeptToasts = 20;
     private const long MaxImageBytes = 5 * 1024 * 1024;
 
@@ -37,18 +44,44 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
 
     public async Task ShowAsync(NotificationRequest request)
     {
+        if (request.Clear)
+        {
+            Clear(request);
+            return;
+        }
+
         try
         {
             EnsureRegistered();
             var imagePath = request.ImageUrl is null ? null : await TryDownloadImageAsync(request.ImageUrl);
 
             var document = new XmlDocument();
-            document.LoadXml(BuildXml(request, imagePath));
+
+            // With a browser chosen, Windows is not left to open addresses in the default one: they come back
+            // here, as pressed buttons do.
+            var browser = UserPreferences.NotificationBrowser;
+            document.LoadXml(BuildXml(request, imagePath, openAddressesHere: browser.Length > 0));
             var toast = new ToastNotification(document);
+            if (TagOf(request) is { } tag)
+            {
+                // With the same tag and group as one shown earlier, Windows replaces that one.
+                toast.Tag = tag;
+                toast.Group = GroupOf(request.Origin);
+            }
+
             toast.Activated += (_, args) =>
             {
                 // Pressing the notification itself carries no argument; only a button names an action.
-                if (args is ToastActivatedEventArgs { Arguments: { Length: > 0 } action })
+                if (args is not ToastActivatedEventArgs { Arguments: { Length: > 0 } action })
+                {
+                    return;
+                }
+
+                if (action.StartsWith(AddressPrefix, StringComparison.Ordinal))
+                {
+                    Browsers.Open(action[AddressPrefix.Length..], UserPreferences.NotificationBrowser);
+                }
+                else
                 {
                     actionPressed(action, request.Origin);
                 }
@@ -73,15 +106,70 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
         }
     }
 
-    /// <summary>The toast's markup: two lines of text, the picture below them, and one button per action.</summary>
-    internal static string BuildXml(NotificationRequest request, string? imagePath)
+    /// <summary>
+    /// Takes back the notification with the request's tag, from the screen and from the notification centre.
+    /// One that is not there any more is nothing to complain about.
+    /// </summary>
+    private void Clear(NotificationRequest request)
     {
+        if (TagOf(request) is not { } tag)
+        {
+            return;
+        }
+
+        try
+        {
+            ToastNotificationManager.History.Remove(tag, GroupOf(request.Origin), AppId);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            LogClearFailed(logger, ex.Message);
+        }
+    }
+
+    private static string? TagOf(NotificationRequest request) =>
+        request.Tag is { Length: > 0 } tag ? (tag.Length > NotificationContent.MaxTagLength ? tag[..NotificationContent.MaxTagLength] : tag) : null;
+
+    /// <summary>
+    /// Tags are told apart by where they came from, so that two Home Assistants using the same tag do not replace
+    /// or take back each other's notifications. Windows allows a group 64 characters; a name may be longer.
+    /// </summary>
+    internal static string GroupOf(string? origin) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(origin ?? string.Empty)))[..32];
+
+    /// <summary>
+    /// The toast's markup: two lines of text, the picture below them, and one button per action. Pressing it opens
+    /// its address, if it has one; a button with an address opens that instead of being reported.
+    /// </summary>
+    /// <param name="openAddressesHere">
+    /// False to let Windows open addresses, in the default browser; that works even after the tray app was
+    /// restarted. True to have them come back to this process, which opens them in the browser the user chose.
+    /// </param>
+    internal static string BuildXml(NotificationRequest request, string? imagePath, bool openAddressesHere = false)
+    {
+        string Address(string url) => openAddressesHere
+            ? $"\"{SecurityElement.Escape(AddressPrefix + url)}\" activationType=\"foreground\""
+            : $"\"{SecurityElement.Escape(url)}\" activationType=\"protocol\"";
+
         var image = imagePath is null ? string.Empty : $"<image src=\"{SecurityElement.Escape(new Uri(imagePath).AbsoluteUri)}\"/>";
-        var buttons = string.Concat(request.Buttons.Select(button =>
-            $"<action content=\"{SecurityElement.Escape(button.Title)}\" arguments=\"{SecurityElement.Escape(button.Action)}\" activationType=\"foreground\"/>"));
-        return "<toast><visual><binding template=\"ToastGeneric\">"
+        var buttons = string.Concat(request.Buttons.Select(button => NotificationContent.ToHttpUrl(button.Uri) is { } uri
+            ? $"<action content=\"{SecurityElement.Escape(button.Title)}\" arguments={Address(uri)}/>"
+            : $"<action content=\"{SecurityElement.Escape(button.Title)}\" arguments=\"{SecurityElement.Escape(button.Action)}\" activationType=\"foreground\"/>"));
+
+        // Windows keeps a reminder on the screen only if it has a button; one that dismisses it will do.
+        if (request.Sticky && buttons.Length == 0)
+        {
+            buttons = "<action content=\"\" arguments=\"dismiss\" activationType=\"system\"/>";
+        }
+
+        // Only what a browser opens: the address comes from Home Assistant, and must not start anything else here.
+        var launch = NotificationContent.ToHttpUrl(request.Url) is { } url
+            ? $" launch={Address(url)}"
+            : string.Empty;
+        return $"<toast{launch}{(request.Sticky ? " scenario=\"reminder\"" : string.Empty)}><visual><binding template=\"ToastGeneric\">"
             + $"<text>{SecurityElement.Escape(request.Title)}</text><text>{SecurityElement.Escape(request.Message)}</text>{image}"
             + "</binding></visual>"
+            + (request.Silent ? "<audio silent=\"true\"/>" : string.Empty)
             + (buttons.Length > 0 ? $"<actions>{buttons}</actions>" : string.Empty)
             + "</toast>";
     }
@@ -179,6 +267,9 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A notification could not be shown as a toast ({Reason}); showing it the plain way.")]
     private static partial void LogToastFailed(ILogger logger, string reason);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "A notification could not be taken back: {Reason}")]
+    private static partial void LogClearFailed(ILogger logger, string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The picture of a notification could not be fetched: {Reason}")]
     private static partial void LogImageFailed(ILogger logger, string reason);

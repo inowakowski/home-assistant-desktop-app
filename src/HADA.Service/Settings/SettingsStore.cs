@@ -4,6 +4,7 @@ using System.Security.Principal;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using HADA.Engine.Mqtt;
+using HADA.Engine.WebSocket;
 using HADA.Ipc;
 
 namespace HADA.Service.Settings;
@@ -26,10 +27,21 @@ public sealed record StoredSettings
     public IReadOnlyList<StoredMqttServer>? GetMqttServers() =>
         MqttServers ?? (Mqtt is null ? null : [new StoredMqttServer(Mqtt with { Id = MqttOptions.DefaultId }, MqttPassword)]);
 
+    /// <summary>The Home Assistants connected to directly, each with its own access token. An empty list means none.</summary>
+    public IReadOnlyList<StoredHomeAssistantServer>? HomeAssistantServers { get; init; }
+
+    /// <summary>The one Home Assistant that versions up to 1.3 saved. Read, and never written again.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public HomeAssistantSettings? HomeAssistant { get; init; }
 
-    /// <summary>Encrypted as <see cref="SettingsStore.Protect"/> does it; base64-encoded.</summary>
+    /// <summary>The access token of <see cref="HomeAssistant"/>, protected like <see cref="StoredHomeAssistantServer.AccessToken"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? AccessToken { get; init; }
+
+    /// <summary>The Home Assistants these settings name, whichever version saved them; <see langword="null"/> when none ever were.</summary>
+    public IReadOnlyList<StoredHomeAssistantServer>? GetHomeAssistantServers() =>
+        HomeAssistantServers
+        ?? (HomeAssistant is null ? null : [new StoredHomeAssistantServer(HomeAssistant with { Id = HaWebSocketOptions.DefaultId }, AccessToken)]);
 
     public IReadOnlyList<string>? DisabledEntities { get; init; }
 
@@ -48,6 +60,9 @@ public sealed record FolderCheck(string? SetAsidePath = null, string? Owner = nu
 
 /// <param name="Password">Encrypted as <see cref="SettingsStore.Protect"/> does it; base64-encoded.</param>
 public sealed record StoredMqttServer(MqttSettings Settings, string? Password);
+
+/// <param name="AccessToken">Encrypted as <see cref="SettingsStore.Protect"/> does it; base64-encoded.</param>
+public sealed record StoredHomeAssistantServer(HomeAssistantSettings Settings, string? AccessToken);
 
 /// <summary>
 /// Persists <see cref="StoredSettings"/> as JSON, by default in <c>%ProgramData%\HADA\settings.json</c>.

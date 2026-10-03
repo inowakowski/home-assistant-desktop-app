@@ -50,13 +50,24 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
             }
         }
 
-        if (settings.HomeAssistant is { } homeAssistant)
+        if (settings.GetHomeAssistantServers() is { } homeAssistants)
         {
-            data["HomeAssistant:BaseUrl"] = homeAssistant.BaseUrl;
-            data["HomeAssistant:DeviceId"] = homeAssistant.DeviceId;
-            data["HomeAssistant:DeviceName"] = homeAssistant.DeviceName;
-            data["HomeAssistant:CommandEventType"] = homeAssistant.CommandEventType;
-            data["HomeAssistant:AccessToken"] = SettingsStore.TryUnprotect(settings.AccessToken) ?? string.Empty;
+            data[$"{HomeAssistantServersOptions.SectionName}:{nameof(HomeAssistantServersOptions.Count)}"] =
+                homeAssistants.Count.ToString(CultureInfo.InvariantCulture);
+            for (var i = 0; i < homeAssistants.Count; i++)
+            {
+                var homeAssistant = homeAssistants[i].Settings;
+                var prefix = $"{HomeAssistantServersOptions.SectionName}:{nameof(HomeAssistantServersOptions.Items)}:{i}:";
+                data[prefix + nameof(homeAssistant.Id)] = homeAssistant.Id;
+                data[prefix + nameof(homeAssistant.Name)] = homeAssistant.Name;
+                data[prefix + nameof(homeAssistant.BaseUrl)] = homeAssistant.BaseUrl;
+                data[prefix + nameof(homeAssistant.DeviceId)] = homeAssistant.DeviceId;
+                data[prefix + nameof(homeAssistant.DeviceName)] = homeAssistant.DeviceName;
+                data[prefix + nameof(homeAssistant.CommandEventType)] = homeAssistant.CommandEventType;
+                data[prefix + nameof(homeAssistant.Notifications)] = homeAssistant.Notifications ? "true" : "false";
+                data[prefix + nameof(homeAssistant.SensorMode)] = homeAssistant.SensorMode.ToString();
+                data[prefix + "AccessToken"] = SettingsStore.TryUnprotect(homeAssistants[i].AccessToken) ?? string.Empty;
+            }
         }
 
         if (settings.DisabledEntities is { } disabled)

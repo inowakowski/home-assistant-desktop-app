@@ -1,8 +1,21 @@
+using HADA.Core.Entities;
+
 namespace HADA.Engine.WebSocket;
 
 public sealed class HaWebSocketOptions
 {
     public const string SectionName = "HomeAssistant";
+
+    /// <summary>
+    /// Tells this Home Assistant apart from the others the computer is connected to: lowercase letters and digits,
+    /// given once and never changed. The one of the <c>HomeAssistant</c> section has <see cref="DefaultId"/>.
+    /// </summary>
+    public string? Id { get; set; }
+
+    /// <summary>What the user calls this Home Assistant, e.g. the place it is in. Shown in the window and in the log.</summary>
+    public string? Name { get; set; }
+
+    public const string DefaultId = "default";
 
     /// <summary>Home Assistant base URL, e.g. <c>http://homeassistant.local:8123</c>. The engine stays idle while this is empty.</summary>
     public string? BaseUrl { get; set; }
@@ -19,6 +32,16 @@ public sealed class HaWebSocketOptions
 
     /// <summary>Prefix for entity friendly names. Defaults to the machine name.</summary>
     public string? DeviceName { get; set; }
+
+    /// <summary>
+    /// Registers the computer with Home Assistant's <c>mobile_app</c> integration, as a phone's companion app
+    /// does. Home Assistant then has the action <c>notify.mobile_app_{device name}</c>, whose notifications
+    /// arrive over this connection. Works with the token of any user, not only an administrator's.
+    /// </summary>
+    public bool Notifications { get; set; }
+
+    /// <summary>How sensors reach this Home Assistant, if at all.</summary>
+    public HomeAssistantSensorMode SensorMode { get; set; } = HomeAssistantSensorMode.States;
 
     /// <summary>
     /// Event type carrying commands, fired from Home Assistant with data

@@ -32,7 +32,7 @@ public sealed class ServiceControlClient(IpcOptions? options = null) : IAsyncDis
         Expect<OperationResponse>(await SendAsync(new SaveSettingsRequest(Guid.NewGuid(), settings), cancellationToken).ConfigureAwait(false)).Result;
 
     /// <exception cref="ServiceControlException">With <see cref="IpcError.Unauthorized"/> unless running as an elevated administrator.</exception>
-    /// <param name="serverId">Which MQTT server of <paramref name="settings"/> to test; the first one when <see langword="null"/>.</param>
+    /// <param name="serverId">Which server of <paramref name="settings"/> to test; the first one of that kind when <see langword="null"/>.</param>
     public async Task<OperationResult> TestConnectionAsync(
         ConnectionTarget target, SettingsUpdate settings, string? serverId = null, CancellationToken cancellationToken = default) =>
         Expect<OperationResponse>(

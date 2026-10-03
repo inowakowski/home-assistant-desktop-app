@@ -21,8 +21,10 @@ public class EngineSupervisorTests
         var mqtt = new TestOptionsMonitor<MqttOptions>(new MqttOptions());
         var servers = new TestOptionsMonitor<MqttServersOptions>(new MqttServersOptions());
         var homeAssistant = new TestOptionsMonitor<HaWebSocketOptions>(new HaWebSocketOptions());
+        var homeAssistantServers = new TestOptionsMonitor<HomeAssistantServersOptions>(new HomeAssistantServersOptions());
         var entities = new TestOptionsMonitor<EntityOptions>(new EntityOptions());
-        await using var supervisor = new EngineSupervisor(bus, registry, mqtt, servers, homeAssistant, entities, NullLoggerFactory.Instance);
+        await using var supervisor = new EngineSupervisor(
+            bus, registry, mqtt, servers, homeAssistant, homeAssistantServers, entities, NullLoggerFactory.Instance);
 
         await supervisor.StartAsync(CancellationToken.None);
         Assert.All(supervisor.GetStatus(), engine => Assert.False(engine.IsConfigured));

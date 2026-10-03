@@ -5,6 +5,9 @@ namespace HADA.Tray.ViewModels;
 
 public sealed record LanguageOption(string Code, string Label);
 
+/// <param name="Path">The browser's program file; empty for whichever browser is the default.</param>
+public sealed record BrowserOption(string Path, string Label);
+
 /// <summary>
 /// The Settings page's personal part: choices of the signed-in user, applied the moment they are made and
 /// without administrator rights.
@@ -30,6 +33,26 @@ public sealed class PreferencesViewModel(bool isElevated, bool isPortable = fals
         new("pl", "Polski"),
         new("en", "English"),
     ];
+
+    /// <summary>Whichever browser is the default, and then the installed ones by name.</summary>
+    public IReadOnlyList<BrowserOption> Browsers { get; } =
+    [
+        new(string.Empty, Loc.Get("Preferences_BrowserDefault")),
+        .. HADA.Tray.Browsers.Installed().Select(browser => new BrowserOption(browser.Path, browser.Name)),
+    ];
+
+    /// <summary>The program file of the browser that addresses of notifications are opened in; empty for the default one.</summary>
+    public string NotificationBrowser
+    {
+        get => Browsers.Any(browser => string.Equals(browser.Path, UserPreferences.NotificationBrowser, StringComparison.OrdinalIgnoreCase))
+            ? UserPreferences.NotificationBrowser
+            : string.Empty;
+        set
+        {
+            UserPreferences.NotificationBrowser = value ?? string.Empty;
+            OnPropertyChanged();
+        }
+    }
 
     public double MinIdleSeconds => UserPreferences.MinIdleSeconds;
 
