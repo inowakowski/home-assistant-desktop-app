@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HADA – Home Assistant Desktop App dla Windows</title>
+  <meta name="description" content="HADA łączy komputer z Windows z Home Assistant: zgłasza, co dzieje się na komputerze, i pozwala nim sterować z Home Assistant. Darmowa i otwartoźródłowa.">
+  <link rel="canonical" href="{{SITE_URL}}/pl/">
+  <link rel="alternate" hreflang="en" href="{{SITE_URL}}/">
+  <link rel="alternate" hreflang="pl" href="{{SITE_URL}}/pl/">
+  <link rel="alternate" hreflang="x-default" href="{{SITE_URL}}/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="HADA – Home Assistant Desktop App">
+  <meta property="og:description" content="Łączy komputer z Windows z Home Assistant.">
+  <meta property="og:url" content="{{SITE_URL}}/pl/">
+  <meta property="og:image" content="{{SITE_URL}}/img/overview.png">
+  <link rel="icon" href="/img/logo.png">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/site.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="/pl/"><img src="/img/logo.png" alt="" width="32" height="32">HADA</a>
+      <nav>
+        <a href="/docs/pl/">Dokumentacja</a>
+        <a href="https://github.com/inowakowski/home-assistant-desktop-app">GitHub</a>
+        <a href="/" lang="en" hreflang="en">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero wrap">
+      <h1>Twój komputer z Windows w Home Assistant</h1>
+      <p class="lead">HADA działa w tle, przekazuje do Home Assistant, co dzieje się na komputerze, i pozwala nim stamtąd sterować.</p>
+      <div class="buttons">
+        <a class="button" data-asset="-x64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Pobierz dla x64</a>
+        <a class="button" data-asset="-arm64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Pobierz dla ARM64</a>
+        <a class="button secondary" href="/docs/pl/">Przeczytaj dokumentację</a>
+      </div>
+      <p class="note">Wersja <span data-version>z najnowszego wydania</span> · Windows 10 (1809 lub nowszy) i Windows 11 · za darmo, licencja MIT · także jako <a href="/docs/pl/getting-started/portable/">wersja przenośna</a></p>
+      <img class="shot" src="/img/overview.png" alt="Strona Przegląd w oknie HADA">
+    </div>
+
+    <section class="alt">
+      <div class="wrap">
+        <h2>Co potrafi</h2>
+        <ul class="grid">
+          <li class="card">
+            <h3>Zgłasza stan komputera</h3>
+            <p>Czy ekran jest włączony, sesja zablokowana, ktoś siedzi przy klawiaturze; co jest odtwarzane; czy mikrofon lub kamera są w użyciu; bateria, sieć, dyski i więcej.</p>
+          </li>
+          <li class="card">
+            <h3>Wykonuje polecenia</h3>
+            <p>Głośność i wyciszenie, klawisze multimedialne, ekran, blokada, uśpienie, wyłączenie i ponowne uruchomienie, wszystko z Home Assistant.</p>
+          </li>
+          <li class="card">
+            <h3>Pokazuje powiadomienia</h3>
+            <p>Wysłane z Home Assistant, z obrazkami i przyciskami, które uruchamiają automatyzacje.</p>
+          </li>
+          <li class="card">
+            <h3>Własne czujniki i przyciski</h3>
+            <p>Bez pisania kodu: czy działa program, czy podłączona jest stacja dokująca, wynik polecenia PowerShell, przycisk, który uruchamia program lub naciska klawisze.</p>
+          </li>
+          <li class="card">
+            <h3>Szybkie akcje</h3>
+            <p>Uruchamiaj automatyzacje z menu ikony w zasobniku albo skrótem klawiszowym.</p>
+          </li>
+          <li class="card">
+            <h3>Dashboard pod ręką</h3>
+            <p>Małe okno z Twoim dashboardem Home Assistant, otwierane z ikony w zasobniku.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Jak jest zbudowana</h2>
+        <ul class="grid">
+          <li class="card">
+            <h3>Usługa i mała aplikacja w zasobniku</h3>
+            <p>Usługa utrzymuje połączenie i działa także wtedy, gdy nikt nie jest zalogowany. Aplikacja w zasobniku dodaje to, co widać tylko z pulpitu zalogowanego użytkownika.</p>
+          </li>
+          <li class="card">
+            <h3>Lekka</h3>
+            <p>Około 15 MB pamięci na usługę i 20–25 MB na aplikację w zasobniku. Okno istnieje tylko wtedy, gdy jest otwarte.</p>
+          </li>
+          <li class="card">
+            <h3>MQTT discovery</h3>
+            <p>Komputer pojawia się w Home Assistant jako urządzenie ze wszystkimi encjami; nie trzeba nic pisać w YAML-u. Działa też bezpośrednie połączenie WebSocket.</p>
+          </li>
+          <li class="card">
+            <h3>Pod Twoją kontrolą</h3>
+            <p>Każda encja ma swój przełącznik. Przyciski wyłączające komputer są nieaktywne, dopóki ich nie włączysz. Ustawienia może zmieniać tylko administrator.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="alt">
+      <div class="wrap">
+        <h2>Zacznij tutaj</h2>
+        <ul class="grid steps">
+          <li class="card">
+            <h3><a href="/docs/pl/getting-started/installation/">Zainstaluj HADA</a></h3>
+            <p>Uruchom instalator albo rozpakuj wersję przenośną, która nie wymaga uprawnień administratora.</p>
+          </li>
+          <li class="card">
+            <h3><a href="/docs/pl/getting-started/first-setup/">Połącz z Home Assistant</a></h3>
+            <p>Otwórz HADA z ikony w zasobniku i skonfiguruj połączenie z brokerem MQTT albo bezpośrednio z Home Assistant.</p>
+          </li>
+          <li class="card">
+            <h3><a href="/docs/pl/home-assistant/examples/">Użyj w automatyzacjach</a></h3>
+            <p>Przygaś światło, gdy zaczyna się film; wyłącz lampkę na biurku, gdy blokujesz komputer.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>© 2026 Ignacy Nowakowski. HADA jest otwartoźródłowa, na <a href="https://github.com/inowakowski/home-assistant-desktop-app/blob/main/LICENSE">licencji MIT</a>.</p>
+      <p>HADA to niezależny projekt, niepowiązany z Home Assistant ani z Open Home Foundation.</p>
+    </div>
+  </footer>
+</body>
+</html>

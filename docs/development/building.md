@@ -59,3 +59,16 @@ mkdocs serve
 ```
 
 `mkdocs serve` shows the site at `http://127.0.0.1:8000` and reloads as you edit.
+
+A translation of a page is a file next to it with the language in its name: `index.md` in English, `index.pl.md` in Polish. A page without a translation shows in English. The languages and the translated names in the navigation are listed in `mkdocs.yml`.
+
+## Building the website
+
+The website is the landing page in `website/` (plain HTML and CSS, one folder per language) with the documentation under `docs/`:
+
+```powershell
+python scripts/build_site.py
+python -m http.server -d dist
+```
+
+The first command builds everything into `dist/`, the second shows it at `http://localhost:8000`. Cloudflare Pages runs the same script on every push, with `SITE_URL` set to the site's address.

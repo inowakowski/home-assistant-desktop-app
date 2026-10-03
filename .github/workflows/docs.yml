@@ -6,9 +6,9 @@ name: Documentation
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "mkdocs.yml", ".github/workflows/docs.yml"]
+    paths: ["docs/**", "website/**", "mkdocs.yml", "scripts/build_site.py", ".github/workflows/docs.yml"]
   pull_request:
-    paths: ["docs/**", "mkdocs.yml", ".github/workflows/docs.yml"]
+    paths: ["docs/**", "website/**", "mkdocs.yml", "scripts/build_site.py", ".github/workflows/docs.yml"]
   workflow_dispatch:
 
 permissions:
@@ -29,6 +29,10 @@ jobs:
 
       - name: Build
         run: mkdocs build --strict
+
+      # The website Cloudflare Pages publishes: the landing page with the documentation under docs/.
+      - name: Build the website
+        run: python scripts/build_site.py
 
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name == 'workflow_dispatch'
