@@ -62,4 +62,4 @@ With `{device}` being the Device ID:
 | `homeassistant/device_automation/{device}/{entity}/config` | Discovery config of a [quick action](../features/custom-entities.md#quick-actions) as a trigger of the device (retained; emptied when it is removed) |
 | `hada/{device}/event/quick_action` | A quick action was chosen; the payload is its ID. Not retained |
 | `hada/{device}/event/notification_action` | A button of a [notification](../features/notifications.md) was pressed; the payload is its `action`. Not retained |
-| `hada/{device}/{entity}/set` | Command: `PRESS` for a button, `on` / `off` for a switch, the value for a number, the message (or JSON with `message` and optionally `title`, `image` and `actions`) for `notification`. Anything else is ignored, as are retained commands |
+| `hada/{device}/{entity}/set` | Command: `PRESS` for a button, `on` / `off` for a switch, the value for a number, the message (or JSON with `message` and optionally `title`, `image`, `actions` and [more](../features/notifications.md#more-than-a-text)) for `notification`. Anything else is ignored, as are retained commands |

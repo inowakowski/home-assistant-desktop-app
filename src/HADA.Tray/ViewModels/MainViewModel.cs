@@ -60,7 +60,8 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>
     /// Asks the window to show a page, optionally at one of its sections: <c>connections</c>,
-    /// <c>connections#ha</c>, <c>entities</c>, <c>logs</c>.
+    /// <c>connections#ha</c>, <c>connections#ha=</c> or <c>connections#mqtt=</c> and a server's id, <c>entities</c>,
+    /// <c>logs</c>.
     /// </summary>
     public event Action<string>? NavigationRequested;
 

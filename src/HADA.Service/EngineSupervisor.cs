@@ -10,9 +10,10 @@ using Microsoft.Extensions.Options;
 namespace HADA.Service;
 
 /// <summary>
-/// Owns the communication engines: one per MQTT server, and one for the Home Assistant WebSocket API. Whenever an
-/// engine's settings or the set of disabled entities change, e.g. after settings are saved from the window, that
-/// engine is stopped and recreated with the new values; a server that was removed is disconnected from.
+/// Owns the communication engines: one per MQTT server, and one per Home Assistant connected to through its
+/// WebSocket API. Whenever an engine's settings or the set of disabled entities change, e.g. after settings are
+/// saved from the window, that engine is stopped and recreated with the new values; a server that was removed is
+/// disconnected from.
 /// </summary>
 public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
 {
@@ -22,19 +23,21 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
     private readonly IEventBus _bus;
     private readonly IEntityRegistry _registry;
     private readonly TelemetryCache? _telemetry;
+    private readonly IMobileAppRegistrationStore _registrations;
     private readonly IOptionsMonitor<MqttOptions> _mqttOptions;
     private readonly IOptionsMonitor<MqttServersOptions> _mqttServers;
     private readonly IOptionsMonitor<HaWebSocketOptions> _homeAssistantOptions;
+    private readonly IOptionsMonitor<HomeAssistantServersOptions> _homeAssistantServers;
     private readonly IOptionsMonitor<EntityOptions> _entityOptions;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
-    private readonly EngineSlot<HaWebSocketOptions> _homeAssistant;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Lock _reloadLock = new();
     private readonly List<IDisposable> _changeRegistrations = [];
 
     // Replaced as a whole, so the status can be read while settings are applied.
     private volatile EngineSlot<MqttOptions>[] _mqtt = [];
+    private volatile EngineSlot<HaWebSocketOptions>[] _homeAssistant = [];
     private CancellationTokenSource? _pendingReload;
     private bool _stopped;
 
@@ -44,49 +47,58 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         IOptionsMonitor<MqttOptions> mqttOptions,
         IOptionsMonitor<MqttServersOptions> mqttServers,
         IOptionsMonitor<HaWebSocketOptions> homeAssistantOptions,
+        IOptionsMonitor<HomeAssistantServersOptions> homeAssistantServers,
         IOptionsMonitor<EntityOptions> entityOptions,
         ILoggerFactory loggerFactory,
-        TelemetryCache? telemetry = null)
+        TelemetryCache? telemetry = null,
+        IMobileAppRegistrationStore? registrations = null)
     {
         _bus = bus;
         _registry = registry;
         _telemetry = telemetry;
+
+        // Shared by the engines, and outliving them: an engine that is recreated must find its registration again.
+        _registrations = registrations ?? new InMemoryMobileAppRegistrationStore();
         _mqttOptions = mqttOptions;
         _mqttServers = mqttServers;
         _homeAssistantOptions = homeAssistantOptions;
+        _homeAssistantServers = homeAssistantServers;
         _entityOptions = entityOptions;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<EngineSupervisor>();
-        _homeAssistant = new EngineSlot<HaWebSocketOptions>(
-            options => !string.IsNullOrWhiteSpace(options.BaseUrl) && !string.IsNullOrWhiteSpace(options.AccessToken),
-            (options, filter) => new HaWebSocketEngine(
-                bus, registry, Options.Create(options), loggerFactory.CreateLogger<HaWebSocketEngine>(), filter));
     }
 
-    /// <summary>One entry per MQTT server, or a single unconfigured one when there is none; then the WebSocket engine.</summary>
+    /// <summary>
+    /// One entry per MQTT server, then one per Home Assistant connected to directly; of either kind a single
+    /// unconfigured one when there is none.
+    /// </summary>
     public IReadOnlyList<EngineStatus> GetStatus()
     {
         var mqtt = _mqtt;
-        var statuses = new List<EngineStatus>(mqtt.Length + 1);
-        foreach (var slot in mqtt)
+        var homeAssistant = _homeAssistant;
+        var statuses = new List<EngineStatus>(mqtt.Length + homeAssistant.Length);
+        AddStatuses(statuses, MqttEngine.EngineName, mqtt, options => options.Name);
+        AddStatuses(statuses, HaWebSocketEngine.EngineName, homeAssistant, options => options.Name);
+        return statuses;
+    }
+
+    private static void AddStatuses<TOptions>(
+        List<EngineStatus> statuses, string engineName, EngineSlot<TOptions>[] slots, Func<TOptions, string?> nameOf)
+        where TOptions : class
+    {
+        var before = statuses.Count;
+        foreach (var slot in slots)
         {
             if (slot is { Engine: { } engine, Options: { } options })
             {
-                statuses.Add(new EngineStatus(MqttEngine.EngineName, slot.IsConfigured, engine.State, options.Id, options.Name ?? string.Empty));
+                statuses.Add(new EngineStatus(engineName, slot.IsConfigured, engine.State, slot.Id, nameOf(options) ?? string.Empty));
             }
         }
 
-        if (statuses.Count == 0)
+        if (statuses.Count == before)
         {
-            statuses.Add(new EngineStatus(MqttEngine.EngineName, false, EngineConnectionState.Disconnected));
+            statuses.Add(new EngineStatus(engineName, false, EngineConnectionState.Disconnected));
         }
-
-        if (_homeAssistant.Engine is { } homeAssistant)
-        {
-            statuses.Add(new EngineStatus(homeAssistant.Name, _homeAssistant.IsConfigured, homeAssistant.State));
-        }
-
-        return statuses;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -96,6 +108,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         AddRegistration(_mqttOptions.OnChange(_ => ScheduleReload()));
         AddRegistration(_mqttServers.OnChange(_ => ScheduleReload()));
         AddRegistration(_homeAssistantOptions.OnChange(_ => ScheduleReload()));
+        AddRegistration(_homeAssistantServers.OnChange(_ => ScheduleReload()));
         AddRegistration(_entityOptions.OnChange(_ => ScheduleReload()));
     }
 
@@ -127,7 +140,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         }
     }
 
-    private IEnumerable<EngineSlot> AllSlots() => [.. _mqtt, _homeAssistant];
+    private IEnumerable<EngineSlot> AllSlots() => [.. _mqtt, .. _homeAssistant];
 
     private void AddRegistration(IDisposable? registration)
     {
@@ -176,8 +189,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
 
             var filter = _entityOptions.CurrentValue.ToFilter();
             var anyRecreated = await ApplyMqttAsync(filter, cancellationToken).ConfigureAwait(false);
-            anyRecreated |= await _homeAssistant.ApplyAsync(_homeAssistantOptions.CurrentValue, filter, _logger, cancellationToken)
-                .ConfigureAwait(false);
+            anyRecreated |= await ApplyHomeAssistantAsync(filter, cancellationToken).ConfigureAwait(false);
 
             if (anyRecreated && _telemetry is not null)
             {
@@ -201,31 +213,78 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
     /// <summary>Brings the MQTT engines in line with the servers in the settings, matched by their ids.</summary>
     private async Task<bool> ApplyMqttAsync(EntityFilter filter, CancellationToken cancellationToken)
     {
-        var servers = MqttServersOptions.Resolve(_mqttServers.CurrentValue, _mqttOptions.CurrentValue);
-        var current = _mqtt;
-        var anyRecreated = false;
+        var (slots, anyRecreated) = await ApplyServersAsync(
+                _mqtt,
+                MqttServersOptions.Resolve(_mqttServers.CurrentValue, _mqttOptions.CurrentValue),
+                server => server.Id!,
+                id => new EngineSlot<MqttOptions>(
+                    options => !string.IsNullOrWhiteSpace(options.Host),
+                    (options, engineFilter) => new MqttEngine(
+                        _bus, _registry, Options.Create(options), _loggerFactory.CreateLogger<MqttEngine>(), engineFilter),
+                    id),
+                removed => LogServerRemoved(_logger, removed.Name is { Length: > 0 } name ? name : removed.Host ?? removed.Id!),
+                filter,
+                cancellationToken)
+            .ConfigureAwait(false);
+        _mqtt = slots;
+        return anyRecreated;
+    }
 
-        foreach (var removed in current.Where(slot => servers.All(server => server.Id != slot.Id)))
+    /// <summary>The same for the Home Assistants connected to through their WebSocket API.</summary>
+    private async Task<bool> ApplyHomeAssistantAsync(EntityFilter filter, CancellationToken cancellationToken)
+    {
+        var (slots, anyRecreated) = await ApplyServersAsync(
+                _homeAssistant,
+                HomeAssistantServersOptions.Resolve(_homeAssistantServers.CurrentValue, _homeAssistantOptions.CurrentValue),
+                server => server.Id!,
+                id => new EngineSlot<HaWebSocketOptions>(
+                    options => !string.IsNullOrWhiteSpace(options.BaseUrl) && !string.IsNullOrWhiteSpace(options.AccessToken),
+                    (options, engineFilter) => new HaWebSocketEngine(
+                        _bus, _registry, Options.Create(options), _loggerFactory.CreateLogger<HaWebSocketEngine>(), engineFilter, _registrations),
+                    id),
+                removed => LogHomeAssistantRemoved(_logger, removed.Name is { Length: > 0 } name ? name : removed.BaseUrl ?? removed.Id!),
+                filter,
+                cancellationToken)
+            .ConfigureAwait(false);
+        _homeAssistant = slots;
+        return anyRecreated;
+    }
+
+    /// <summary>
+    /// Stops the engines of servers that are no longer in the settings, and gives every server that is in them
+    /// one: new, or recreated when its settings changed. Returns the slots in the order of the servers.
+    /// </summary>
+    private async Task<(EngineSlot<TOptions>[] Slots, bool AnyRecreated)> ApplyServersAsync<TOptions>(
+        EngineSlot<TOptions>[] current,
+        IReadOnlyList<TOptions> servers,
+        Func<TOptions, string> idOf,
+        Func<string, EngineSlot<TOptions>> createSlot,
+        Action<TOptions> logRemoved,
+        EntityFilter filter,
+        CancellationToken cancellationToken)
+        where TOptions : class
+    {
+        var anyRecreated = false;
+        foreach (var removed in current.Where(slot => servers.All(server => idOf(server) != slot.Id)))
         {
-            LogServerRemoved(_logger, removed.Options?.Name is { Length: > 0 } name ? name : removed.Options?.Host ?? removed.Id);
+            if (removed.Options is { } options)
+            {
+                logRemoved(options);
+            }
+
             await removed.StopAsync(cancellationToken).ConfigureAwait(false);
             await removed.DisposeAsync().ConfigureAwait(false);
         }
 
-        var next = new List<EngineSlot<MqttOptions>>(servers.Count);
+        var next = new List<EngineSlot<TOptions>>(servers.Count);
         foreach (var server in servers)
         {
-            var slot = Array.Find(current, slot => slot.Id == server.Id) ?? new EngineSlot<MqttOptions>(
-                options => !string.IsNullOrWhiteSpace(options.Host),
-                (options, engineFilter) => new MqttEngine(
-                    _bus, _registry, Options.Create(options), _loggerFactory.CreateLogger<MqttEngine>(), engineFilter),
-                server.Id);
+            var slot = Array.Find(current, slot => slot.Id == idOf(server)) ?? createSlot(idOf(server));
             anyRecreated |= await slot.ApplyAsync(server, filter, _logger, cancellationToken).ConfigureAwait(false);
             next.Add(slot);
         }
 
-        _mqtt = [.. next];
-        return anyRecreated;
+        return ([.. next], anyRecreated);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Settings changed; restarting the {EngineName} engine.")]
@@ -233,6 +292,9 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Information, Message = "The MQTT server '{Server}' was removed from the settings; disconnected from it.")]
     private static partial void LogServerRemoved(ILogger logger, string server);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The Home Assistant '{Server}' was removed from the settings; disconnected from it.")]
+    private static partial void LogHomeAssistantRemoved(ILogger logger, string server);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Applying changed settings failed.")]
     private static partial void LogReloadFailed(ILogger logger, Exception exception);
@@ -262,7 +324,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         }
     }
 
-    /// <param name="id">Which MQTT server the slot is for; empty for the WebSocket engine.</param>
+    /// <param name="id">Which server the slot is for.</param>
     private sealed class EngineSlot<TOptions>(
         Func<TOptions, bool> isConfigured,
         Func<TOptions, IEntityFilter, ICommunicationEngine> create,

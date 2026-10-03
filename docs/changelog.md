@@ -2,6 +2,13 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## Unreleased
+
+- **Sensors as real entities without MQTT.** A Home Assistant connected to through the WebSocket API can get the sensors as entities of a device, with a unique ID: they can be renamed and managed in Home Assistant, survive its restarts, and need no administrator's token. New connections do this; existing ones keep writing states until changed on the Connections page, as the entity IDs differ. See [WebSocket engine](home-assistant/websocket.md#what-the-connection-is-used-for).
+- **Notifications as on a phone.** With **Notifications** switched on for a Home Assistant connected to through the WebSocket API, the computer registers with the `mobile_app` integration and Home Assistant has the action `notify.mobile_app_…`, with a title, a picture and buttons; a pressed button fires `mobile_app_notification_action`. Works next to MQTT, with **Sensors** set to **Off** for that connection, and with the token of an ordinary user. See [Notifications](features/notifications.md#notifications-as-on-a-phone).
+- **More in a notification,** through `mobile_app` and through MQTT alike: `tag` to replace a notification and `clear_notification` to take it back, an address opened when it or one of its buttons is pressed, `sticky` and `silent`. Through `mobile_app`, a picture may be one that needs signing in at Home Assistant, such as a camera's. Which browser the addresses open in can be chosen on the Settings page. See [Notifications](features/notifications.md#more-than-a-text).
+- **Several Home Assistants through the WebSocket API:** as with MQTT servers, up to eight, each with its own name, address and access token, connected at the same time. Each has its own card on the Overview page. The one Home Assistant set up before stays as the first server. See [WebSocket engine](home-assistant/websocket.md#several-home-assistants-at-once).
+
 ## 1.3.0 (pre-release)
 
 Nothing new to see: this version changes what HADA is built on, and is a pre-release so that it gets tried before a stable version carries it.

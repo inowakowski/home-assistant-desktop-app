@@ -45,6 +45,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private readonly HttpClient _http;
     private readonly string _deviceId;
     private readonly string _deviceName;
+    private readonly string _serverId;
+    private readonly IMobileAppRegistrationStore _registrations;
     private readonly ConcurrentDictionary<string, TelemetryEvent> _lastReadings = new(StringComparer.Ordinal);
 
     private Uri? _baseUrl;
@@ -56,34 +58,47 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private Task _eventLoop = Task.CompletedTask;
     private volatile HaConnection? _connection;
     private volatile EngineConnectionState _state;
+    private bool _statesRemoved;
 
     public HaWebSocketEngine(
         IEventBus bus,
         IEntityRegistry registry,
         IOptions<HaWebSocketOptions> options,
         ILogger<HaWebSocketEngine> logger,
-        IEntityFilter? filter = null)
+        IEntityFilter? filter = null,
+        IMobileAppRegistrationStore? registrations = null)
     {
         _bus = bus;
         _registry = registry;
         _filter = filter ?? EntityFilter.AllEnabled;
+        _registrations = registrations ?? new InMemoryMobileAppRegistrationStore();
         _options = options.Value;
+        _serverId = NullIfEmpty(_options.Id) ?? HaWebSocketOptions.DefaultId;
         _logger = logger;
         _deviceId = ToObjectId(NullIfEmpty(_options.DeviceId) ?? Environment.MachineName);
         _deviceName = NullIfEmpty(_options.DeviceName) ?? Environment.MachineName;
+
+        // Several of these engines can run side by side, one per Home Assistant, so each says which one it is.
+        var serverName = NullIfEmpty(_options.Name)?.Trim();
+        Name = serverName is null ? EngineName : $"{EngineName} ({serverName})";
         _http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) })
         {
             Timeout = TimeSpan.FromSeconds(10),
         };
     }
 
-    public string Name => "websocket";
+    /// <summary>What every WebSocket engine's <see cref="Name"/> starts with; the whole name of one whose server has no name.</summary>
+    public const string EngineName = "websocket";
+
+    /// <summary><c>websocket</c>, or <c>websocket (Flat)</c> for a Home Assistant the user named.</summary>
+    public string Name { get; }
 
     public EngineConnectionState State => _state;
 
     /// <summary>
     /// Connects, authenticates and subscribes to the command event with <paramref name="options"/>, then closes again.
-    /// Proves both that the token is valid and that it belongs to an administrator.
+    /// Proves both that the token is valid and that it belongs to an administrator; a connection that is there for
+    /// notifications may do without the latter. Registers nothing with Home Assistant.
     /// </summary>
     public static async Task<ConnectionTestResult> TestConnectionAsync(HaWebSocketOptions options, CancellationToken cancellationToken)
     {
@@ -100,7 +115,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         using var connection = new HaConnection(new ClientWebSocket());
         try
         {
-            var haVersion = await HandshakeAsync(connection, baseUrl, options.AccessToken, options.CommandEventType, cancellationToken)
+            var (haVersion, hasCommands) = await HandshakeAsync(
+                    connection, baseUrl, options.AccessToken, options.CommandEventType, commandsRequired: !UsesMobileApp(options), cancellationToken)
                 .ConfigureAwait(false);
 
             using var closeTimeout = new CancellationTokenSource(CloseTimeout);
@@ -115,7 +131,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
             return new ConnectionTestResult(
                 true,
-                $"Connected to Home Assistant {haVersion ?? "(unknown version)"}; the token can subscribe to '{options.CommandEventType}' events.");
+                hasCommands
+                    ? $"Connected to Home Assistant {haVersion ?? "(unknown version)"}; the token can subscribe to '{options.CommandEventType}' events."
+                    : $"Connected to Home Assistant {haVersion ?? "(unknown version)"}. The token is not an administrator's: notifications and sensors as entities of the device will work, but sensors as states and '{options.CommandEventType}' events will not.");
         }
         catch (HaAuthenticationException ex)
         {
@@ -226,9 +244,19 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             using var connection = new HaConnection(new ClientWebSocket());
             try
             {
-                var haVersion = await HandshakeAsync(connection, _baseUrl!, _options.AccessToken!, _options.CommandEventType, cancellationToken)
+                var (haVersion, hasCommands) = await HandshakeAsync(
+                        connection, _baseUrl!, _options.AccessToken!, _options.CommandEventType, commandsRequired: !UsesMobileApp(_options), cancellationToken)
                     .ConfigureAwait(false);
                 LogConnected(_logger, _baseUrl!, haVersion ?? "unknown", _deviceId);
+                if (!hasCommands)
+                {
+                    LogNoCommands(_logger, _options.CommandEventType);
+                }
+
+                if (UsesMobileApp(_options))
+                {
+                    await ConnectMobileAppAsync(connection, cancellationToken).ConfigureAwait(false);
+                }
 
                 _connection = connection;
                 _state = EngineConnectionState.Connected;
@@ -265,6 +293,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             finally
             {
                 _connection = null;
+                DisconnectMobileApp();
             }
 
             try
@@ -280,9 +309,18 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         }
     }
 
-    /// <summary>Connects, authenticates and subscribes to the command event. Returns the Home Assistant version.</summary>
-    private static async Task<string?> HandshakeAsync(
-        HaConnection connection, Uri baseUrl, string accessToken, string commandEventType, CancellationToken cancellationToken)
+    /// <summary>
+    /// Connects, authenticates and subscribes to the command event. Returns the Home Assistant version, and whether
+    /// the subscription was granted, which it is to administrators only.
+    /// </summary>
+    /// <param name="commandsRequired">Whether a refused subscription is a failure, rather than something to do without.</param>
+    private static async Task<(string? HaVersion, bool HasCommands)> HandshakeAsync(
+        HaConnection connection,
+        Uri baseUrl,
+        string accessToken,
+        string commandEventType,
+        bool commandsRequired,
+        CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(HandshakeTimeout);
@@ -319,16 +357,16 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         using (var result = await ReceiveRequiredAsync(connection, token).ConfigureAwait(false))
         {
             var root = result.RootElement;
-            if (HaConnection.TypeOf(result) != "result"
-                || !root.TryGetProperty("id", out var id) || id.GetInt32() != subscriptionId
-                || !root.TryGetProperty("success", out var success) || !success.GetBoolean())
+            var answered = HaConnection.TypeOf(result) == "result" && root.TryGetProperty("id", out var id) && id.GetInt32() == subscriptionId;
+            var granted = answered && root.TryGetProperty("success", out var success) && success.GetBoolean();
+            if (!answered || (!granted && commandsRequired))
             {
                 throw new InvalidDataException(
                     $"Subscribing to '{commandEventType}' events failed (is the token an administrator's?): {root.GetRawText()}");
             }
-        }
 
-        return haVersion;
+            return (haVersion, granted);
+        }
     }
 
     /// <summary>Handles incoming messages until Home Assistant closes the socket or the heartbeat detects a dead link.</summary>
@@ -379,9 +417,24 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
     private async Task HandleMessageAsync(JsonElement message)
     {
+        if (TryCompleteRequest(message))
+        {
+            return;
+        }
+
         if (!message.TryGetProperty("type", out var type) || type.GetString() != "event"
-            || !message.TryGetProperty("event", out var @event)
-            || !@event.TryGetProperty("event_type", out var eventType) || eventType.GetString() != _options.CommandEventType
+            || !message.TryGetProperty("event", out var @event) || @event.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        if (IsPushNotification(message))
+        {
+            await HandlePushNotificationAsync(@event).ConfigureAwait(false);
+            return;
+        }
+
+        if (!@event.TryGetProperty("event_type", out var eventType) || eventType.GetString() != _options.CommandEventType
             || !@event.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object)
         {
             return;
@@ -403,7 +456,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         Dictionary<string, object?>? parameters = null;
         if (entity.Kind == EntityKind.Notify)
         {
-            NotificationContent.TryRead(data, out _, out parameters);
+            NotificationContent.TryRead(data, out _, out parameters, _baseUrl);
         }
 
         var command = new ActionCommand { ActionId = entity.Id, Value = value, Origin = Name };
@@ -494,6 +547,11 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                 {
                     // The connection is going down; the connection loop reports that.
                 }
+
+                if (deviceEvent.Name == DeviceEvent.NotificationAction)
+                {
+                    await FireNotificationActionAsync(deviceEvent.Value, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -523,7 +581,12 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                         _lastReadings.TryRemove(entity.Id, out _);
                         if (connected && entity.Kind.ReportsState())
                         {
-                            await TrySendStateRequestAsync(HttpMethod.Delete, entity, content: null, cancellationToken).ConfigureAwait(false);
+                            if (_options.SensorMode == HomeAssistantSensorMode.States)
+                            {
+                                await TrySendStateRequestAsync(HttpMethod.Delete, entity, content: null, cancellationToken).ConfigureAwait(false);
+                            }
+
+                            await MarkSensorEntitiesUnavailableAsync([entity], cancellationToken).ConfigureAwait(false);
                         }
 
                         break;
@@ -547,16 +610,32 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         }
     }
 
-    /// <summary>States written before a sensor was disabled would otherwise linger in Home Assistant.</summary>
+    /// <summary>
+    /// States written before a sensor was disabled, or before sensors were switched off for this Home Assistant,
+    /// would otherwise linger there.
+    /// </summary>
     private async Task RemoveDisabledSensorsAsync(CancellationToken cancellationToken)
     {
-        foreach (var entity in _registry.Entities)
+        var sensors = _registry.Entities.Where(entity => entity.Kind.ReportsState()).ToList();
+        var writesStates = _options.SensorMode == HomeAssistantSensorMode.States;
+
+        // Once is enough when no states are written any more: what is deleted does not come back.
+        if (writesStates || !_statesRemoved)
         {
-            if (entity.Kind.ReportsState() && !_filter.IsEnabled(entity))
+            foreach (var entity in sensors.Where(entity => !writesStates || !_filter.IsEnabled(entity)))
             {
                 await TrySendStateRequestAsync(HttpMethod.Delete, entity, content: null, cancellationToken).ConfigureAwait(false);
             }
+
+            _statesRemoved = !writesStates;
         }
+
+        // The entities of the mobile_app device cannot be deleted from here; what is no longer sent is shown as
+        // unavailable instead of keeping its last value.
+        var writesEntities = _options.SensorMode == HomeAssistantSensorMode.Entities;
+        await MarkSensorEntitiesUnavailableAsync(
+                [.. sensors.Where(entity => !writesEntities || !_filter.IsEnabled(entity))], cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task PublishCachedReadingsAsync(CancellationToken cancellationToken)
@@ -587,6 +666,14 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private Task TrySetStateAsync(
         EntityDescriptor entity, string state, IReadOnlyDictionary<string, object?>? attributes, CancellationToken cancellationToken)
     {
+        switch (_options.SensorMode)
+        {
+            case HomeAssistantSensorMode.Entities:
+                return SetSensorEntityAsync(entity, state, attributes, cancellationToken);
+            case HomeAssistantSensorMode.Off:
+                return Task.CompletedTask;
+        }
+
         var allAttributes = attributes is null
             ? new Dictionary<string, object?>()
             : new Dictionary<string, object?>(attributes);
@@ -704,6 +791,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to Home Assistant {HaVersion} at {BaseUrl} as device '{DeviceId}'.")]
     private static partial void LogConnected(ILogger logger, Uri baseUrl, string haVersion, string deviceId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Home Assistant did not let this token subscribe to '{EventType}' events, as it is not an administrator's; commands sent that way will not arrive.")]
+    private static partial void LogNoCommands(ILogger logger, string eventType);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Disconnected from Home Assistant; reconnecting in {RetryDelay}.")]
     private static partial void LogDisconnected(ILogger logger, TimeSpan retryDelay);

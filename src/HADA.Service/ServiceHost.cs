@@ -124,11 +124,14 @@ public static class ServiceHost
         builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
         builder.Services.Configure<MqttServersOptions>(builder.Configuration.GetSection(MqttServersOptions.SectionName));
         builder.Services.Configure<HaWebSocketOptions>(builder.Configuration.GetSection(HaWebSocketOptions.SectionName));
+        builder.Services.Configure<HomeAssistantServersOptions>(builder.Configuration.GetSection(HomeAssistantServersOptions.SectionName));
         builder.Services.Configure<EntityOptions>(builder.Configuration.GetSection(EntityOptions.SectionName));
         builder.Services.Configure<CustomSensorOptions>(builder.Configuration.GetSection(CustomSensorOptions.SectionName));
         builder.Services.Configure<UpdateOptions>(builder.Configuration.GetSection(UpdateOptions.SectionName));
 
         builder.Services.AddSingleton<TelemetryCache>();
+        builder.Services.AddSingleton<MobileAppRegistrationStore>();
+        builder.Services.AddSingleton<IMobileAppRegistrationStore>(services => services.GetRequiredService<MobileAppRegistrationStore>());
         builder.Services.AddSingleton<EngineSupervisor>();
         builder.Services.AddSingleton<UpdateChecker>();
         builder.Services.AddSingleton<IServiceControl, ServiceControl>();

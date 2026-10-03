@@ -17,6 +17,9 @@ public sealed class SettingsViewModel : ObservableObject
     /// <summary>As many as the service takes.</summary>
     private const int MaxMqttServers = 8;
 
+    /// <summary>As many as the service takes.</summary>
+    private const int MaxHomeAssistantServers = 8;
+
     private readonly ServiceControlClient _client;
     private readonly HashSet<string> _disabledEntities = new(StringComparer.Ordinal);
     private readonly HashSet<string> _enabledEntities = new(StringComparer.Ordinal);
@@ -27,6 +30,8 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly RelayCommand _addCustomSensorCommand;
     private readonly RelayCommand _addMqttServerCommand;
     private readonly RelayCommand _removeMqttServerCommand;
+    private readonly RelayCommand _addHomeAssistantServerCommand;
+    private readonly RelayCommand _removeHomeAssistantServerCommand;
 
     private SettingsSnapshot? _snapshot;
     private bool _isApplying;
@@ -36,12 +41,7 @@ public sealed class SettingsViewModel : ObservableObject
     private bool _isTestingHomeAssistant;
 
     private MqttServerViewModel? _selectedMqttServer;
-    private string _homeAssistantUrl = string.Empty;
-    private string _accessToken = string.Empty;
-    private bool _clearAccessToken;
-    private string _homeAssistantDeviceId = string.Empty;
-    private string _homeAssistantDeviceName = string.Empty;
-    private string _commandEventType = "hada_command";
+    private HomeAssistantServerViewModel? _selectedHomeAssistantServer;
     private bool _checkUpdatesAutomatically = true;
     private bool _includePrereleases;
 
@@ -56,12 +56,17 @@ public sealed class SettingsViewModel : ObservableObject
         _saveCommand = new AsyncCommand(SaveAsync, () => CanEdit && IsDirty && !IsBusy);
         _revertCommand = new RelayCommand(Revert, () => IsDirty && !IsBusy);
         _testMqttCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.Mqtt), () => CanEdit && !IsBusy && SelectedMqttServer is not null);
-        _testHomeAssistantCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.HomeAssistant), () => CanEdit && !IsBusy);
+        _testHomeAssistantCommand = new AsyncCommand(
+            () => TestAsync(ConnectionTarget.HomeAssistant), () => CanEdit && !IsBusy && SelectedHomeAssistantServer is not null);
         _addCustomSensorCommand = new RelayCommand(
             () => AddCustomSensor(new CustomSensorDefinition()),
             () => CanEdit && !IsBusy);
         _addMqttServerCommand = new RelayCommand(AddMqttServer, () => CanEdit && !IsBusy && MqttServers.Count < MaxMqttServers);
         _removeMqttServerCommand = new RelayCommand(RemoveMqttServer, () => CanEdit && !IsBusy && MqttServers.Count > 1);
+        _addHomeAssistantServerCommand = new RelayCommand(
+            AddHomeAssistantServer, () => CanEdit && !IsBusy && HomeAssistantServers.Count < MaxHomeAssistantServers);
+        _removeHomeAssistantServerCommand = new RelayCommand(
+            RemoveHomeAssistantServer, () => CanEdit && !IsBusy && HomeAssistantServers.Count > 1);
     }
 
     public event EventHandler? DisabledEntitiesChanged;
@@ -116,12 +121,6 @@ public sealed class SettingsViewModel : ObservableObject
 
     public InfoBarViewModel HomeAssistantTest { get; } = new();
 
-    public string MachineNamePlaceholder { get; } = Loc.Format("Placeholder_MachineName", Environment.MachineName);
-
-    public bool HasAccessToken => _snapshot?.HasAccessToken ?? false;
-
-    public string AccessTokenPlaceholder => Loc.Get(HasAccessToken ? "Placeholder_SecretSaved" : "Placeholder_SecretNone");
-
     /// <summary>The MQTT servers, one per Home Assistant; there is always at least one to type into.</summary>
     public ObservableCollection<MqttServerViewModel> MqttServers { get; } = [];
 
@@ -144,17 +143,27 @@ public sealed class SettingsViewModel : ObservableObject
 
     public bool HasOneMqttServer => !HasSeveralMqttServers;
 
-    public string HomeAssistantUrl { get => _homeAssistantUrl; set => SetSetting(ref _homeAssistantUrl, value); }
+    /// <summary>The Home Assistants connected to directly; there is always at least one to type into.</summary>
+    public ObservableCollection<HomeAssistantServerViewModel> HomeAssistantServers { get; } = [];
 
-    public string AccessToken { get => _accessToken; set => SetSetting(ref _accessToken, value ?? string.Empty); }
+    /// <summary>The Home Assistant the form on the Connections page shows.</summary>
+    public HomeAssistantServerViewModel? SelectedHomeAssistantServer
+    {
+        get => _selectedHomeAssistantServer;
+        set
+        {
+            if (SetProperty(ref _selectedHomeAssistantServer, value))
+            {
+                // The result of testing one server says nothing about another.
+                HomeAssistantTest.Close();
+                RefreshCommands();
+            }
+        }
+    }
 
-    public bool ClearAccessToken { get => _clearAccessToken; set => SetSetting(ref _clearAccessToken, value); }
+    public bool HasSeveralHomeAssistantServers => HomeAssistantServers.Count > 1;
 
-    public string HomeAssistantDeviceId { get => _homeAssistantDeviceId; set => SetSetting(ref _homeAssistantDeviceId, value); }
-
-    public string HomeAssistantDeviceName { get => _homeAssistantDeviceName; set => SetSetting(ref _homeAssistantDeviceName, value); }
-
-    public string CommandEventType { get => _commandEventType; set => SetSetting(ref _commandEventType, value); }
+    public bool HasOneHomeAssistantServer => !HasSeveralHomeAssistantServers;
 
     public bool CheckUpdatesAutomatically { get => _checkUpdatesAutomatically; set => SetSetting(ref _checkUpdatesAutomatically, value); }
 
@@ -173,6 +182,10 @@ public sealed class SettingsViewModel : ObservableObject
     public ICommand AddMqttServerCommand => _addMqttServerCommand;
 
     public ICommand RemoveMqttServerCommand => _removeMqttServerCommand;
+
+    public ICommand AddHomeAssistantServerCommand => _addHomeAssistantServerCommand;
+
+    public ICommand RemoveHomeAssistantServerCommand => _removeHomeAssistantServerCommand;
 
     public ObservableCollection<CustomSensorViewModel> CustomSensors { get; } = [];
 
@@ -200,6 +213,15 @@ public sealed class SettingsViewModel : ObservableObject
         if (MqttServers.FirstOrDefault(server => server.Id == id) is { } server)
         {
             SelectedMqttServer = server;
+        }
+    }
+
+    /// <summary>Shows the Home Assistant with that id in the form, e.g. after its card on the overview was clicked.</summary>
+    public void ShowHomeAssistantServer(string id)
+    {
+        if (HomeAssistantServers.FirstOrDefault(server => server.Id == id) is { } server)
+        {
+            SelectedHomeAssistantServer = server;
         }
     }
 
@@ -250,7 +272,8 @@ public sealed class SettingsViewModel : ObservableObject
     private async Task TestAsync(ConnectionTarget target)
     {
         var result = target == ConnectionTarget.Mqtt ? MqttTest : HomeAssistantTest;
-        var server = SelectedMqttServer;
+        var mqttServer = target == ConnectionTarget.Mqtt ? SelectedMqttServer : null;
+        var homeAssistantServer = target == ConnectionTarget.HomeAssistant ? SelectedHomeAssistantServer : null;
         if (Validate(target) is { } error)
         {
             result.Show(Loc.Get("Validation_Title"), error, InfoBarSeverity.Warning);
@@ -262,7 +285,8 @@ public sealed class SettingsViewModel : ObservableObject
         result.Close();
         try
         {
-            var outcome = await _client.TestConnectionAsync(target, BuildUpdate(server), server?.Id);
+            var outcome = await _client.TestConnectionAsync(
+                target, BuildUpdate(mqttServer, homeAssistantServer), mqttServer?.Id ?? homeAssistantServer?.Id);
             result.Show(
                 Loc.Get(outcome.Success ? "Test_SuccessTitle" : "Test_FailureTitle"),
                 outcome.Message ?? string.Empty,
@@ -308,12 +332,21 @@ public sealed class SettingsViewModel : ObservableObject
             }
 
             SelectedMqttServer = MqttServers.FirstOrDefault(server => server.Id == selected) ?? MqttServers[0];
-            HomeAssistantUrl = snapshot.HomeAssistant.BaseUrl;
-            AccessToken = string.Empty;
-            ClearAccessToken = false;
-            HomeAssistantDeviceId = snapshot.HomeAssistant.DeviceId;
-            HomeAssistantDeviceName = snapshot.HomeAssistant.DeviceName;
-            CommandEventType = snapshot.HomeAssistant.CommandEventType;
+
+            var selectedHomeAssistant = SelectedHomeAssistantServer?.Id;
+            HomeAssistantServers.Clear();
+            foreach (var server in snapshot.HomeAssistantServers)
+            {
+                HomeAssistantServers.Add(new HomeAssistantServerViewModel(server.Settings, server.HasAccessToken, UpdateDirty));
+            }
+
+            if (HomeAssistantServers.Count == 0)
+            {
+                HomeAssistantServers.Add(HomeAssistantServerViewModel.New(UpdateDirty, sensors: !PendingMqttServers().Any()));
+            }
+
+            SelectedHomeAssistantServer =
+                HomeAssistantServers.FirstOrDefault(server => server.Id == selectedHomeAssistant) ?? HomeAssistantServers[0];
             _disabledEntities.Clear();
             _disabledEntities.UnionWith(snapshot.DisabledEntities);
             _enabledEntities.Clear();
@@ -333,10 +366,10 @@ public sealed class SettingsViewModel : ObservableObject
 
         OnPropertyChanged(nameof(IsLoaded));
         OnPropertyChanged(nameof(CanEdit));
-        OnPropertyChanged(nameof(HasAccessToken));
-        OnPropertyChanged(nameof(AccessTokenPlaceholder));
         OnPropertyChanged(nameof(HasSeveralMqttServers));
         OnPropertyChanged(nameof(HasOneMqttServer));
+        OnPropertyChanged(nameof(HasSeveralHomeAssistantServers));
+        OnPropertyChanged(nameof(HasOneHomeAssistantServer));
         OnPropertyChanged(nameof(HasNoCustomSensors));
         DisabledEntitiesChanged?.Invoke(this, EventArgs.Empty);
         UpdateDirty();
@@ -344,14 +377,14 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     /// <param name="alsoBlank">A server to send even if nothing is typed into it yet, because it is the one being tested.</param>
-    private SettingsUpdate BuildUpdate(MqttServerViewModel? alsoBlank = null) => new(
+    /// <param name="alsoBlankHomeAssistant">Likewise, a Home Assistant that is being tested.</param>
+    private SettingsUpdate BuildUpdate(MqttServerViewModel? alsoBlank = null, HomeAssistantServerViewModel? alsoBlankHomeAssistant = null) => new(
         [.. PendingMqttServers().Union(alsoBlank is null ? [] : [alsoBlank]).Select(server => server.ToUpdate())],
-        new HomeAssistantSettings(
-            HomeAssistantUrl.Trim(),
-            HomeAssistantDeviceId.Trim(),
-            HomeAssistantDeviceName.Trim(),
-            CommandEventType.Trim()),
-        SecretUpdateFor(AccessToken, ClearAccessToken),
+        [
+            .. PendingHomeAssistantServers()
+                .Union(alsoBlankHomeAssistant is null ? [] : [alsoBlankHomeAssistant])
+                .Select(server => server.ToUpdate()),
+        ],
         [.. _disabledEntities.Order(StringComparer.Ordinal)],
         [.. PendingCustomSensors()],
         [.. _enabledEntities.Order(StringComparer.Ordinal)],
@@ -385,6 +418,39 @@ public sealed class SettingsViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(HasSeveralMqttServers));
         OnPropertyChanged(nameof(HasOneMqttServer));
+        UpdateDirty();
+        RefreshCommands();
+    }
+
+    /// <summary>The Home Assistants as they would be saved. One that nothing was typed into is not a server yet.</summary>
+    private IEnumerable<HomeAssistantServerViewModel> PendingHomeAssistantServers() =>
+        HomeAssistantServers.Where(server => !server.IsBlank);
+
+    private void AddHomeAssistantServer()
+    {
+        var server = HomeAssistantServerViewModel.New(UpdateDirty, sensors: !PendingMqttServers().Any());
+        HomeAssistantServers.Add(server);
+        SelectedHomeAssistantServer = server;
+        OnHomeAssistantServersChanged();
+    }
+
+    private void RemoveHomeAssistantServer()
+    {
+        if (SelectedHomeAssistantServer is not { } server || HomeAssistantServers.Count < 2)
+        {
+            return;
+        }
+
+        var index = HomeAssistantServers.IndexOf(server);
+        HomeAssistantServers.Remove(server);
+        SelectedHomeAssistantServer = HomeAssistantServers[Math.Min(index, HomeAssistantServers.Count - 1)];
+        OnHomeAssistantServersChanged();
+    }
+
+    private void OnHomeAssistantServersChanged()
+    {
+        OnPropertyChanged(nameof(HasSeveralHomeAssistantServers));
+        OnPropertyChanged(nameof(HasOneHomeAssistantServer));
         UpdateDirty();
         RefreshCommands();
     }
@@ -452,24 +518,33 @@ public sealed class SettingsViewModel : ObservableObject
             }
         }
 
-        if (target is null or ConnectionTarget.HomeAssistant)
+        if (target == ConnectionTarget.HomeAssistant && SelectedHomeAssistantServer?.Validate(urlRequired: true) is { } homeAssistantTestError)
         {
-            var url = HomeAssistantUrl.Trim();
-            if (target == ConnectionTarget.HomeAssistant && url.Length == 0)
+            return homeAssistantTestError;
+        }
+
+        if (target is null)
+        {
+            var servers = PendingHomeAssistantServers().ToList();
+            foreach (var server in servers)
             {
-                return Loc.Get("Validation_UrlRequired");
+                if (server.Validate(urlRequired: false) is { } error)
+                {
+                    SelectedHomeAssistantServer = server;
+                    return servers.Count > 1 ? $"{server.DisplayName}: {error}" : error;
+                }
             }
 
-            if (url.Length > 0
-                && !(Uri.TryCreate(url, UriKind.Absolute, out var parsed) && (parsed.Scheme == Uri.UriSchemeHttp || parsed.Scheme == Uri.UriSchemeHttps)))
+            if (servers.Count > 1 && servers.FirstOrDefault(server => server.Name.Trim().Length == 0) is { } unnamed)
             {
-                return Loc.Get("Validation_Url");
+                SelectedHomeAssistantServer = unnamed;
+                return Loc.Get("Validation_HaServerName");
             }
 
-            var eventType = CommandEventType.Trim();
-            if (eventType.Length == 0 || eventType.Any(char.IsWhiteSpace))
+            var twice = servers.GroupBy(server => server.Name.Trim(), StringComparer.CurrentCultureIgnoreCase).FirstOrDefault(group => group.Count() > 1);
+            if (twice is not null)
             {
-                return Loc.Get("Validation_EventType");
+                return Loc.Format("Validation_HaServerNameTwice", twice.Key);
             }
         }
 
@@ -514,8 +589,9 @@ public sealed class SettingsViewModel : ObservableObject
         update.MqttServers.Select(server => server.Settings).SequenceEqual(
             snapshot.MqttServers.Select(server => server.Settings).Where(server => server.Name.Length > 0 || server.Host.Length > 0))
         && update.MqttServers.All(server => server.Password.Change == SecretChange.Keep)
-        && update.HomeAssistant == snapshot.HomeAssistant
-        && update.AccessToken.Change == SecretChange.Keep
+        && update.HomeAssistantServers.Select(server => server.Settings).SequenceEqual(
+            snapshot.HomeAssistantServers.Select(server => server.Settings).Where(server => server.Name.Length > 0 || server.BaseUrl.Length > 0))
+        && update.HomeAssistantServers.All(server => server.AccessToken.Change == SecretChange.Keep)
         && update.DisabledEntities.SequenceEqual(snapshot.DisabledEntities.Order(StringComparer.Ordinal))
         && update.EnabledEntities.SequenceEqual(snapshot.EnabledEntities.Order(StringComparer.Ordinal))
         && update.Updates == snapshot.Updates
@@ -542,5 +618,7 @@ public sealed class SettingsViewModel : ObservableObject
         _addCustomSensorCommand.RaiseCanExecuteChanged();
         _addMqttServerCommand.RaiseCanExecuteChanged();
         _removeMqttServerCommand.RaiseCanExecuteChanged();
+        _addHomeAssistantServerCommand.RaiseCanExecuteChanged();
+        _removeHomeAssistantServerCommand.RaiseCanExecuteChanged();
     }
 }

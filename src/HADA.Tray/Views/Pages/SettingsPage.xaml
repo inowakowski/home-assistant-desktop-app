@@ -329,6 +329,31 @@
                             </Grid>
                         </Border>
 
+                        <Border Style="{StaticResource SettingRow}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Preferences_Browser}" />
+                                    <ui:TextBlock
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        FontTypography="Caption"
+                                        Text="{l:Tr Preferences_BrowserDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ComboBox
+                                    Grid.Column="1"
+                                    Width="320"
+                                    VerticalAlignment="Center"
+                                    DisplayMemberPath="Label"
+                                    ItemsSource="{Binding Browsers}"
+                                    SelectedValue="{Binding NotificationBrowser}"
+                                    SelectedValuePath="Path" />
+                            </Grid>
+                        </Border>
+
                         <Border BorderThickness="0" Style="{StaticResource SettingRow}">
                             <Grid>
                                 <Grid.ColumnDefinitions>

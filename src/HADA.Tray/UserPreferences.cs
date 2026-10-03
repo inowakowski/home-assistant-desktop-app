@@ -36,6 +36,7 @@ internal static class UserPreferences
     private const string LanguageValue = "Language";
     private const string IdleValue = "IdleSeconds";
     private const string DashboardValue = "DashboardUrl";
+    private const string BrowserValue = "NotificationBrowser";
 
     private static readonly IPreferenceStore Store = AppInstance.PortableDataFolder is { } folder
         ? new JsonPreferenceStore(Path.Combine(folder, "preferences.json"))
@@ -63,6 +64,16 @@ internal static class UserPreferences
     {
         get => Store.ReadText(DashboardValue) is { } url && TryGetDashboardAddress(url, out _) ? url : string.Empty;
         set => Store.Write(DashboardValue, TryGetDashboardAddress(value, out var address) ? address.AbsoluteUri : null);
+    }
+
+    /// <summary>
+    /// The program file of the browser that addresses of notifications are opened in; empty for the default
+    /// browser. See <see cref="Browsers"/>.
+    /// </summary>
+    public static string NotificationBrowser
+    {
+        get => Store.ReadText(BrowserValue) ?? string.Empty;
+        set => Store.Write(BrowserValue, string.IsNullOrWhiteSpace(value) ? null : value);
     }
 
     public static bool TryGetDashboardAddress(string? text, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Uri? address) =>
