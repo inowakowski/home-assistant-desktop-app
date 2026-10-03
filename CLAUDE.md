@@ -1,6 +1,6 @@
 # Project: Home Assistant Desktop App (HADA)
 
-Native Windows background integration for Home Assistant (.NET 8/9).
+Native Windows background integration for Home Assistant (.NET 10).
 Target Architectures: win-x64, win-arm64.
 
 ## Architecture Guidelines
@@ -14,6 +14,7 @@ Target Architectures: win-x64, win-arm64.
   - `Engine A`: MQTT (MQTTnet) with HA Discovery and LWT.
   - `Engine B`: Direct HA WebSocket API + REST/Webhooks.
 - **Decoupling**: All sensors/actions must communicate via an internal `IEventBus`. Neither sensors nor actions directly reference MQTT or WebSocket implementations.
+- **Portability** (macOS and Linux versions are planned): only `HADA.Tray` and the tests target `net10.0-windows`; every other project targets plain `net10.0`. Windows API calls live in `HADA.Platform.Windows` or in members marked `[SupportedOSPlatform("windows")]`, reached through an interface (`IPipeAccess`, `ISessionDirectory`, `ISecretProtector`, `IDeviceDirectory`) or an `OperatingSystem.IsWindows()` check; CA1416 fails the build otherwise. Entity ids are shared across systems in `BuiltInEntityIds`. Background services derive from `EagerBackgroundService`, not `BackgroundService`.
 
 ## Build & Test Commands
 

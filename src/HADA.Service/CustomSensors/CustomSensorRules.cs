@@ -1,24 +1,10 @@
 using System.Buffers;
-using System.Collections.Frozen;
 using System.Text.RegularExpressions;
 using HADA.Core.Entities;
+using HADA.Core.Input;
 using HADA.Ipc;
-using HADA.Platform.Windows.Actions;
-using HADA.Platform.Windows.Sensors;
 
 namespace HADA.Service.CustomSensors;
-
-/// <summary>Ids of built-in entities whose classes live in projects the service does not reference.</summary>
-public static class ReservedIds
-{
-    /// <summary>The tray app's notification entity.</summary>
-    public const string Notification = "notification";
-
-    /// <summary>The tray app's media playback sensor.</summary>
-    public const string MediaPlayback = "media_playback";
-
-    public const string UpdateAvailable = "update_available";
-}
 
 /// <summary>What a custom sensor or button definition must look like, and how it maps to a Home Assistant entity.</summary>
 public static partial class CustomSensorRules
@@ -35,53 +21,6 @@ public static partial class CustomSensorRules
 
     private static readonly SearchValues<char> PathCharacters = SearchValues.Create("\\/:*?\"<>|");
 
-    /// <summary>Ids of the built-in entities, including those the tray registers later and those absent on this computer.</summary>
-    public static FrozenSet<string> BuiltInIds { get; } = new[]
-    {
-        CpuLoadSensor.EntityId,
-        MemoryUsageSensor.EntityId,
-        BatterySensor.LevelEntityId,
-        BatterySensor.ChargingEntityId,
-        BatterySensor.PluggedInEntityId,
-        PowerStateSensor.DisplayEntityId,
-        PowerStateSensor.LidEntityId,
-        SessionLockSensor.EntityId,
-        LastBootSensor.EntityId,
-        LockScreenAction.EntityId,
-        ActiveWindowSensor.EntityId,
-        AudioVolumeSensor.EntityId,
-        UserActivitySensor.EntityId,
-        MediaCaptureSensor.MicrophoneEntityId,
-        MediaCaptureSensor.CameraEntityId,
-        MicrophoneMuteSensor.EntityId,
-        ExternalDisplaySensor.EntityId,
-        GpuLoadSensor.EntityId,
-        NetworkSensor.AddressEntityId,
-        NetworkSensor.WifiEntityId,
-        ActiveUserSensor.EntityId,
-        AudioDeviceSensor.EntityId,
-        DoNotDisturbSensor.EntityId,
-        PowerActions.SleepEntityId,
-        PowerActions.HibernateEntityId,
-        PowerActions.ShutdownEntityId,
-        PowerActions.RestartEntityId,
-        DisplayActions.TurnOffEntityId,
-        DisplayActions.WakeEntityId,
-        MediaKeyActions.PlayPauseEntityId,
-        MediaKeyActions.NextEntityId,
-        MediaKeyActions.PreviousEntityId,
-        MediaKeyActions.StopEntityId,
-        AudioControl.VolumeEntityId,
-        AudioControl.MuteEntityId,
-        AudioControl.MicrophoneMuteEntityId,
-        ReservedIds.Notification,
-        ReservedIds.MediaPlayback,
-        ReservedIds.UpdateAvailable,
-    }.ToFrozenSet(StringComparer.Ordinal);
-
-    /// <summary>Whether an id belongs to a built-in entity, including the per-drive ones that have no fixed list.</summary>
-    public static bool IsBuiltIn(string id) => BuiltInIds.Contains(id) || DiskUsageSensor.IsEntityId(id);
-
     /// <summary>Checks one normalized definition. Returns an error message, or <see langword="null"/> when it is valid.</summary>
     public static string? Validate(CustomSensorDefinition sensor)
     {
@@ -97,7 +36,7 @@ public static partial class CustomSensorRules
             return $"The ID of custom sensor '{label}' must contain only lowercase letters, digits and underscores.";
         }
 
-        if (IsBuiltIn(sensor.Id))
+        if (BuiltInEntityIds.Contains(sensor.Id))
         {
             return $"The ID '{sensor.Id}' of custom sensor '{label}' is already used by a built-in entity.";
         }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using HADA.Core;
+using HADA.Core.Hosting;
 
 namespace HADA.Service;
 
@@ -8,7 +9,7 @@ namespace HADA.Service;
 /// the service; a portable copy's service is a process the tray app started, and it must not outlive it.
 /// </summary>
 public sealed partial class PortableLifetime(
-    IHostApplicationLifetime lifetime, IConfiguration configuration, ILogger<PortableLifetime> logger) : BackgroundService
+    IHostApplicationLifetime lifetime, IConfiguration configuration, ILogger<PortableLifetime> logger) : EagerBackgroundService
 {
     /// <summary>The tray app's process id, passed as <c>--parent 1234</c>.</summary>
     public const string ParentArgument = "parent";

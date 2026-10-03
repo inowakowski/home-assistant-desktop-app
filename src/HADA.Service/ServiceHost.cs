@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using HADA.Core;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
@@ -7,8 +8,7 @@ using HADA.Core.Messaging;
 using HADA.Engine.Mqtt;
 using HADA.Engine.WebSocket;
 using HADA.Ipc;
-using HADA.Platform.Windows.Actions;
-using HADA.Platform.Windows.Sensors;
+using HADA.Platform.Windows;
 using HADA.Service.CustomSensors;
 using HADA.Service.Logging;
 using HADA.Service.Settings;
@@ -54,12 +54,13 @@ public static class ServiceHost
     /// Who may have made the folder the service keeps its settings in: the system, the administrators, and each of
     /// them, since an administrator who ran HADA once from a console made it as themselves.
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public static bool IsTrustedOwner(System.Security.Principal.SecurityIdentifier owner)
     {
         using var self = System.Security.Principal.WindowsIdentity.GetCurrent();
         return owner.IsWellKnown(System.Security.Principal.WellKnownSidType.LocalSystemSid)
             || owner == self.User
-            || HADA.Platform.Windows.LocalAdministrators.Contains(owner);
+            || LocalAdministrators.Contains(owner);
     }
 
     /// <param name="settingsStore">Where settings and logs live; <c>%ProgramData%\HADA</c> unless a test says otherwise.</param>
@@ -73,7 +74,7 @@ public static class ServiceHost
             // Everything stays in the copy's own folder, and belongs to the user running it: secrets only that
             // user can read, settings that user may change, and a service that ends with the tray app.
             settingsStore ??= new SettingsStore(AppInstance.PortableDataFolder, protectFolder: false);
-            SettingsStore.SecretScope = System.Security.Cryptography.DataProtectionScope.CurrentUser;
+            SettingsStore.Secrets = SecretProtector.ForThisSystem(currentUserOnly: true);
             builder.Services.Configure<IpcOptions>(options => options.TrustSameUser = true);
             builder.Services.AddHostedService<PortableLifetime>();
         }
@@ -81,7 +82,7 @@ public static class ServiceHost
         // Settings saved from the tray's settings window, added last so they override appsettings.json. Adding
         // them reads them, so the installed service first makes sure the folder is one it can trust.
         settingsStore ??= new SettingsStore();
-        if (WindowsServiceHelpers.IsWindowsService())
+        if (OperatingSystem.IsWindows() && WindowsServiceHelpers.IsWindowsService())
         {
             var folderCheck = settingsStore.SecureFolder(IsTrustedOwner);
             builder.Services.AddSingleton(folderCheck);
@@ -136,18 +137,13 @@ public static class ServiceHost
         builder.Services.AddHostedService(services => services.GetRequiredService<TelemetryCache>());
         builder.Services.AddHostedService(services => services.GetRequiredService<EngineSupervisor>());
         builder.Services.AddHostedService<IpcServer>();
-        builder.Services.AddHostedService<CpuLoadSensor>();
-        builder.Services.AddHostedService<MemoryUsageSensor>();
-        builder.Services.AddHostedService<BatterySensor>();
-        builder.Services.AddHostedService<PowerStateSensor>();
-        builder.Services.AddHostedService<SessionLockSensor>();
-        builder.Services.AddHostedService<LastBootSensor>();
-        builder.Services.AddHostedService<ActiveUserSensor>();
-        builder.Services.AddHostedService<NetworkSensor>();
-        builder.Services.AddHostedService<DiskUsageSensor>();
-        builder.Services.AddHostedService<GpuLoadSensor>();
-        builder.Services.AddHostedService<LockScreenAction>();
-        builder.Services.AddHostedService<PowerActions>();
+
+        // The built-in sensors and actions are the operating system's own.
+        if (OperatingSystem.IsWindows())
+        {
+            builder.Services.AddWindowsServiceEntities();
+        }
+
         builder.Services.AddHostedService(services => services.GetRequiredService<UpdateChecker>());
 
         // After the built-in entities, so a custom sensor can never take one of their ids first.

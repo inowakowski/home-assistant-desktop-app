@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Extensions.Hosting;
@@ -184,10 +185,10 @@ public static class WifiNetwork
 /// Publishes the computer's IP address and, on computers with Wi-Fi, the network it is connected to.
 /// Runs in the service, so both are reported with nobody signed in.
 /// </summary>
-public sealed class NetworkSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class NetworkSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string AddressEntityId = "ip_address";
-    public const string WifiEntityId = "wifi_network";
+    public const string AddressEntityId = BuiltInEntityIds.IpAddress;
+    public const string WifiEntityId = BuiltInEntityIds.WifiNetwork;
 
     /// <summary>State of <see cref="WifiEntityId"/> while Wi-Fi is not connected. A state cannot be empty.</summary>
     public const string NotConnected = "not_connected";

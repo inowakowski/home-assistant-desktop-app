@@ -20,9 +20,9 @@ namespace HADA.Platform.Windows.Actions;
 public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry, ILogger<AudioControl> logger)
     : CommandHandler(bus, registry, logger), IDisposable
 {
-    public const string VolumeEntityId = "volume_level";
-    public const string MuteEntityId = "audio_mute";
-    public const string MicrophoneMuteEntityId = "microphone_mute";
+    public const string VolumeEntityId = BuiltInEntityIds.VolumeLevel;
+    public const string MuteEntityId = BuiltInEntityIds.AudioMute;
+    public const string MicrophoneMuteEntityId = BuiltInEntityIds.MicrophoneMute;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 

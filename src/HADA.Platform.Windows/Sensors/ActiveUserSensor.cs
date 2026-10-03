@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
@@ -9,9 +10,9 @@ namespace HADA.Platform.Windows.Sensors;
 /// Publishes who is signed in at the computer's own screen. Runs in the service, so it also reports that nobody is.
 /// With several users signed in, this is the one whose desktop is shown, and whose tray sensors are reported.
 /// </summary>
-public sealed class ActiveUserSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class ActiveUserSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "active_user";
+    public const string EntityId = BuiltInEntityIds.ActiveUser;
 
     /// <summary>State while the sign-in screen is shown. A state cannot be empty.</summary>
     public const string Nobody = "none";

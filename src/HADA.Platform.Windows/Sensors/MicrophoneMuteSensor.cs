@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,9 +17,9 @@ namespace HADA.Platform.Windows.Sensors;
 /// its own stream, as the mute button of most call apps does, leaves the device unmuted and is not seen here.
 /// </remarks>
 public sealed partial class MicrophoneMuteSensor(IEventBus bus, IEntityRegistry registry, ILogger<MicrophoneMuteSensor> logger)
-    : BackgroundService
+    : EagerBackgroundService
 {
-    public const string EntityId = "microphone_muted";
+    public const string EntityId = BuiltInEntityIds.MicrophoneMuted;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 

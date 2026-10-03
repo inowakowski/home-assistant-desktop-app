@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,9 +11,9 @@ namespace HADA.Platform.Windows.Sensors;
 
 /// <summary>Publishes system-wide CPU load as a percentage.</summary>
 public sealed partial class CpuLoadSensor(IEventBus bus, IEntityRegistry registry, ILogger<CpuLoadSensor> logger)
-    : BackgroundService
+    : EagerBackgroundService
 {
-    public const string EntityId = "cpu_load";
+    public const string EntityId = BuiltInEntityIds.CpuLoad;
 
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(10);
 

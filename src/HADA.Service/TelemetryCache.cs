@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using HADA.Core.Abstractions;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 
 namespace HADA.Service;
@@ -9,7 +10,7 @@ namespace HADA.Service;
 /// Remembers the latest reading of every sensor, for the status page and for engines that start later:
 /// many sensors report only changes, so a new engine would otherwise not learn their value until the next one.
 /// </summary>
-public sealed class TelemetryCache(IEventBus bus) : BackgroundService
+public sealed class TelemetryCache(IEventBus bus) : EagerBackgroundService
 {
     private readonly ConcurrentDictionary<string, TelemetryEvent> _latest = new(StringComparer.Ordinal);
 

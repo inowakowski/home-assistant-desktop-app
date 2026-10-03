@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Extensions.Hosting;
@@ -13,10 +14,10 @@ namespace HADA.Platform.Windows.Sensors;
 /// Both come from power notifications, so changes are reported at once instead of on the next poll.
 /// </summary>
 public sealed partial class PowerStateSensor(IEventBus bus, IEntityRegistry registry, ILogger<PowerStateSensor> logger)
-    : BackgroundService
+    : EagerBackgroundService
 {
-    public const string DisplayEntityId = "display_on";
-    public const string LidEntityId = "lid_open";
+    public const string DisplayEntityId = BuiltInEntityIds.DisplayOn;
+    public const string LidEntityId = BuiltInEntityIds.LidOpen;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

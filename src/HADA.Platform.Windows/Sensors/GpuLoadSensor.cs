@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Extensions.Hosting;
@@ -128,9 +129,9 @@ public sealed class GpuLoad : IDisposable
 /// Publishes the load of the graphics processor. Runs in the service; not registered on a computer whose Windows
 /// or graphics driver does not report it.
 /// </summary>
-public sealed class GpuLoadSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class GpuLoadSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "gpu_load";
+    public const string EntityId = BuiltInEntityIds.GpuLoad;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 

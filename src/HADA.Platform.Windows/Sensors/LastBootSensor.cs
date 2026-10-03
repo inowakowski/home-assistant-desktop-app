@@ -1,15 +1,16 @@
 using System.Globalization;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 
 namespace HADA.Platform.Windows.Sensors;
 
 /// <summary>Publishes when Windows was started, as a timestamp Home Assistant can show as "3 hours ago".</summary>
-public sealed class LastBootSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class LastBootSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "last_boot";
+    public const string EntityId = BuiltInEntityIds.LastBoot;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

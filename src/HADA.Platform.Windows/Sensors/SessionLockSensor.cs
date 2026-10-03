@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
@@ -9,9 +10,9 @@ namespace HADA.Platform.Windows.Sensors;
 /// Publishes whether the session on the physical console is locked. Runs in the service, so it keeps working
 /// while nobody is signed in and when the tray app is not running.
 /// </summary>
-public sealed class SessionLockSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class SessionLockSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "session_locked";
+    public const string EntityId = BuiltInEntityIds.SessionLocked;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 

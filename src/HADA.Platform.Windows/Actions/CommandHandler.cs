@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,7 @@ namespace HADA.Platform.Windows.Actions;
 /// Registers entities Home Assistant can send commands to, and hands every command for one of them to
 /// <see cref="HandleAsync"/>. A command that fails is logged; the next one is still handled.
 /// </summary>
-public abstract partial class CommandHandler(IEventBus bus, IEntityRegistry registry, ILogger logger) : BackgroundService
+public abstract partial class CommandHandler(IEventBus bus, IEntityRegistry registry, ILogger logger) : EagerBackgroundService
 {
     protected IEventBus Bus => bus;
 

@@ -27,7 +27,7 @@ public sealed partial class NotificationAction(
     IEventBus bus, IEntityRegistry registry, ILogger<NotificationAction> logger, NotificationPresenter presenter)
     : CommandHandler(bus, registry, logger)
 {
-    public const string EntityId = "notification";
+    public const string EntityId = BuiltInEntityIds.Notification;
 
     private const string DefaultTitle = "Home Assistant";
 

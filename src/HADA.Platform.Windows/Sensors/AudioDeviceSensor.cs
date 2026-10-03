@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -13,9 +14,9 @@ namespace HADA.Platform.Windows.Sensors;
 /// user's session.
 /// </summary>
 public sealed partial class AudioDeviceSensor(IEventBus bus, IEntityRegistry registry, ILogger<AudioDeviceSensor> logger)
-    : BackgroundService
+    : EagerBackgroundService
 {
-    public const string EntityId = "audio_device";
+    public const string EntityId = BuiltInEntityIds.AudioDevice;
 
     /// <summary>State while there is no playback device. A state cannot be empty.</summary>
     public const string NoDevice = "none";

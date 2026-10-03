@@ -110,7 +110,7 @@ public sealed class ServiceControlClient(IpcOptions? options = null) : IAsyncDis
             try
             {
                 await pipe.ConnectAsync((int)ConnectTimeout.TotalMilliseconds, cancellationToken).ConfigureAwait(false);
-                IpcPipeSecurity.EnsureTrustedServer(pipe);
+                PipeAccess.Current.EnsureTrustedServer(pipe);
 
                 var stream = new IpcMessageStream(pipe);
                 await stream.WriteAsync(

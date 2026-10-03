@@ -35,10 +35,10 @@ public sealed partial class PowerActions(
     IEventBus bus, IEntityRegistry registry, ILogger<PowerActions> logger, IPowerControl? power = null)
     : CommandHandler(bus, registry, logger)
 {
-    public const string SleepEntityId = "sleep";
-    public const string HibernateEntityId = "hibernate";
-    public const string ShutdownEntityId = "shutdown";
-    public const string RestartEntityId = "restart";
+    public const string SleepEntityId = BuiltInEntityIds.Sleep;
+    public const string HibernateEntityId = BuiltInEntityIds.Hibernate;
+    public const string ShutdownEntityId = BuiltInEntityIds.Shutdown;
+    public const string RestartEntityId = BuiltInEntityIds.Restart;
 
     private readonly IPowerControl _power = power ?? new WindowsPowerControl();
 

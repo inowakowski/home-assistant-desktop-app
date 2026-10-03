@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -49,9 +50,9 @@ public static class SystemMedia
 /// app is built against.
 /// </summary>
 public sealed partial class MediaPlaybackSensor(IEventBus bus, IEntityRegistry registry, ILogger<MediaPlaybackSensor> logger)
-    : BackgroundService
+    : EagerBackgroundService
 {
-    public const string EntityId = "media_playback";
+    public const string EntityId = BuiltInEntityIds.MediaPlayback;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 

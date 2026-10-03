@@ -1,7 +1,6 @@
+using System.Runtime.Versioning;
 using System.Security.AccessControl;
-using System.Security.Cryptography;
 using System.Security.Principal;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using HADA.Engine.Mqtt;
@@ -29,7 +28,7 @@ public sealed record StoredSettings
 
     public HomeAssistantSettings? HomeAssistant { get; init; }
 
-    /// <summary>Protected with DPAPI, as <see cref="SettingsStore.Protect"/> does it; base64-encoded.</summary>
+    /// <summary>Encrypted as <see cref="SettingsStore.Protect"/> does it; base64-encoded.</summary>
     public string? AccessToken { get; init; }
 
     public IReadOnlyList<string>? DisabledEntities { get; init; }
@@ -47,7 +46,7 @@ public sealed record StoredSettings
 /// <param name="OwnershipFailures">How many of the files in a trusted folder could not be given to the Administrators group.</param>
 public sealed record FolderCheck(string? SetAsidePath = null, string? Owner = null, int OwnershipFailures = 0);
 
-/// <param name="Password">Protected with DPAPI, as <see cref="SettingsStore.Protect"/> does it; base64-encoded.</param>
+/// <param name="Password">Encrypted as <see cref="SettingsStore.Protect"/> does it; base64-encoded.</param>
 public sealed record StoredMqttServer(MqttSettings Settings, string? Password);
 
 /// <summary>
@@ -60,7 +59,6 @@ public sealed record StoredMqttServer(MqttSettings Settings, string? Password);
 /// </param>
 public sealed class SettingsStore(string? folderPath = null, bool protectFolder = true)
 {
-    private static readonly byte[] Entropy = "HADA.Settings.v1"u8.ToArray();
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
@@ -98,33 +96,22 @@ public sealed class SettingsStore(string? folderPath = null, bool protectFolder 
         File.Move(temporaryPath, FilePath, overwrite: true);
     }
 
-    /// <summary>
-    /// Who can decrypt saved secrets: any process on this computer, which the installed service needs because it
-    /// runs as SYSTEM, or only the current user, for a portable copy. Set once, before settings are loaded.
-    /// </summary>
-    public static DataProtectionScope SecretScope { get; set; } = DataProtectionScope.LocalMachine;
+    private static ISecretProtector? _secrets;
 
-    public static string Protect(string secret) =>
-        Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(secret), Entropy, SecretScope));
+    /// <summary>
+    /// What encrypts saved secrets. By default any process on this computer can decrypt them, which the installed
+    /// service needs; a portable copy sets one that only the current user can. Set once, before settings are loaded.
+    /// </summary>
+    public static ISecretProtector Secrets
+    {
+        get => _secrets ??= SecretProtector.ForThisSystem(currentUserOnly: false);
+        set => _secrets = value;
+    }
+
+    public static string Protect(string secret) => Secrets.Protect(secret);
 
     /// <summary>Returns <see langword="null"/> when there is no secret or it was encrypted on another machine.</summary>
-    public static string? TryUnprotect(string? protectedSecret)
-    {
-        if (string.IsNullOrEmpty(protectedSecret))
-        {
-            return null;
-        }
-
-        try
-        {
-            return Encoding.UTF8.GetString(
-                ProtectedData.Unprotect(Convert.FromBase64String(protectedSecret), Entropy, SecretScope));
-        }
-        catch (Exception ex) when (ex is CryptographicException or FormatException)
-        {
-            return null;
-        }
-    }
+    public static string? TryUnprotect(string? protectedSecret) => Secrets.TryUnprotect(protectedSecret);
 
     /// <summary>
     /// Run by the installed service before it reads anything from its folder. Any user may create folders in
@@ -137,6 +124,7 @@ public sealed class SettingsStore(string? folderPath = null, bool protectFolder 
     /// <param name="isTrustedOwner">Whether the folder's owner may have put things there.</param>
     /// <param name="takeOwnership">False in tests, which cannot give anything to the Administrators group.</param>
     /// <exception cref="InvalidOperationException">An untrusted folder could not be set aside; the service must not start.</exception>
+    [SupportedOSPlatform("windows")]
     public FolderCheck SecureFolder(Func<SecurityIdentifier, bool> isTrustedOwner, bool takeOwnership = true)
     {
         var folder = new DirectoryInfo(FolderPath);
@@ -191,6 +179,7 @@ public sealed class SettingsStore(string? folderPath = null, bool protectFolder 
     }
 
     /// <summary>Makes the Administrators group the owner of the folder and of everything in it; returns how many could not be.</summary>
+    [SupportedOSPlatform("windows")]
     private static int GiveToAdministrators(DirectoryInfo folder)
     {
         var administrators = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
@@ -237,6 +226,7 @@ public sealed class SettingsStore(string? folderPath = null, bool protectFolder 
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private static string NameOf(SecurityIdentifier? sid)
     {
         if (sid is null)
@@ -262,6 +252,19 @@ public sealed class SettingsStore(string? folderPath = null, bool protectFolder 
             return;
         }
 
+        if (OperatingSystem.IsWindows())
+        {
+            EnsureProtectedWindowsFolder();
+            return;
+        }
+
+        // Elsewhere the folder is the service's own user's, and nobody else's.
+        Directory.CreateDirectory(FolderPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private void EnsureProtectedWindowsFolder()
+    {
         using var identity = WindowsIdentity.GetCurrent();
         SecurityIdentifier[] owners =
         [

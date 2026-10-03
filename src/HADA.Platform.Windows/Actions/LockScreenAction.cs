@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Extensions.Hosting;
@@ -11,9 +12,9 @@ namespace HADA.Platform.Windows.Actions;
 
 /// <summary>Exposes a "Lock screen" button and locks the interactive session when it is pressed.</summary>
 public sealed partial class LockScreenAction(IEventBus bus, IEntityRegistry registry, ILogger<LockScreenAction> logger)
-    : BackgroundService
+    : EagerBackgroundService
 {
-    public const string EntityId = "lock_screen";
+    public const string EntityId = BuiltInEntityIds.LockScreen;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
