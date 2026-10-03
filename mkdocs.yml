@@ -1,11 +1,13 @@
 # The documentation site. Pages are the Markdown files in docs/; build with "mkdocs build", preview with "mkdocs serve".
 site_name: HADA
 site_description: Home Assistant Desktop App – connects a Windows computer to Home Assistant.
-site_url: https://inowakowski.github.io/home-assistant-desktop-app/
+# scripts/build_site.py sets DOCS_SITE_URL when it builds the documentation as the docs/ part of the website.
+site_url: !ENV [DOCS_SITE_URL, "https://inowakowski.github.io/home-assistant-desktop-app/"]
 repo_url: https://github.com/inowakowski/home-assistant-desktop-app
 repo_name: inowakowski/home-assistant-desktop-app
 edit_uri: edit/main/docs/
 copyright: Copyright &copy; 2026 Ignacy Nowakowski. MIT license.
+exclude_docs: requirements.txt
 
 theme:
   name: material
@@ -36,7 +38,53 @@ theme:
     - content.code.copy
     - content.action.edit
 
+# A translation of a page sits next to it with the language in its name: index.md, index.pl.md.
+# A page without a translation shows in English. To add a language, add it here and translate the pages.
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+          build: true
+        - locale: pl
+          name: Polski
+          build: true
+          site_description: Home Assistant Desktop App – łączy komputer z Windows z Home Assistant.
+          nav_translations:
+            Home: Start
+            Getting started: Pierwsze kroki
+            Installation: Instalacja
+            Portable version: Wersja przenośna
+            First setup: Pierwsza konfiguracja
+            Updating: Aktualizacja
+            What it does: Co potrafi
+            Sensors: Czujniki
+            Controls: Sterowanie
+            Notifications: Powiadomienia
+            Custom sensors, buttons, quick actions: Własne czujniki, przyciski, szybkie akcje
+            Several users on one computer: Kilku użytkowników na jednym komputerze
+            The HADA window: Okno HADA
+            MQTT engine: Silnik MQTT
+            WebSocket engine: Silnik WebSocket
+            Automation examples: Przykłady automatyzacji
+            Reference: Informacje
+            Configuration: Konfiguracja
+            Logs: Logi
+            Security: Bezpieczeństwo
+            Known limitations: Znane ograniczenia
+            Troubleshooting: Rozwiązywanie problemów
+            Development: Dla programistów
+            Architecture: Architektura
+            Building and running: Budowanie i uruchamianie
+            Adding entities in code: Dodawanie encji w kodzie
+            Changelog: Historia zmian
+
 markdown_extensions:
+  - admonition
   - tables
   - attr_list
   - toc:

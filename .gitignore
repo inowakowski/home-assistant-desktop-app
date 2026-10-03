@@ -483,3 +483,6 @@ $RECYCLE.BIN/
 
 # The built documentation site (mkdocs build)
 /site/
+
+# The built website (scripts/build_site.py)
+/dist/
