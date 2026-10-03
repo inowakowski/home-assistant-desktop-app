@@ -113,13 +113,13 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
 
   <data name="Connections_Title" xml:space="preserve"><value>Połączenia</value></data>
-  <data name="Connections_Subtitle" xml:space="preserve"><value>Jak HADA łączy się z Home Assistant: przez MQTT, z jednym albo kilkoma Home Assistantami naraz, lub przez WebSocket API.</value></data>
+  <data name="Connections_Subtitle" xml:space="preserve"><value>Jak HADA łączy się z Home Assistant: przez MQTT lub przez WebSocket API, w obu przypadkach z jednym albo kilkoma Home Assistantami naraz.</value></data>
   <data name="Settings_LockedTitle" xml:space="preserve"><value>Tylko do odczytu</value></data>
   <data name="Settings_LockedMessage" xml:space="preserve"><value>Zmiana ustawień wymaga uprawnień administratora.</value></data>
   <data name="Settings_ElevationDeclined" xml:space="preserve"><value>Nie przyznano uprawnień administratora.</value></data>
   <data name="Settings_Unsaved" xml:space="preserve"><value>Masz niezapisane zmiany.</value></data>
   <data name="Mqtt_Description" xml:space="preserve"><value>Zalecane. Encje pojawiają się w Home Assistant automatycznie dzięki MQTT discovery.</value></data>
-  <data name="Ha_Description" xml:space="preserve"><value>Bezpośrednie połączenie bez brokera. Encje nie mają unikalnego ID.</value></data>
+  <data name="Ha_Description" xml:space="preserve"><value>Bezpośrednie połączenie bez brokera: powiadomienia jak na telefonie i sensory jako encje urządzenia.</value></data>
   <data name="Field_Host" xml:space="preserve"><value>Adres brokera</value></data>
   <data name="Field_Port" xml:space="preserve"><value>Port</value></data>
   <data name="Field_UseTls" xml:space="preserve"><value>Szyfrowanie TLS</value></data>
@@ -243,4 +243,17 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Mqtt_ServerNameHint" xml:space="preserve"><value>Twoja nazwa tego Home Assistanta, widoczna tutaj i w logach. Potrzebna, gdy serwerów jest kilka.</value></data>
   <data name="Validation_ServerName" xml:space="preserve"><value>Nadaj każdemu serwerowi MQTT nazwę, żeby dało się je odróżnić.</value></data>
   <data name="Validation_ServerNameTwice" xml:space="preserve"><value>Dwa serwery MQTT nazywają się „{0}”.</value></data>
+  <data name="Card_HomeAssistantServer" xml:space="preserve"><value>WebSocket · {0}</value></data>
+  <data name="Preferences_Browser" xml:space="preserve"><value>Przeglądarka dla powiadomień</value></data>
+  <data name="Preferences_BrowserDetail" xml:space="preserve"><value>W czym otwiera się adres powiadomienia albo jego przycisku, gdy go klikniesz.</value></data>
+  <data name="Preferences_BrowserDefault" xml:space="preserve"><value>Domyślna przeglądarka</value></data>
+  <data name="Field_HaNotifications" xml:space="preserve"><value>Powiadomienia</value></data>
+  <data name="Ha_NotificationsHint" xml:space="preserve"><value>Rejestruje ten komputer w Home Assistant tak jak telefon. W Home Assistant pojawia się wtedy akcja notify.mobile_app_ z nazwą urządzenia, z tytułem, obrazkiem i przyciskami.</value></data>
+  <data name="Field_HaSensors" xml:space="preserve"><value>Sensory</value></data>
+  <data name="Ha_SensorsHint" xml:space="preserve"><value>Dokąd trafiają sensory tego komputera. Jako encje urządzenia: z unikalnym ID, zachowane po restarcie Home Assistant. Wybierz Wyłączone, gdy ten Home Assistant dostaje je już przez MQTT.</value></data>
+  <data name="Ha_SensorsOff" xml:space="preserve"><value>Wyłączone</value></data>
+  <data name="Ha_SensorsEntities" xml:space="preserve"><value>Jako encje urządzenia (zalecane)</value></data>
+  <data name="Ha_SensorsStates" xml:space="preserve"><value>Jako stany, bez unikalnego ID (dotychczasowy sposób)</value></data>
+  <data name="Validation_HaServerName" xml:space="preserve"><value>Nadaj każdemu serwerowi Home Assistant nazwę, żeby dało się je odróżnić.</value></data>
+  <data name="Validation_HaServerNameTwice" xml:space="preserve"><value>Dwa serwery Home Assistant nazywają się „{0}”.</value></data>
 </root>

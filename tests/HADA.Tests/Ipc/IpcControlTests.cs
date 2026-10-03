@@ -91,7 +91,7 @@ public sealed class IpcControlTests : IAsyncDisposable
     {
         await _server.StartAsync(CancellationToken.None);
         var update = new SettingsUpdate(
-            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
+            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], [new HomeAssistantServerUpdate(FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged)], [], [], [], new UpdateSettings());
 
         if (IsElevatedAdministrator())
         {
@@ -119,7 +119,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         var before = _control.SaveCalls;
 
         var update = new SettingsUpdate(
-            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged, [], [], [], new UpdateSettings());
+            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], [new HomeAssistantServerUpdate(FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged)], [], [], [], new UpdateSettings());
         Assert.True((await client.SaveSettingsAsync(update)).Success);
         Assert.True((await client.TestConnectionAsync(ConnectionTarget.Mqtt, update)).Success);
 
@@ -151,7 +151,7 @@ public sealed class IpcControlTests : IAsyncDisposable
     private sealed class FakeServiceControl(IEntityRegistry registry) : IServiceControl
     {
         public static readonly MqttSettings Mqtt = new("broker.local", 1883, false, "", "", "", "homeassistant", "hada") { Id = "default" };
-        public static readonly HomeAssistantSettings HomeAssistant = new("", "", "", "hada_command");
+        public static readonly HomeAssistantSettings HomeAssistant = new("", "", "", "hada_command") { Id = "default" };
         public static readonly CustomSensorDefinition CustomSensor = new()
         {
             Id = "game_running",
@@ -175,7 +175,7 @@ public sealed class IpcControlTests : IAsyncDisposable
 
         public Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken) =>
             Task.FromResult(new SettingsSnapshot(
-                [new MqttServerSnapshot(Mqtt, false)], HomeAssistant, false, [], [CustomSensor], [], new UpdateSettings(IncludePrereleases: true)));
+                [new MqttServerSnapshot(Mqtt, false)], [new HomeAssistantServerSnapshot(HomeAssistant, false)], [], [CustomSensor], [], new UpdateSettings(IncludePrereleases: true)));
 
         public Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken)
         {

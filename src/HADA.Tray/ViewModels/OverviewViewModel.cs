@@ -11,30 +11,36 @@ namespace HADA.Tray.ViewModels;
 
 public sealed class OverviewViewModel : ObservableObject
 {
+    private const string MqttEngineName = "mqtt";
+    private const string HomeAssistantEngineName = "websocket";
+
     private readonly Action<string> _navigate;
     private readonly StatusCardViewModel _service;
     private readonly List<StatusCardViewModel> _mqtt = [];
-    private readonly StatusCardViewModel _homeAssistant;
+    private readonly List<StatusCardViewModel> _homeAssistant = [];
     private readonly StatusCardViewModel _tray;
-    private string? _mqttServers;
+    private string? _servers;
     private bool _hasNoEntities = true;
 
     /// <param name="navigate">
     /// Opens the page a status card is about: <c>logs</c>, <c>connections</c>, <c>connections#mqtt=</c> and a
-    /// server's id, <c>connections#ha</c> or <c>entities</c>, as <see cref="MainViewModel.NavigationRequested"/> takes them.
+    /// server's id, <c>connections#ha</c>, <c>connections#ha=</c> and a server's id, or <c>entities</c>, as
+    /// <see cref="MainViewModel.NavigationRequested"/> takes them.
     /// </param>
     public OverviewViewModel(Action<string> navigate)
     {
         _navigate = navigate;
         _service = new(Loc.Get("Card_Service"), SymbolRegular.Server24, Loc.Get("Card_OpenLogs"), () => navigate("logs"));
-        _homeAssistant = new(
-            Loc.Get("Card_HomeAssistant"), SymbolRegular.HomeCheckmark24, Loc.Get("Card_OpenConnections"), () => navigate("connections#ha"));
         _tray = new(Loc.Get("Card_Tray"), SymbolRegular.WindowApps24, Loc.Get("Card_OpenEntities"), () => navigate("entities"));
-        ShowMqttServers([new EngineStatus("mqtt", false, EngineConnectionState.Disconnected)]);
+        ShowServers(
+            [new EngineStatus(MqttEngineName, false, EngineConnectionState.Disconnected)],
+            [new EngineStatus(HomeAssistantEngineName, false, EngineConnectionState.Disconnected)]);
         SetUnavailable();
     }
 
-    /// <summary>The service, one card per MQTT server, Home Assistant's WebSocket API, and the session sensors.</summary>
+    /// <summary>
+    /// The service, one card per MQTT server, one per Home Assistant connected to directly, and the session sensors.
+    /// </summary>
     public ObservableCollection<StatusCardViewModel> Cards { get; } = [];
 
     public ObservableCollection<EntityRowViewModel> Entities { get; } = [];
@@ -51,14 +57,18 @@ public sealed class OverviewViewModel : ObservableObject
             Loc.Get("Status_Running"),
             StatusKind.Success,
             Loc.Format("Status_Version", status.Version.Split('+')[0], status.StartedAt.LocalDateTime));
-        var servers = status.Engines.Where(engine => engine.Name == "mqtt").ToList();
-        ShowMqttServers(servers);
+        var servers = status.Engines.Where(engine => engine.Name == MqttEngineName).ToList();
+        var homeAssistants = status.Engines.Where(engine => engine.Name == HomeAssistantEngineName).ToList();
+        ShowServers(servers, homeAssistants);
         for (var i = 0; i < servers.Count; i++)
         {
             UpdateEngine(_mqtt[i], servers[i]);
         }
 
-        UpdateEngine(_homeAssistant, status.Engines.FirstOrDefault(engine => engine.Name == "websocket"));
+        for (var i = 0; i < homeAssistants.Count; i++)
+        {
+            UpdateEngine(_homeAssistant[i], homeAssistants[i]);
+        }
 
         var trayCount = status.SensorClients.Count;
         _tray.Set(
@@ -85,32 +95,49 @@ public sealed class OverviewViewModel : ObservableObject
         }
     }
 
-    /// <summary>Puts up a card for each MQTT server, when the servers are not the ones there are cards for.</summary>
-    private void ShowMqttServers(IReadOnlyList<EngineStatus> servers)
+    /// <summary>
+    /// Puts up a card for each MQTT server and each Home Assistant, when the servers are not the ones there are
+    /// cards for.
+    /// </summary>
+    private void ShowServers(IReadOnlyList<EngineStatus> mqtt, IReadOnlyList<EngineStatus> homeAssistants)
     {
-        var key = string.Join('\n', servers.Select(server => $"{server.ServerId}\t{server.ServerName}"));
-        if (key == _mqttServers)
+        var key = string.Join('\n', mqtt.Concat(homeAssistants).Select(server => $"{server.Name}\t{server.ServerId}\t{server.ServerName}"));
+        if (key == _servers)
         {
             return;
         }
 
-        _mqttServers = key;
-        _mqtt.Clear();
+        _servers = key;
+        AddCards(_mqtt, mqtt, "Card_Mqtt", "Card_MqttServer", SymbolRegular.Router24, "connections#mqtt=", "connections");
+        AddCards(
+            _homeAssistant, homeAssistants, "Card_HomeAssistant", "Card_HomeAssistantServer", SymbolRegular.HomeCheckmark24, "connections#ha=", "connections#ha");
+
+        Cards.Clear();
+        foreach (var card in (IEnumerable<StatusCardViewModel>)[_service, .. _mqtt, .. _homeAssistant, _tray])
+        {
+            Cards.Add(card);
+        }
+    }
+
+    private void AddCards(
+        List<StatusCardViewModel> cards,
+        IReadOnlyList<EngineStatus> servers,
+        string titleKey,
+        string namedTitleKey,
+        SymbolRegular symbol,
+        string serverTarget,
+        string fallbackTarget)
+    {
+        cards.Clear();
         foreach (var server in servers)
         {
             // One unnamed server is simply "MQTT", as it always was; several are told apart by their names.
             var name = server.ServerName is { Length: > 0 } serverName ? serverName : server.ServerId;
             var title = servers.Count == 1 && string.IsNullOrEmpty(server.ServerName) || name is null
-                ? Loc.Get("Card_Mqtt")
-                : Loc.Format("Card_MqttServer", name);
-            var target = server.ServerId is { } id ? $"connections#mqtt={id}" : "connections";
-            _mqtt.Add(new StatusCardViewModel(title, SymbolRegular.Router24, Loc.Get("Card_OpenConnections"), () => _navigate(target)));
-        }
-
-        Cards.Clear();
-        foreach (var card in (IEnumerable<StatusCardViewModel>)[_service, .. _mqtt, _homeAssistant, _tray])
-        {
-            Cards.Add(card);
+                ? Loc.Get(titleKey)
+                : Loc.Format(namedTitleKey, name);
+            var target = server.ServerId is { } id ? serverTarget + id : fallbackTarget;
+            cards.Add(new StatusCardViewModel(title, symbol, Loc.Get("Card_OpenConnections"), () => _navigate(target)));
         }
     }
 

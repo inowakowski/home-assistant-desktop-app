@@ -159,6 +159,7 @@ public sealed class MqttServersTests : IDisposable
             new TestOptionsMonitor<MqttOptions>(new MqttOptions()),
             servers,
             new TestOptionsMonitor<HaWebSocketOptions>(new HaWebSocketOptions()),
+            new TestOptionsMonitor<HomeAssistantServersOptions>(new HomeAssistantServersOptions()),
             new TestOptionsMonitor<EntityOptions>(new EntityOptions()),
             NullLoggerFactory.Instance);
 
@@ -193,8 +194,7 @@ public sealed class MqttServersTests : IDisposable
 
     private static SettingsUpdate Update(params MqttServerUpdate[] servers) => new(
         servers,
-        new HomeAssistantSettings("", "", "", "hada_command"),
-        SecretUpdate.Unchanged,
+        [],
         [],
         [],
         [],
@@ -222,8 +222,10 @@ public sealed class MqttServersTests : IDisposable
         var registry = new EntityRegistry(bus);
         var mqtt = new TestOptionsMonitor<MqttOptions>(new MqttOptions());
         var homeAssistant = new TestOptionsMonitor<HaWebSocketOptions>(new HaWebSocketOptions());
+        var homeAssistantServers = new TestOptionsMonitor<HomeAssistantServersOptions>(new HomeAssistantServersOptions());
         var entities = new TestOptionsMonitor<EntityOptions>(new EntityOptions());
-        var engines = new EngineSupervisor(bus, registry, mqtt, servers, homeAssistant, entities, NullLoggerFactory.Instance);
+        var engines = new EngineSupervisor(
+            bus, registry, mqtt, servers, homeAssistant, homeAssistantServers, entities, NullLoggerFactory.Instance);
         var control = new ServiceControl(
             registry,
             new TelemetryCache(bus),
@@ -233,6 +235,7 @@ public sealed class MqttServersTests : IDisposable
             mqtt,
             servers,
             homeAssistant,
+            homeAssistantServers,
             entities,
             new TestOptionsMonitor<CustomSensorOptions>(new CustomSensorOptions()),
             new TestOptionsMonitor<UpdateOptions>(new UpdateOptions()),

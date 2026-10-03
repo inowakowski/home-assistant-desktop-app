@@ -176,8 +176,11 @@ public sealed class SettingsStoreTests : IDisposable
             DisabledEntities = ["cpu_load", "active_window"],
         });
 
-        Assert.Equal("http://ha.local:8123", data["HomeAssistant:BaseUrl"]);
-        Assert.Equal("token-value", data["HomeAssistant:AccessToken"]);
+        // What versions up to 1.3 saved as the one Home Assistant is the first of the list now.
+        Assert.Equal("1", data["HomeAssistantServers:Count"]);
+        Assert.Equal("default", data["HomeAssistantServers:Items:0:Id"]);
+        Assert.Equal("http://ha.local:8123", data["HomeAssistantServers:Items:0:BaseUrl"]);
+        Assert.Equal("token-value", data["HomeAssistantServers:Items:0:AccessToken"]);
         Assert.Equal("active_window", data["Entities:Disabled:1"]);
         Assert.DoesNotContain(data.Keys, key => key.StartsWith("Mqtt", StringComparison.OrdinalIgnoreCase));
     }

@@ -9,8 +9,22 @@ namespace HADA.Tray.Session;
 /// <summary>A notification to show: its texts, and optionally a picture and buttons.</summary>
 /// <param name="ImageUrl">An <c>http</c> or <c>https</c> address, or <see langword="null"/>.</param>
 /// <param name="Origin">The engine the notification came through, which its buttons answer to.</param>
+/// <param name="Tag">Replaces the notification shown earlier with the same tag from the same origin.</param>
+/// <param name="Url">An <c>http</c> or <c>https</c> address opened when the notification itself is pressed.</param>
+/// <param name="Sticky">Stays on the screen until it is dismissed.</param>
+/// <param name="Silent">Makes no sound.</param>
+/// <param name="Clear">Shows nothing: takes back the notification with this <paramref name="Tag"/>.</param>
 public sealed record NotificationRequest(
-    string Title, string Message, string? ImageUrl, IReadOnlyList<NotificationButton> Buttons, string? Origin = null);
+    string Title,
+    string Message,
+    string? ImageUrl,
+    IReadOnlyList<NotificationButton> Buttons,
+    string? Origin = null,
+    string? Tag = null,
+    string? Url = null,
+    bool Sticky = false,
+    bool Silent = false,
+    bool Clear = false);
 
 /// <summary>Where notifications from Home Assistant are shown; the tray plugs itself in once it is ready.</summary>
 public sealed class NotificationPresenter
@@ -50,7 +64,12 @@ public sealed partial class NotificationAction(
                 command.Value,
                 command.GetParameter(NotificationContent.Image),
                 NotificationContent.ParseButtons(command.GetParameter(NotificationContent.Actions)),
-                command.Origin));
+                command.Origin,
+                command.GetParameter(NotificationContent.Tag) is { Length: > 0 } tag ? tag : null,
+                command.GetParameter(NotificationContent.Url),
+                Sticky: command.GetParameter(NotificationContent.Sticky) == NotificationContent.True,
+                Silent: command.GetParameter(NotificationContent.Silent) == NotificationContent.True,
+                Clear: command.GetParameter(NotificationContent.Clear) == NotificationContent.True));
 
             // Not the text: what Home Assistant tells the user is none of the log's business.
             LogShown(Logger, command.Origin);

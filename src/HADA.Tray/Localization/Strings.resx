@@ -113,13 +113,13 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
 
   <data name="Connections_Title" xml:space="preserve"><value>Connections</value></data>
-  <data name="Connections_Subtitle" xml:space="preserve"><value>How HADA talks to Home Assistant: through MQTT, to one Home Assistant or several at once, or through the WebSocket API.</value></data>
+  <data name="Connections_Subtitle" xml:space="preserve"><value>How HADA talks to Home Assistant: through MQTT or through the WebSocket API, either way to one Home Assistant or several at once.</value></data>
   <data name="Settings_LockedTitle" xml:space="preserve"><value>Read-only</value></data>
   <data name="Settings_LockedMessage" xml:space="preserve"><value>Changing settings requires administrator rights.</value></data>
   <data name="Settings_ElevationDeclined" xml:space="preserve"><value>Administrator rights were not granted.</value></data>
   <data name="Settings_Unsaved" xml:space="preserve"><value>You have unsaved changes.</value></data>
   <data name="Mqtt_Description" xml:space="preserve"><value>Recommended. Entities appear in Home Assistant automatically through MQTT discovery.</value></data>
-  <data name="Ha_Description" xml:space="preserve"><value>Direct connection without a broker. Entities have no unique ID.</value></data>
+  <data name="Ha_Description" xml:space="preserve"><value>Direct connection without a broker: notifications as on a phone, and sensors as entities of a device.</value></data>
   <data name="Field_Host" xml:space="preserve"><value>Broker host</value></data>
   <data name="Field_Port" xml:space="preserve"><value>Port</value></data>
   <data name="Field_UseTls" xml:space="preserve"><value>TLS encryption</value></data>
@@ -243,4 +243,17 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Mqtt_ServerNameHint" xml:space="preserve"><value>Your name for this Home Assistant, shown here and in the logs. Needed once there are several.</value></data>
   <data name="Validation_ServerName" xml:space="preserve"><value>Give each MQTT server a name, to tell them apart.</value></data>
   <data name="Validation_ServerNameTwice" xml:space="preserve"><value>Two MQTT servers are called "{0}".</value></data>
+  <data name="Card_HomeAssistantServer" xml:space="preserve"><value>WebSocket · {0}</value></data>
+  <data name="Preferences_Browser" xml:space="preserve"><value>Browser for notifications</value></data>
+  <data name="Preferences_BrowserDetail" xml:space="preserve"><value>Where the address of a notification, or of one of its buttons, is opened when you press it.</value></data>
+  <data name="Preferences_BrowserDefault" xml:space="preserve"><value>Default browser</value></data>
+  <data name="Field_HaNotifications" xml:space="preserve"><value>Notifications</value></data>
+  <data name="Ha_NotificationsHint" xml:space="preserve"><value>Registers this computer in Home Assistant the way a phone is. Home Assistant then has the action notify.mobile_app_ followed by the device name, with a title, a picture and buttons.</value></data>
+  <data name="Field_HaSensors" xml:space="preserve"><value>Sensors</value></data>
+  <data name="Ha_SensorsHint" xml:space="preserve"><value>Where the sensors of this computer go. As entities of the device: with a unique ID, kept when Home Assistant restarts. Choose Off when this Home Assistant already gets them through MQTT.</value></data>
+  <data name="Ha_SensorsOff" xml:space="preserve"><value>Off</value></data>
+  <data name="Ha_SensorsEntities" xml:space="preserve"><value>As entities of the device (recommended)</value></data>
+  <data name="Ha_SensorsStates" xml:space="preserve"><value>As states, without a unique ID (the earlier way)</value></data>
+  <data name="Validation_HaServerName" xml:space="preserve"><value>Give each Home Assistant server a name, to tell them apart.</value></data>
+  <data name="Validation_HaServerNameTwice" xml:space="preserve"><value>Two Home Assistant servers are called "{0}".</value></data>
 </root>
