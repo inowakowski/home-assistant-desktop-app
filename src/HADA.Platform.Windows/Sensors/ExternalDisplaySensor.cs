@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Extensions.Hosting;
@@ -79,9 +80,9 @@ public static class Displays
 /// Publishes whether a monitor other than the built-in one is connected. Runs in the tray app, because the display
 /// configuration belongs to the user's session.
 /// </summary>
-public sealed class ExternalDisplaySensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class ExternalDisplaySensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "external_display";
+    public const string EntityId = BuiltInEntityIds.ExternalDisplay;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 

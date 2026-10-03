@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
@@ -9,10 +10,10 @@ namespace HADA.Platform.Windows.Sensors;
 /// Publishes whether the microphone and the camera are in use, with the apps using them as an attribute.
 /// Runs in the tray app, because the usage history is kept per user.
 /// </summary>
-public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string MicrophoneEntityId = "microphone_in_use";
-    public const string CameraEntityId = "camera_in_use";
+    public const string MicrophoneEntityId = BuiltInEntityIds.MicrophoneInUse;
+    public const string CameraEntityId = BuiltInEntityIds.CameraInUse;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 

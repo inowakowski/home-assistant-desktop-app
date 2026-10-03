@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 
@@ -11,9 +12,9 @@ namespace HADA.Platform.Windows.Sensors;
 /// <remarks>
 /// Polling rather than a foreground-change hook also catches title changes within the same window, such as browser tabs.
 /// </remarks>
-public sealed class ActiveWindowSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class ActiveWindowSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "active_window";
+    public const string EntityId = BuiltInEntityIds.ActiveWindow;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 

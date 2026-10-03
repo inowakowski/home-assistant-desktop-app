@@ -24,7 +24,8 @@ public sealed class CustomSensorTests : IAsyncDisposable
     public CustomSensorTests()
     {
         _registry = new EntityRegistry(_bus);
-        _host = new CustomSensorHost(_bus, _registry, _options, NullLogger<CustomSensorHost>.Instance);
+        _host = new CustomSensorHost(
+            _bus, _registry, _options, NullLogger<CustomSensorHost>.Instance, new HADA.Platform.Windows.WindowsDeviceDirectory());
     }
 
     public async ValueTask DisposeAsync()

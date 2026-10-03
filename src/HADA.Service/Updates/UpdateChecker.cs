@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text.Json;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Core.Updates;
 using HADA.Ipc;
@@ -77,9 +78,9 @@ public static class ReleaseFeed
 /// and whenever the window's "Check now" asks. Reports the answer as the <c>update_available</c> binary sensor and
 /// to the window. The service itself downloads and installs nothing; the window offers to, when its user asks.
 /// </summary>
-public sealed partial class UpdateChecker : BackgroundService
+public sealed partial class UpdateChecker : EagerBackgroundService
 {
-    public const string EntityId = ReservedIds.UpdateAvailable;
+    public const string EntityId = BuiltInEntityIds.UpdateAvailable;
 
     private static readonly TimeSpan FirstCheckDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);

@@ -1,6 +1,7 @@
 using System.Globalization;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
@@ -10,11 +11,11 @@ namespace HADA.Platform.Windows.Sensors;
 /// Publishes battery level, whether it is charging and whether the computer is plugged in.
 /// Registers nothing on a computer without a battery, so desktops do not get three useless entities.
 /// </summary>
-public sealed class BatterySensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class BatterySensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string LevelEntityId = "battery_level";
-    public const string ChargingEntityId = "battery_charging";
-    public const string PluggedInEntityId = "plugged_in";
+    public const string LevelEntityId = BuiltInEntityIds.BatteryLevel;
+    public const string ChargingEntityId = BuiltInEntityIds.BatteryCharging;
+    public const string PluggedInEntityId = BuiltInEntityIds.PluggedIn;
 
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(5);
 

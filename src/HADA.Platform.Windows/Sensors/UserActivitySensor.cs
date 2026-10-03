@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
@@ -17,9 +18,9 @@ namespace HADA.Platform.Windows.Sensors;
 /// How long after the last input the user still counts as active. Asked on every reading, so a changed setting
 /// takes effect at once.
 /// </param>
-public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, Func<TimeSpan>? activeWindow = null) : BackgroundService
+public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, Func<TimeSpan>? activeWindow = null) : EagerBackgroundService
 {
-    public const string EntityId = "user_active";
+    public const string EntityId = BuiltInEntityIds.UserActive;
 
     public static readonly TimeSpan DefaultActiveWindow = TimeSpan.FromSeconds(60);
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,9 +11,9 @@ namespace HADA.Platform.Windows.Sensors;
 
 /// <summary>Publishes the default playback device's volume, with mute state as an attribute. Runs in the tray app.</summary>
 public sealed partial class AudioVolumeSensor(IEventBus bus, IEntityRegistry registry, ILogger<AudioVolumeSensor> logger)
-    : BackgroundService
+    : EagerBackgroundService
 {
-    public const string EntityId = "audio_volume";
+    public const string EntityId = BuiltInEntityIds.AudioVolume;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 

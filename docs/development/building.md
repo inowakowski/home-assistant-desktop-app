@@ -2,8 +2,8 @@
 
 ## What you need
 
-- [.NET SDK 10](https://dotnet.microsoft.com/download). The projects target .NET 9, and `global.json` pins SDK 10.0.401 or a newer feature band.
-- For running from build output: the .NET 9 runtime. Self-contained builds don't need it.
+- [.NET SDK 10](https://dotnet.microsoft.com/download). The projects target .NET 10, and `global.json` pins SDK 10.0.401 or a newer feature band.
+- For running from build output: the .NET 10 runtime, which the SDK brings along. Self-contained builds don't need it.
 
 ## Build and test
 

@@ -1,7 +1,7 @@
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 
-namespace HADA.Platform.Windows.Actions;
+namespace HADA.Core.Input;
 
 [Flags]
 public enum KeyModifiers

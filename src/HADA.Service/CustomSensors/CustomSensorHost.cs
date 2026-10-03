@@ -2,10 +2,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Core.Models;
 using HADA.Ipc;
-using HADA.Platform.Windows.Sensors;
 using HADA.Service.Settings;
 using Microsoft.Extensions.Options;
 
@@ -19,7 +19,8 @@ public sealed partial class CustomSensorHost(
     IEventBus bus,
     IEntityRegistry registry,
     IOptionsMonitor<CustomSensorOptions> options,
-    ILogger<CustomSensorHost> logger) : BackgroundService
+    ILogger<CustomSensorHost> logger,
+    IDeviceDirectory? devices = null) : EagerBackgroundService
 {
     /// <summary><see cref="Core.Models.TelemetryEvent.Source"/> of custom sensor readings.</summary>
     public const string Source = "custom";
@@ -245,7 +246,7 @@ public sealed partial class CustomSensorHost(
         }
     }
 
-    private static async Task ReadAsync(CustomSensorDefinition sensor, ChangeOnlyPublisher publisher, CancellationToken cancellationToken)
+    private async Task ReadAsync(CustomSensorDefinition sensor, ChangeOnlyPublisher publisher, CancellationToken cancellationToken)
     {
         if (sensor.Type == CustomSensorType.ProcessRunning)
         {
@@ -260,8 +261,13 @@ public sealed partial class CustomSensorHost(
 
         if (sensor.Type == CustomSensorType.DeviceConnected)
         {
+            if (devices is null)
+            {
+                throw new NotSupportedException("HADA cannot tell which devices are connected on this operating system");
+            }
+
             await publisher.PublishAsync(
-                sensor.Id, BinaryState.From(PnpDevices.IsPresent(sensor.Value)), cancellationToken: cancellationToken);
+                sensor.Id, BinaryState.From(devices.IsPresent(sensor.Value)), cancellationToken: cancellationToken);
             return;
         }
 

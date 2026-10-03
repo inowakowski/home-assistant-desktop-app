@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.IO.Pipes;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ namespace HADA.Ipc;
 /// Survives service restarts by reconnecting and replaying the registry and the latest reading of each sensor.
 /// </summary>
 public sealed partial class IpcClient(
-    IEventBus bus, IEntityRegistry registry, IOptions<IpcOptions> options, ILogger<IpcClient> logger) : BackgroundService
+    IEventBus bus, IEntityRegistry registry, IOptions<IpcOptions> options, ILogger<IpcClient> logger) : EagerBackgroundService
 {
     private readonly ConcurrentDictionary<string, TelemetryEvent> _lastReadings = new(StringComparer.Ordinal);
 
@@ -56,7 +57,7 @@ public sealed partial class IpcClient(
                 {
                     // Waits for as long as it takes the service to create the pipe.
                     await pipe.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                    IpcPipeSecurity.EnsureTrustedServer(pipe);
+                    PipeAccess.Current.EnsureTrustedServer(pipe);
 
                     var stream = new IpcMessageStream(pipe);
                     await OpenSessionAsync(stream, cancellationToken).ConfigureAwait(false);

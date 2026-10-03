@@ -1,15 +1,16 @@
 using System.Globalization;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
 namespace HADA.Platform.Windows.Sensors;
 
 /// <summary>Publishes the share of physical memory in use.</summary>
-public sealed class MemoryUsageSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class MemoryUsageSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "memory_usage";
+    public const string EntityId = BuiltInEntityIds.MemoryUsage;
 
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
 

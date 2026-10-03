@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using HADA.Core.Abstractions;
+using HADA.Core.Hosting;
+using HADA.Core.Input;
 using HADA.Core.Models;
 using HADA.Platform.Windows.Actions;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +14,7 @@ namespace HADA.Tray.Session;
 /// The quick actions defined in settings, as the service tells them, and the way to say one was chosen. A quick
 /// action does nothing on this computer: choosing it tells Home Assistant, where an automation takes it from there.
 /// </summary>
-public sealed partial class QuickActions(IEventBus bus, ILogger<QuickActions> logger) : BackgroundService
+public sealed partial class QuickActions(IEventBus bus, ILogger<QuickActions> logger) : EagerBackgroundService
 {
     private volatile IReadOnlyList<QuickActionInfo> _current = [];
 

@@ -1,10 +1,11 @@
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Microsoft.Win32.SafeHandles;
 
 namespace HADA.Ipc;
 
-/// <summary>Which Windows session a tray runs in, and which session somebody is using right now.</summary>
+/// <summary>Which session of the operating system a tray runs in, and which session somebody is using right now.</summary>
 public interface ISessionDirectory
 {
     /// <summary>The session shown on the computer's own screen, or <see langword="null"/> while Windows switches users.</summary>
@@ -20,6 +21,16 @@ public interface ISessionDirectory
     bool IsConnected(uint sessionId);
 }
 
+public static class SessionDirectory
+{
+    /// <summary>The sessions of the operating system this process runs on.</summary>
+    /// <exception cref="PlatformNotSupportedException">HADA cannot tell sessions apart on this operating system yet.</exception>
+    public static ISessionDirectory Current { get; } = OperatingSystem.IsWindows()
+        ? new WindowsSessionDirectory()
+        : throw new PlatformNotSupportedException("HADA cannot tell user sessions apart on this operating system yet.");
+}
+
+[SupportedOSPlatform("windows")]
 public sealed class WindowsSessionDirectory : ISessionDirectory
 {
     private const uint NoConsoleSession = 0xFFFFFFFF;

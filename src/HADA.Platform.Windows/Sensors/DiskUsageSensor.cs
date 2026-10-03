@@ -1,6 +1,7 @@
 using System.Globalization;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
@@ -48,18 +49,14 @@ public static class Disks
 /// Publishes how full each built-in drive is, as <c>disk_c_usage</c>, <c>disk_d_usage</c> and so on, with the
 /// free and total space as attributes. Runs in the service.
 /// </summary>
-public sealed class DiskUsageSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class DiskUsageSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromMinutes(1);
 
-    public static string EntityIdFor(char letter) => $"disk_{char.ToLowerInvariant(letter)}_usage";
+    public static string EntityIdFor(char letter) => BuiltInEntityIds.DiskUsage(letter);
 
     /// <summary>Whether an id is one this sensor may register, so a custom sensor cannot take it.</summary>
-    public static bool IsEntityId(string id) =>
-        id.Length == "disk_c_usage".Length
-        && id.StartsWith("disk_", StringComparison.Ordinal)
-        && id.EndsWith("_usage", StringComparison.Ordinal)
-        && id["disk_".Length] is >= 'a' and <= 'z';
+    public static bool IsEntityId(string id) => BuiltInEntityIds.IsDiskUsage(id);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

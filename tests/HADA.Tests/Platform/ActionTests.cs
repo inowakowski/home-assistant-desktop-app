@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using HADA.Core.Entities;
+using HADA.Core.Input;
 using HADA.Core.Messaging;
 using HADA.Core.Models;
 using HADA.Platform.Windows.Actions;

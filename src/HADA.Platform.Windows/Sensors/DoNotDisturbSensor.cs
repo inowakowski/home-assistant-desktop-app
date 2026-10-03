@@ -1,5 +1,6 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Extensions.Hosting;
@@ -50,9 +51,9 @@ public static class QuietHours
 /// Publishes whether "Do not disturb" (Focus assist on Windows 10) is on. Runs in the tray app, because the
 /// setting belongs to the user. Not registered at all on a Windows that does not tell.
 /// </summary>
-public sealed class DoNotDisturbSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+public sealed class DoNotDisturbSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
-    public const string EntityId = "do_not_disturb";
+    public const string EntityId = BuiltInEntityIds.DoNotDisturb;
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 

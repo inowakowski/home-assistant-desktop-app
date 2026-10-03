@@ -1,9 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
-using System.Security;
-using System.Security.Principal;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -36,7 +35,8 @@ public sealed partial class IpcServer(
     IOptions<IpcOptions> options,
     ILogger<IpcServer> logger,
     IServiceControl? control = null,
-    ISessionDirectory? sessions = null) : BackgroundService
+    ISessionDirectory? sessions = null,
+    IPipeAccess? pipes = null) : EagerBackgroundService
 {
     private const int MaxClients = 8;
     private const int MaxClientNameLength = 64;
@@ -44,7 +44,8 @@ public sealed partial class IpcServer(
     private const int MaxLogEntriesPerResponse = 50;
     private const int MaxEntitiesPerClient = 128;
 
-    private readonly ISessionDirectory _sessions = sessions ?? new WindowsSessionDirectory();
+    private readonly ISessionDirectory _sessions = sessions ?? SessionDirectory.Current;
+    private readonly IPipeAccess _pipes = pipes ?? PipeAccess.Current;
 
     // Guards everything below: which trays are connected, what they registered, and which one is reported.
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -83,7 +84,7 @@ public sealed partial class IpcServer(
                 try
                 {
                     // One extra instance so there is always one waiting for the next connection.
-                    pipe = IpcPipeSecurity.CreateServerPipe(pipeName, MaxClients + 1, isFirstInstance);
+                    pipe = _pipes.CreateServerPipe(pipeName, MaxClients + 1, isFirstInstance);
                     isFirstInstance = false;
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -245,7 +246,7 @@ public sealed partial class IpcServer(
 
                 // Checked once, since a connection's identity cannot change. The hello has been read, which impersonation requires.
                 var isElevatedAdministrator = hello.Role == IpcClientRole.Control
-                    && (IsElevatedAdministrator(pipe) || (options.Value.TrustSameUser && IsSameUser(pipe)));
+                    && (_pipes.IsElevatedAdministrator(pipe) || (options.Value.TrustSameUser && _pipes.IsSameUser(pipe)));
                 LogClientConnected(logger, clientName, hello.Role, isElevatedAdministrator);
                 if (hello.Role == IpcClientRole.Sensors)
                 {
@@ -399,49 +400,6 @@ public sealed partial class IpcServer(
         {
             _gate.Release();
         }
-    }
-
-    private static bool IsElevatedAdministrator(NamedPipeServerStream pipe)
-    {
-        var isAdministrator = false;
-        try
-        {
-            // Clients connect with identification-level impersonation, which is enough to inspect their token.
-            pipe.RunAsClient(() =>
-            {
-                using var identity = WindowsIdentity.GetCurrent(TokenAccessLevels.Query);
-
-                // With UAC, an administrator's normal token only has the Administrators group as deny-only,
-                // so this is true only for an elevated process.
-                isAdministrator = new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-            });
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SecurityException)
-        {
-            // Cannot tell who the client is, so treat it as unprivileged.
-        }
-
-        return isAdministrator;
-    }
-
-    private static bool IsSameUser(NamedPipeServerStream pipe)
-    {
-        var isSameUser = false;
-        try
-        {
-            using var server = WindowsIdentity.GetCurrent(TokenAccessLevels.Query);
-            pipe.RunAsClient(() =>
-            {
-                using var client = WindowsIdentity.GetCurrent(TokenAccessLevels.Query);
-                isSameUser = client.User is not null && client.User == server.User;
-            });
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SecurityException)
-        {
-            // Cannot tell who the client is, so treat it as somebody else.
-        }
-
-        return isSameUser;
     }
 
     private async Task AddClientAsync(SensorClient client, CancellationToken cancellationToken)

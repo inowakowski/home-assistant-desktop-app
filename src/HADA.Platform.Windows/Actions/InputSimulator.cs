@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using HADA.Core.Input;
 using HADA.Platform.Windows.Interop;
 
 namespace HADA.Platform.Windows.Actions;

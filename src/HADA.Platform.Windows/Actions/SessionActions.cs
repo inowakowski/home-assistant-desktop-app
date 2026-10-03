@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
+using HADA.Core.Input;
 using HADA.Core.Models;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Extensions.Hosting;
@@ -16,8 +18,8 @@ namespace HADA.Platform.Windows.Actions;
 public sealed partial class DisplayActions(IEventBus bus, IEntityRegistry registry, ILogger<DisplayActions> logger)
     : CommandHandler(bus, registry, logger)
 {
-    public const string TurnOffEntityId = "turn_off_display";
-    public const string WakeEntityId = "wake_display";
+    public const string TurnOffEntityId = BuiltInEntityIds.TurnOffDisplay;
+    public const string WakeEntityId = BuiltInEntityIds.WakeDisplay;
 
     private const uint SystemCommandMessage = 0x0112;
     private const nint MonitorPowerCommand = 0xF170;
@@ -69,10 +71,10 @@ public sealed partial class DisplayActions(IEventBus bus, IEntityRegistry regist
 public sealed partial class MediaKeyActions(IEventBus bus, IEntityRegistry registry, ILogger<MediaKeyActions> logger)
     : CommandHandler(bus, registry, logger)
 {
-    public const string PlayPauseEntityId = "media_play_pause";
-    public const string NextEntityId = "media_next";
-    public const string PreviousEntityId = "media_previous";
-    public const string StopEntityId = "media_stop";
+    public const string PlayPauseEntityId = BuiltInEntityIds.MediaPlayPause;
+    public const string NextEntityId = BuiltInEntityIds.MediaNext;
+    public const string PreviousEntityId = BuiltInEntityIds.MediaPrevious;
+    public const string StopEntityId = BuiltInEntityIds.MediaStop;
 
     protected override IReadOnlyList<EntityDescriptor> Entities { get; } =
     [
@@ -109,7 +111,7 @@ public sealed partial class MediaKeyActions(IEventBus bus, IEntityRegistry regis
 /// be seen. Runs in the tray app and has no entity of its own; the buttons belong to the service, which sends
 /// <see cref="SessionCommands.Launch"/> with what the administrator configured for the button that was pressed.
 /// </summary>
-public sealed partial class LaunchAction(IEventBus bus, ILogger<LaunchAction> logger) : BackgroundService
+public sealed partial class LaunchAction(IEventBus bus, ILogger<LaunchAction> logger) : EagerBackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -175,7 +177,7 @@ public sealed partial class LaunchAction(IEventBus bus, ILogger<LaunchAction> lo
 /// tray app and has no entity of its own: the service sends <see cref="SessionCommands.PressKeys"/> with the
 /// combination the administrator configured for the button that was pressed.
 /// </summary>
-public sealed partial class KeyPressAction(IEventBus bus, ILogger<KeyPressAction> logger) : BackgroundService
+public sealed partial class KeyPressAction(IEventBus bus, ILogger<KeyPressAction> logger) : EagerBackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
