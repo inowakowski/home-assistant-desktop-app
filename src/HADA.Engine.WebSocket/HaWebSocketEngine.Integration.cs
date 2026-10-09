@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Models;
 using Microsoft.Extensions.Logging;
 
 namespace HADA.Engine.WebSocket;
@@ -15,6 +16,8 @@ namespace HADA.Engine.WebSocket;
 /// <item><c>hada/connect</c> names the computer and lists every entity it has; entities Home Assistant has
 /// beyond those are removed there. Until the connection closes, the entities are shown as available.</item>
 /// <item><c>hada/entities</c> sends the list again when it changed, and <c>hada/update</c> what an entity reports.</item>
+/// <item>What is pressed, switched or set in Home Assistant arrives as an event of the <c>hada/connect</c>
+/// subscription, and is answered with <c>hada/command_result</c>.</item>
 /// <item>A Home Assistant without the integration answers <c>unknown_command</c>. That is an
 /// <see cref="Issue"/>, not a failed connection, and is tried again every
 /// <see cref="HaWebSocketOptions.IntegrationRetryInterval"/>, since the integration may be set up meanwhile.</item>
@@ -47,6 +50,9 @@ public sealed partial class HaWebSocketEngine
 
     private readonly SemaphoreSlim _integrationSignal = new(0);
     private volatile bool _integrationConnected;
+
+    // The id of the hada/connect command; commands for the computer arrive as events under it.
+    private volatile int _integrationSubscriptionId;
     private volatile string? _issue;
     private int _entitiesChanged;
 
@@ -90,7 +96,92 @@ public sealed partial class HaWebSocketEngine
     private void DisconnectIntegration()
     {
         _integrationConnected = false;
+        _integrationSubscriptionId = 0;
         _issue = null;
+    }
+
+    /// <summary>What an entity of that kind is to the integration; <see langword="null"/> for kinds it is not told about.</summary>
+    private static string? IntegrationKind(EntityKind kind) => kind switch
+    {
+        EntityKind.Sensor => "sensor",
+        EntityKind.BinarySensor => "binary_sensor",
+        EntityKind.Button => "button",
+        EntityKind.Switch => "switch",
+        EntityKind.Number => "number",
+        _ => null,
+    };
+
+    private bool IsIntegrationCommand(JsonElement message) =>
+        _integrationSubscriptionId is var subscription and not 0
+        && message.TryGetProperty("id", out var id) && id.TryGetInt32(out var number) && number == subscription;
+
+    /// <summary>
+    /// Something was pressed, switched or set in Home Assistant. The command is passed on as any other is, and
+    /// answered: taken, or not and why. Taken says it was handed to whatever acts on it, not that it is done;
+    /// what came of it shows in the states reported afterwards.
+    /// </summary>
+    private async Task HandleIntegrationCommandAsync(JsonElement command)
+    {
+        var commandId = command.TryGetProperty("command_id", out var idProperty) && idProperty.ValueKind == JsonValueKind.String
+            ? idProperty.GetString()
+            : null;
+        var kind = command.TryGetProperty("command", out var kindProperty) ? kindProperty.GetString() : null;
+        var entityId = command.TryGetProperty("entity", out var entityProperty) ? entityProperty.GetString() : null;
+        if (commandId is null)
+        {
+            return;
+        }
+
+        string? error = null;
+        if (entityId is null || !TryGetExposed(entityId, out var entity))
+        {
+            error = "There is no such entity, or it is switched off in HADA";
+        }
+        else if ((kind, entity.Kind) is not (("press", EntityKind.Button) or ("set", EntityKind.Switch) or ("set", EntityKind.Number)))
+        {
+            error = $"This version of HADA cannot '{kind}' this entity";
+        }
+        else if (!CommandValue.TryNormalize(entity, ReadText(command, "value"), out var value))
+        {
+            error = "The value is not one this entity takes";
+        }
+        else
+        {
+            try
+            {
+                await _bus.PublishAsync(new ActionCommand { ActionId = entity.Id, Value = value, Origin = Name }, _stoppingToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                error = "HADA is stopping";
+            }
+        }
+
+        if (_connection is not { } connection)
+        {
+            return;
+        }
+
+        try
+        {
+            await connection.SendAsync(
+                    new
+                    {
+                        id = connection.NextId(),
+                        type = "hada/command_result",
+                        device_id = _deviceId,
+                        command_id = commandId,
+                        success = error is null,
+                        error,
+                    },
+                    _stoppingToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is System.Net.WebSockets.WebSocketException or InvalidOperationException or ObjectDisposedException or OperationCanceledException)
+        {
+            // The connection is going down; Home Assistant fails the action when no answer comes.
+        }
     }
 
     /// <summary>Has the list of entities sent again soon; called when one was added or removed.</summary>
@@ -107,11 +198,12 @@ public sealed partial class HaWebSocketEngine
     {
         // Whatever changes from here on is in the list that is about to be sent.
         Interlocked.Exchange(ref _entitiesChanged, 0);
+        var connectId = 0;
         var answer = await RequestAsync(
                 connection,
                 id => new
                 {
-                    id,
+                    id = connectId = id,
                     type = "hada/connect",
                     protocol = IntegrationProtocol,
                     device = new
@@ -130,6 +222,7 @@ public sealed partial class HaWebSocketEngine
 
         if (answer is { } result && IsSuccess(result))
         {
+            _integrationSubscriptionId = connectId;
             _integrationConnected = true;
             SetIssue(null);
             if (_logger.IsEnabled(LogLevel.Information))
@@ -166,7 +259,7 @@ public sealed partial class HaWebSocketEngine
 
     private Task SendAllStatesAsync(HaConnection connection)
     {
-        var states = ExposedSensors().Select(IntegrationState).ToArray();
+        var states = ExposedEntities().Where(entity => entity.Kind.ReportsState()).Select(IntegrationState).ToArray();
         return states.Length == 0 ? Task.CompletedTask : SendStatesAsync(connection, states);
     }
 
@@ -182,7 +275,7 @@ public sealed partial class HaWebSocketEngine
         var update = new Dictionary<string, object?> { ["id"] = entity.Id, ["available"] = state != Unavailable };
         if (state != Unavailable)
         {
-            update["state"] = SensorValue(entity, state);
+            update["state"] = IntegrationValue(entity, state);
             update["attributes"] = attributes ?? new Dictionary<string, object?>();
         }
 
@@ -210,24 +303,37 @@ public sealed partial class HaWebSocketEngine
         }
     }
 
-    private IEnumerable<EntityDescriptor> ExposedSensors() =>
-        _registry.Entities.Where(entity => entity.Kind.ReportsState() && _filter.IsEnabled(entity));
+    private IEnumerable<EntityDescriptor> ExposedEntities() =>
+        _registry.Entities.Where(entity => IntegrationKind(entity.Kind) is not null && _filter.IsEnabled(entity));
+
+    /// <summary>A number is a number whatever else is said about it; the rest is as for the other ways of sending sensors.</summary>
+    private static object? IntegrationValue(EntityDescriptor entity, string state) =>
+        entity.Kind != EntityKind.Number ? SensorValue(entity, state)
+        : double.TryParse(state, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)
+            && double.IsFinite(number) ? number
+        : null;
 
     /// <summary>Every entity the computer has, each with what it reports now: the complete list the protocol asks for.</summary>
     private Dictionary<string, object?>[] IntegrationEntities() =>
     [
-        .. ExposedSensors().Select(entity =>
+        .. ExposedEntities().Select(entity =>
         {
             var described = IntegrationState(entity);
-
-            // A switch is shown as what it reports, a binary sensor, and a number as a sensor, until the
-            // integration can be told to press, switch and set.
-            described["kind"] = entity.Kind.IsBinary() ? "binary_sensor" : "sensor";
+            described["kind"] = IntegrationKind(entity.Kind);
             described["name"] = entity.Name;
             described["icon"] = entity.Icon;
             described["device_class"] = entity.DeviceClass;
             described["unit"] = entity.UnitOfMeasurement;
-            described["state_class"] = entity.Kind.IsBinary() ? null : entity.StateClass;
+
+            // Home Assistant has a state class for sensors only.
+            described["state_class"] = entity.Kind == EntityKind.Sensor ? entity.StateClass : null;
+            if (entity.Kind == EntityKind.Number)
+            {
+                described["min"] = entity.Min;
+                described["max"] = entity.Max;
+                described["step"] = entity.Step;
+            }
+
             return described;
         }),
     ];
@@ -237,7 +343,7 @@ public sealed partial class HaWebSocketEngine
         var state = new Dictionary<string, object?> { ["id"] = entity.Id, ["available"] = _registry.IsAvailable(entity.Id) };
         if (_lastReadings.TryGetValue(entity.Id, out var reading))
         {
-            state["state"] = SensorValue(entity, reading.State);
+            state["state"] = IntegrationValue(entity, reading.State);
             state["attributes"] = reading.Attributes ?? new Dictionary<string, object?>();
         }
 
