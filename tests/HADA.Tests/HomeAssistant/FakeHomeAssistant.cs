@@ -448,7 +448,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                     case "hada/connect" when Integration == FakeIntegration.NotSetUp:
                         await SendAsync(socket, new { id, type = "result", success = false, error = new { code = "not_found", message = "The HADA integration is not set up" } });
                         break;
-                    case "hada/command_result":
+                    case "hada/command_result" or "hada/event" when IsIntegrationConnected:
                         await SendAsync(socket, new { id, type = "result", success = true, result = (object?)null });
                         break;
                     case "hada/connect":
