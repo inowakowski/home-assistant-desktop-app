@@ -254,7 +254,7 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Ha_SensorsOff" xml:space="preserve"><value>Off</value></data>
   <data name="Ha_SensorsEntities" xml:space="preserve"><value>As entities of the device (recommended)</value></data>
   <data name="Ha_SensorsStates" xml:space="preserve"><value>As states, without a unique ID (the earlier way)</value></data>
-  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Through the HADA integration (to be installed in Home Assistant)</value></data>
+  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Through the HADA integration: with buttons, switches and numbers (to be installed in Home Assistant)</value></data>
   <data name="Issue_integration_missing" xml:space="preserve"><value>The HADA integration is not installed in this Home Assistant, so the entities are not there. Install it with HACS, or choose another way for the sensors.</value></data>
   <data name="Issue_integration_not_set_up" xml:space="preserve"><value>The HADA integration is installed but not set up. In Home Assistant, go to Settings, Devices and services, Add integration, and choose HADA.</value></data>
   <data name="Issue_integration_unauthorized" xml:space="preserve"><value>Another Home Assistant user connected this Device ID first. Use that user's token or an administrator's, or another Device ID.</value></data>

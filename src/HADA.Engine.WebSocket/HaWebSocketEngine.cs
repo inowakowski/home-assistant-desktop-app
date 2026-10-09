@@ -434,6 +434,12 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             return;
         }
 
+        if (IsIntegrationCommand(message))
+        {
+            await HandleIntegrationCommandAsync(@event).ConfigureAwait(false);
+            return;
+        }
+
         if (IsPushNotification(message))
         {
             await HandlePushNotificationAsync(@event).ConfigureAwait(false);
@@ -581,7 +587,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             {
                 var entity = change.Entity;
                 var connected = _state == EngineConnectionState.Connected;
-                if (change is EntityRegistered or EntityUnregistered && entity.Kind.ReportsState())
+                if (change is EntityRegistered or EntityUnregistered && IntegrationKind(entity.Kind) is not null)
                 {
                     NotifyEntitiesChanged();
                 }

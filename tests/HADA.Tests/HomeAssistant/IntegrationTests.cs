@@ -42,7 +42,10 @@ public sealed class IntegrationTests : IAsyncLifetime
     public async Task The_computer_names_itself_and_every_entity_it_has()
     {
         await _registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
-        await _registry.RegisterAsync(new EntityDescriptor { Id = "volume_level", Name = "Volume", Kind = EntityKind.Number, StateClass = "measurement" });
+        await _registry.RegisterAsync(new EntityDescriptor
+        {
+            Id = "volume_level", Name = "Volume", Kind = EntityKind.Number, StateClass = "measurement", Min = 0, Max = 100, Step = 5,
+        });
         await using var engine = CreateEngine();
 
         // Reported before the connection is there: part of what is sent on connecting.
@@ -57,8 +60,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         Assert.Equal("Test PC", device.GetProperty("name").GetString());
         Assert.False(string.IsNullOrEmpty(device.GetProperty("app_version").GetString()));
 
-        // What reports a state is listed; a button has nothing to show until the integration can press it.
-        Assert.Equal(["audio_mute", "cpu_load", "display_on", "volume_level"], _homeAssistant.IntegrationEntityIds);
+        Assert.Equal(["audio_mute", "cpu_load", "display_on", "lock_screen", "volume_level"], _homeAssistant.IntegrationEntityIds);
 
         var cpu = _homeAssistant.IntegrationEntity("cpu_load")!;
         Assert.Equal("sensor", cpu.Descriptor.GetProperty("kind").GetString());
@@ -72,8 +74,13 @@ public sealed class IntegrationTests : IAsyncLifetime
         Assert.Equal("binary_sensor", display.Descriptor.GetProperty("kind").GetString());
         Assert.Equal("power", display.Descriptor.GetProperty("device_class").GetString());
         Assert.Null(display.State);
-        Assert.Equal("binary_sensor", _homeAssistant.IntegrationEntity("audio_mute")!.Descriptor.GetProperty("kind").GetString());
-        Assert.Equal("sensor", _homeAssistant.IntegrationEntity("volume_level")!.Descriptor.GetProperty("kind").GetString());
+        Assert.Equal("switch", _homeAssistant.IntegrationEntity("audio_mute")!.Descriptor.GetProperty("kind").GetString());
+        Assert.Equal("button", _homeAssistant.IntegrationEntity("lock_screen")!.Descriptor.GetProperty("kind").GetString());
+
+        var volume = _homeAssistant.IntegrationEntity("volume_level")!.Descriptor;
+        Assert.Equal("number", volume.GetProperty("kind").GetString());
+        Assert.Equal((0, 100, 5), (volume.GetProperty("min").GetInt32(), volume.GetProperty("max").GetInt32(), volume.GetProperty("step").GetInt32()));
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, volume.GetProperty("state_class").ValueKind);
 
         Assert.Null(engine.Issue);
         Assert.DoesNotContain(_homeAssistant.StateWrites, write => write.Method == "POST");
@@ -96,6 +103,71 @@ public sealed class IntegrationTests : IAsyncLifetime
         await _bus.PublishAsync(new TelemetryEvent { SensorId = "display_on", State = BinaryState.Off });
         await WaitUntilAsync(() => _homeAssistant.IntegrationEntity("display_on")?.State == "false");
     }
+
+    [Fact]
+    public async Task What_is_pressed_switched_or_set_in_home_assistant_becomes_a_command_and_is_answered()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "audio_mute", Name = "Mute", Kind = EntityKind.Switch });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "volume_level", Name = "Volume", Kind = EntityKind.Number, Min = 0, Max = 100 });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c1", command = "press", entity = "lock_screen" });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c2", command = "set", entity = "audio_mute", value = true });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c3", command = "set", entity = "volume_level", value = 30.0 });
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        var received = new List<ActionCommand>();
+        await foreach (var command in commands.ReadAllAsync(timeout.Token))
+        {
+            received.Add(command);
+            if (received.Count == 3)
+            {
+                break;
+            }
+        }
+
+        Assert.Equal(("lock_screen", null), (received[0].ActionId, received[0].Value));
+        Assert.Equal(("audio_mute", "on"), (received[1].ActionId, received[1].Value));
+        Assert.Equal(("volume_level", "30"), (received[2].ActionId, received[2].Value));
+        Assert.All(received, command => Assert.Equal("websocket (Home)", command.Origin));
+
+        await WaitUntilAsync(() => Results().Count == 3);
+        Assert.All(Results(), result => Assert.True(result.GetProperty("success").GetBoolean()));
+        Assert.Equal(["c1", "c2", "c3"], Results().Select(result => result.GetProperty("command_id").GetString()));
+        Assert.All(Results(), result => Assert.Equal("testpc", result.GetProperty("device_id").GetString()));
+    }
+
+    [Fact]
+    public async Task A_command_that_cannot_be_taken_is_refused_with_the_reason()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "volume_level", Name = "Volume", Kind = EntityKind.Number, Min = 0, Max = 100 });
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "shutdown", Name = "Shut down", Kind = EntityKind.Button });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine(filter: new EntityFilter(["shutdown"]));
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+
+        // Switched off in HADA, not there at all, a sensor, a value out of range, and something from a later version.
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c1", command = "press", entity = "shutdown" });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c2", command = "press", entity = "no_such_entity" });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c3", command = "set", entity = "cpu_load", value = 1 });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c4", command = "set", entity = "volume_level", value = 250 });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c5", command = "teleport", entity = "lock_screen" });
+
+        await WaitUntilAsync(() => Results().Count == 5);
+        Assert.All(Results(), result =>
+        {
+            Assert.False(result.GetProperty("success").GetBoolean());
+            Assert.False(string.IsNullOrEmpty(result.GetProperty("error").GetString()));
+        });
+        Assert.False(commands.TryRead(out _));
+    }
+
+    private List<System.Text.Json.JsonElement> Results() =>
+        [.. _homeAssistant.SocketMessages.Where(m => m.GetProperty("type").GetString() == "hada/command_result")];
 
     [Fact]
     public async Task An_entity_whose_source_is_away_is_unavailable_and_keeps_what_it_said()
@@ -124,7 +196,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await _registry.RegisterAsync(new EntityDescriptor { Id = "gpu_load", Name = "GPU load", Kind = EntityKind.Sensor });
         await _registry.RegisterAsync(new EntityDescriptor { Id = "memory_usage", Name = "Memory", Kind = EntityKind.Sensor });
         await _registry.UnregisterAsync("display_on");
-        await WaitUntilAsync(() => _homeAssistant.IntegrationEntityIds.SequenceEqual(["cpu_load", "gpu_load", "memory_usage"]));
+        await WaitUntilAsync(() => _homeAssistant.IntegrationEntityIds.SequenceEqual(["cpu_load", "gpu_load", "lock_screen", "memory_usage"]));
 
         // Registered in a row, sent as one list.
         Assert.Single(_homeAssistant.SocketMessages, m => m.GetProperty("type").GetString() == "hada/entities");
@@ -137,7 +209,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await engine.StartAsync(CancellationToken.None);
         await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
 
-        Assert.Equal(["cpu_load"], _homeAssistant.IntegrationEntityIds);
+        Assert.Equal(["cpu_load", "lock_screen"], _homeAssistant.IntegrationEntityIds);
     }
 
     [Theory]

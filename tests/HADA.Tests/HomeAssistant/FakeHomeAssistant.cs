@@ -47,6 +47,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     private int _pushSubscriptionId;
     private readonly Dictionary<string, IntegrationEntity> _integrationEntities = new(StringComparer.Ordinal);
     private bool _integrationConnected;
+    private int _integrationSubscriptionId;
     private volatile WebSocket? _socket;
     private int _connectionAttempts;
 
@@ -104,6 +105,12 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
             return _integrationEntities.GetValueOrDefault(id);
         }
     }
+
+    /// <summary>Sends a command for the computer, as the integration does when an entity is used: <c>command_id</c>, <c>command</c>, <c>entity</c>, <c>value</c>.</summary>
+    public Task SendIntegrationCommandAsync(object command) =>
+        SendAsync(
+            _socket ?? throw new InvalidOperationException("No authenticated client is connected."),
+            new { id = Volatile.Read(ref _integrationSubscriptionId), type = "event", @event = command });
 
     /// <summary>As when the integration is reloaded in Home Assistant: it no longer has the client as the device.</summary>
     public void ReloadIntegration()
@@ -441,7 +448,11 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                     case "hada/connect" when Integration == FakeIntegration.NotSetUp:
                         await SendAsync(socket, new { id, type = "result", success = false, error = new { code = "not_found", message = "The HADA integration is not set up" } });
                         break;
+                    case "hada/command_result":
+                        await SendAsync(socket, new { id, type = "result", success = true, result = (object?)null });
+                        break;
                     case "hada/connect":
+                        Volatile.Write(ref _integrationSubscriptionId, id);
                         IntegrationDevice = message.GetProperty("device").Clone();
                         SetIntegrationEntities(message.GetProperty("entities"), connect: true);
                         await SendAsync(socket, new { id, type = "result", success = true, result = new { protocol = 1, integration_version = "0.1.0", ignored = Array.Empty<string>() } });
