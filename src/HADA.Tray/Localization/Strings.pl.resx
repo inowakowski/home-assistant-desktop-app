@@ -249,12 +249,12 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Preferences_BrowserDefault" xml:space="preserve"><value>Domyślna przeglądarka</value></data>
   <data name="Field_HaNotifications" xml:space="preserve"><value>Powiadomienia</value></data>
   <data name="Ha_NotificationsHint" xml:space="preserve"><value>Rejestruje ten komputer w Home Assistant tak jak telefon. W Home Assistant pojawia się wtedy akcja notify.mobile_app_ z nazwą urządzenia, z tytułem, obrazkiem i przyciskami.</value></data>
-  <data name="Field_HaSensors" xml:space="preserve"><value>Sensory</value></data>
+  <data name="Field_HaSensors" xml:space="preserve"><value>Encje</value></data>
   <data name="Ha_SensorsHint" xml:space="preserve"><value>Dokąd trafiają sensory tego komputera. Jako encje urządzenia: z unikalnym ID, zachowane po restarcie Home Assistant. Wybierz Wyłączone, gdy ten Home Assistant dostaje je już przez MQTT.</value></data>
   <data name="Ha_SensorsOff" xml:space="preserve"><value>Wyłączone</value></data>
   <data name="Ha_SensorsEntities" xml:space="preserve"><value>Jako encje urządzenia (zalecane)</value></data>
   <data name="Ha_SensorsStates" xml:space="preserve"><value>Jako stany, bez unikalnego ID (dotychczasowy sposób)</value></data>
-  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Przez integrację HADA: z przyciskami, przełącznikami i suwakami (do zainstalowania w Home Assistant)</value></data>
+  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Przez integrację HADA: wszystko, jak przy MQTT (do zainstalowania w Home Assistant)</value></data>
   <data name="Issue_integration_missing" xml:space="preserve"><value>Integracja HADA nie jest zainstalowana w tym Home Assistant, więc encji tam nie ma. Zainstaluj ją przez HACS albo wybierz inny sposób dla sensorów.</value></data>
   <data name="Issue_integration_not_set_up" xml:space="preserve"><value>Integracja HADA jest zainstalowana, ale nie skonfigurowana. W Home Assistant wejdź w Ustawienia, Urządzenia i usługi, Dodaj integrację i wybierz HADA.</value></data>
   <data name="Issue_integration_unauthorized" xml:space="preserve"><value>Inny użytkownik Home Assistant połączył to ID urządzenia jako pierwszy. Użyj tokenu tego użytkownika albo administratora, albo innego ID urządzenia.</value></data>

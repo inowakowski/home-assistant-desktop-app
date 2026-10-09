@@ -544,16 +544,20 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
                 try
                 {
-                    await connection.SendAsync(
-                            new
-                            {
-                                id = connection.NextId(),
-                                type = "fire_event",
-                                event_type = _options.DeviceEventType,
-                                event_data = new { device_id = _deviceId, name = deviceEvent.Name, value = deviceEvent.Value },
-                            },
-                            cancellationToken)
-                        .ConfigureAwait(false);
+                    // The integration fires the event itself, and triggers the entity of a quick action besides.
+                    if (!await TrySendIntegrationEventAsync(connection, deviceEvent, cancellationToken).ConfigureAwait(false))
+                    {
+                        await connection.SendAsync(
+                                new
+                                {
+                                    id = connection.NextId(),
+                                    type = "fire_event",
+                                    event_type = _options.DeviceEventType,
+                                    event_data = new { device_id = _deviceId, name = deviceEvent.Name, value = deviceEvent.Value },
+                                },
+                                cancellationToken)
+                            .ConfigureAwait(false);
+                    }
                 }
                 catch (Exception ex) when (ex is WebSocketException or InvalidOperationException or ObjectDisposedException)
                 {

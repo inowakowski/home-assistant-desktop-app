@@ -101,11 +101,44 @@ automation:
 - Home Assistant shows the computer under **Settings → Devices & services → Mobile App**, and makes a `device_tracker` entity for it, which HADA does not update. Deleting the device there is undone the next time HADA connects, while **Notifications** is on.
 - What a phone understands beyond this page (channels, colours, vibration, text input and the like) is ignored.
 
+### Through the HADA integration
+
+*Not released yet.*
+
+With the [HADA integration](../home-assistant/websocket.md#sensors-through-the-hada-integration) installed in Home Assistant and chosen for the connection, the same notifications are sent with `hada.notify`, to the notify entity of the computer; nothing is registered with `mobile_app`:
+
+```yaml
+action: hada.notify
+target:
+  entity_id: notify.laptop_notification
+data:
+  title: Front door
+  message: Someone is at the door.
+  data:
+    image: /api/camera_proxy/camera.front_door
+    actions:
+      - action: open_door
+        title: Open
+```
+
+A pressed button fires `hada_event`, with `name: notification_action` and the button's `action` as `value`:
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: hada_event
+    event_data:
+      name: notification_action
+      value: open_door
+```
+
+`notify.send_message` works with that entity too, for a text and a title.
+
 ## More than a text
 
 *Not released yet.*
 
-Inside `data` of a `notify.mobile_app_…` action, or beside `message` in the JSON published through MQTT:
+Inside `data` of a `notify.mobile_app_…` or `hada.notify` action, or beside `message` in the JSON published through MQTT:
 
 | | |
 |---|---|

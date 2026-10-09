@@ -35,7 +35,7 @@ A server added in the window starts with **Notifications** on, and with sensors 
 
 ### Sensors through the HADA integration
 
-*Not released yet, and the integration is an early version: no notifications or quick actions through it yet.*
+*Not released yet.*
 
 The [HADA integration](https://github.com/inowakowski/hada-homeassistant) is a part of HADA that runs inside Home Assistant. Install it there with HACS and add it once under **Settings → Devices & services**; its page says how. Computers then show up by themselves.
 
@@ -44,6 +44,8 @@ Compared with entities of the `mobile_app` device:
 - **Buttons, switches and numbers are real ones**, to press and set in Home Assistant as with MQTT: lock the screen, set the volume, mute. An action there waits for the computer to take the command, and fails if it does not within ten seconds. A switch and a number show what the computer reports, not what they were just told.
 - An entity the computer no longer has, or that is switched off on HADA's **Entities** page, is removed from Home Assistant instead of staying there as *unavailable*.
 - When the computer goes away, however it does, its entities are *unavailable* at once, not only when HADA was stopped properly.
+- **Notifications** have an action of their own, `hada.notify`, aimed at the computer's notify entity, which takes all that `notify.mobile_app_…` does; see [Notifications](../features/notifications.md#through-the-hada-integration). The **Notifications** switch, which is about the `mobile_app` integration, can stay off.
+- **Quick actions** are `event` entities of the device. What happens on the computer fires `hada_event` as [below](#events-from-the-computer), with the token of any user: it is the integration that fires it.
 - The computer is a device of its own, apart from the one **Notifications** makes under Mobile App.
 
 While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected.
