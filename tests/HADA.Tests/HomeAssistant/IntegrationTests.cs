@@ -166,6 +166,86 @@ public sealed class IntegrationTests : IAsyncLifetime
         Assert.False(commands.TryRead(out _));
     }
 
+    [Fact]
+    public async Task A_notification_sent_through_the_integration_is_shown_with_all_it_carries()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "notification", Name = "Notification", Kind = EntityKind.Notify });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        Assert.Equal("notify", _homeAssistant.IntegrationEntity("notification")!.Descriptor.GetProperty("kind").GetString());
+
+        await _homeAssistant.SendIntegrationCommandAsync(new
+        {
+            command_id = "c1",
+            command = "notify",
+            entity = "notification",
+            message = "Someone is at the door.",
+            title = "Front door",
+            data = new
+            {
+                image = "/api/camera_proxy/camera.door?authSig=signed",
+                tag = "door",
+                sticky = true,
+                actions = new[] { new { action = "open_door", title = "Open" } },
+            },
+        });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c2", command = "notify", entity = "notification", title = "No message" });
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        ActionCommand? shown = null;
+        await foreach (var command in commands.ReadAllAsync(timeout.Token))
+        {
+            shown = command;
+            break;
+        }
+
+        Assert.Equal(("notification", "Someone is at the door."), (shown!.ActionId, shown.Value));
+        Assert.Equal("websocket (Home)", shown.Origin);
+        Assert.Equal("Front door", shown.GetParameter(NotificationContent.Title));
+        Assert.Equal("door", shown.GetParameter(NotificationContent.Tag));
+        Assert.Equal(NotificationContent.True, shown.GetParameter(NotificationContent.Sticky));
+        Assert.Equal(["open_door"], NotificationContent.ParseButtons(shown.GetParameter(NotificationContent.Actions)).Select(button => button.Action));
+
+        // The integration signed the picture's address; it is only made whole here, not signed again.
+        Assert.Equal(
+            new Uri(_homeAssistant.BaseUrl, "api/camera_proxy/camera.door?authSig=signed").AbsoluteUri,
+            shown.GetParameter(NotificationContent.Image));
+        Assert.DoesNotContain(_homeAssistant.SocketMessages, m => m.GetProperty("type").GetString() == "auth/sign_path");
+
+        await WaitUntilAsync(() => Results().Count == 2);
+        Assert.True(Results()[0].GetProperty("success").GetBoolean());
+        Assert.False(Results()[1].GetProperty("success").GetBoolean());
+        Assert.False(commands.TryRead(out _));
+    }
+
+    [Fact]
+    public async Task What_happens_on_the_computer_is_told_to_the_integration_which_fires_the_event_itself()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "toggle_lamp", Name = "Toggle lamp", Kind = EntityKind.Trigger });
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        Assert.Equal("event", _homeAssistant.IntegrationEntity("toggle_lamp")!.Descriptor.GetProperty("kind").GetString());
+
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "toggle_lamp" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = "open_door", Target = "websocket (Home)" });
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = "ignore", Target = "mqtt" });
+
+        await WaitUntilAsync(() => Events().Count == 2);
+        Assert.Equal(
+            [("quick_action", "toggle_lamp"), ("notification_action", "open_door")],
+            Events().Select(e => (e.GetProperty("name").GetString(), e.GetProperty("value").GetString())));
+        Assert.All(Events(), e => Assert.Equal("testpc", e.GetProperty("device_id").GetString()));
+
+        // Not fired a second time by HADA, which would also need an administrator's token.
+        Assert.DoesNotContain(_homeAssistant.SocketMessages, m => m.GetProperty("type").GetString() == "fire_event");
+
+        List<System.Text.Json.JsonElement> Events() =>
+            [.. _homeAssistant.SocketMessages.Where(m => m.GetProperty("type").GetString() == "hada/event")];
+    }
+
     private List<System.Text.Json.JsonElement> Results() =>
         [.. _homeAssistant.SocketMessages.Where(m => m.GetProperty("type").GetString() == "hada/command_result")];
 

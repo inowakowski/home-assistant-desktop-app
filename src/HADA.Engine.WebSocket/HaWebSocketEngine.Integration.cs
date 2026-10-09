@@ -108,6 +108,8 @@ public sealed partial class HaWebSocketEngine
         EntityKind.Button => "button",
         EntityKind.Switch => "switch",
         EntityKind.Number => "number",
+        EntityKind.Notify => "notify",
+        EntityKind.Trigger => "event",
         _ => null,
     };
 
@@ -137,19 +139,21 @@ public sealed partial class HaWebSocketEngine
         {
             error = "There is no such entity, or it is switched off in HADA";
         }
-        else if ((kind, entity.Kind) is not (("press", EntityKind.Button) or ("set", EntityKind.Switch) or ("set", EntityKind.Number)))
+        else if ((kind, entity.Kind) is not (("press", EntityKind.Button) or ("set", EntityKind.Switch) or ("set", EntityKind.Number)
+            or ("notify", EntityKind.Notify)))
         {
             error = $"This version of HADA cannot '{kind}' this entity";
         }
-        else if (!CommandValue.TryNormalize(entity, ReadText(command, "value"), out var value))
+        else if (!TryReadIntegrationCommand(entity, command, out var value, out var parameters))
         {
-            error = "The value is not one this entity takes";
+            error = entity.Kind == EntityKind.Notify ? "The notification has no message" : "The value is not one this entity takes";
         }
         else
         {
             try
             {
-                await _bus.PublishAsync(new ActionCommand { ActionId = entity.Id, Value = value, Origin = Name }, _stoppingToken)
+                var action = new ActionCommand { ActionId = entity.Id, Value = value, Origin = Name };
+                await _bus.PublishAsync(parameters is null ? action : action with { Parameters = parameters }, _stoppingToken)
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -192,6 +196,50 @@ public sealed partial class HaWebSocketEngine
             Interlocked.Exchange(ref _entitiesChanged, 1);
             _integrationSignal.Release();
         }
+    }
+
+    /// <summary>
+    /// What the command sets the entity to, or the notification it carries. A notification is shaped as the
+    /// mobile_app integration shapes one, so it is read the same way; a picture that needed signing was signed by
+    /// the integration, and is a path at this Home Assistant.
+    /// </summary>
+    private bool TryReadIntegrationCommand(
+        EntityDescriptor entity, JsonElement command, out string? value, out Dictionary<string, object?>? parameters)
+    {
+        parameters = null;
+        if (entity.Kind != EntityKind.Notify)
+        {
+            return CommandValue.TryNormalize(entity, ReadText(command, "value"), out value);
+        }
+
+        value = null;
+        return NotificationContent.TryReadMobileApp(command, _baseUrl, out var message, out parameters)
+            && CommandValue.TryNormalize(entity, message, out value);
+    }
+
+    /// <summary>
+    /// Tells the integration that something happened on the computer; it triggers the entity that stands for it
+    /// and fires the event automations wait for. Returns whether the integration is there to be told.
+    /// </summary>
+    private async Task<bool> TrySendIntegrationEventAsync(HaConnection connection, DeviceEvent deviceEvent, CancellationToken cancellationToken)
+    {
+        if (!_integrationConnected)
+        {
+            return false;
+        }
+
+        await connection.SendAsync(
+                new
+                {
+                    id = connection.NextId(),
+                    type = "hada/event",
+                    device_id = _deviceId,
+                    name = deviceEvent.Name,
+                    value = deviceEvent.Value,
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+        return true;
     }
 
     private async Task ConnectIntegrationAsync(HaConnection connection)
