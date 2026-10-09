@@ -58,6 +58,9 @@ public sealed class HaWebSocketOptions
     /// <summary>A ping is sent at this interval; the connection is dropped if nothing arrives for two intervals.</summary>
     public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>How often the HADA integration is looked for again while Home Assistant does not have it.</summary>
+    public TimeSpan IntegrationRetryInterval { get; set; } = TimeSpan.FromMinutes(1);
+
     public TimeSpan MinReconnectDelay { get; set; } = TimeSpan.FromSeconds(2);
 
     public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromMinutes(1);

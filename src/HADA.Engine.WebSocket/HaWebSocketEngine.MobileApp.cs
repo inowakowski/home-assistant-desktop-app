@@ -60,6 +60,13 @@ public sealed partial class HaWebSocketEngine
         options.Notifications || options.SensorMode == HomeAssistantSensorMode.Entities;
 
     /// <summary>
+    /// Whether the connection has something to do that the token of an ordinary user is enough for, so that a
+    /// refused subscription to command events is something to do without rather than a failure.
+    /// </summary>
+    private static bool WorksWithoutAdministrator(HaWebSocketOptions options) =>
+        UsesMobileApp(options) || options.SensorMode == HomeAssistantSensorMode.Integration;
+
+    /// <summary>
     /// Registers if need be, and opens the channel notifications arrive on if they are wanted. A failure here costs
     /// the notifications and the sensor entities, not the connection: it is logged, and tried again when the
     /// connection is next made.

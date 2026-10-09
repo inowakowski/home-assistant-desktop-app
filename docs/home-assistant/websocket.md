@@ -17,6 +17,7 @@ Each Home Assistant on the **Connections** page has two settings.
 | | What Home Assistant gets | Token |
 |---|---|---|
 | **As entities of the device** (recommended) | The computer is a device of the `mobile_app` integration, as with notifications, and its sensors are entities of that device: with a unique ID, so they can be renamed, put in an area and switched off in Home Assistant, and kept when it restarts | Any user's |
+| **Through the HADA integration** | The computer is a device of the [HADA integration](https://github.com/inowakowski/hada-homeassistant), which has to be installed in Home Assistant. See [below](#sensors-through-the-hada-integration) | Any user's |
 | **As states** (the earlier way) | States written through the REST API, described under [Limitations](#limitations) | An administrator's |
 | **Off** | Nothing. For when the same Home Assistant gets the sensors through MQTT | |
 
@@ -31,6 +32,20 @@ A server added in the window starts with **Notifications** on, and with sensors 
 - A sensor switched off on HADA's **Entities** page, one whose source is away, and every sensor while HADA is stopped is shown as *unavailable*. HADA cannot delete an entity from Home Assistant; switch off there what you do not want to see.
 - Changing from states to entities changes the entity IDs, so automations using them need the new ones. The states are removed when HADA connects, if the token is an administrator's, and are gone in any case once Home Assistant restarts.
 - Deleting the device in Home Assistant is undone the next time HADA connects, with new entities.
+
+### Sensors through the HADA integration
+
+*Not released yet, and the integration is an early version: sensors and binary sensors only.*
+
+The [HADA integration](https://github.com/inowakowski/hada-homeassistant) is a part of HADA that runs inside Home Assistant. Install it there with HACS and add it once under **Settings → Devices & services**; its page says how. Computers then show up by themselves.
+
+Compared with entities of the `mobile_app` device:
+
+- An entity the computer no longer has, or that is switched off on HADA's **Entities** page, is removed from Home Assistant instead of staying there as *unavailable*.
+- When the computer goes away, however it does, its entities are *unavailable* at once, not only when HADA was stopped properly.
+- The computer is a device of its own, apart from the one **Notifications** makes under Mobile App.
+
+While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected.
 
 ## Commands
 

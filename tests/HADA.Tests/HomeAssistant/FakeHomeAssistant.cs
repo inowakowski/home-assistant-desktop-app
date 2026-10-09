@@ -11,6 +11,23 @@ public sealed record StateWrite(string Method, string EntityId, string? Authoriz
 /// <summary>A request to a webhook of the mobile_app integration: which one, and its JSON body.</summary>
 public sealed record WebhookCall(string WebhookId, string? Authorization, JsonElement Body);
 
+/// <summary>Whether the fake Home Assistant has the HADA integration.</summary>
+public enum FakeIntegration
+{
+    /// <summary>Not installed: its commands are unknown.</summary>
+    Missing,
+
+    /// <summary>Installed, but not added under Devices &amp; services.</summary>
+    NotSetUp,
+
+    SetUp,
+}
+
+/// <summary>What the HADA integration was last told about an entity.</summary>
+/// <param name="Descriptor">As in the list of entities: kind, name and so on.</param>
+/// <param name="State">The state as JSON text, e.g. <c>12.5</c>, <c>true</c> or <c>"text"</c>; <see langword="null"/> before any.</param>
+public sealed record IntegrationEntity(JsonElement Descriptor, string? State, JsonElement? Attributes, bool Available);
+
 /// <summary>Just enough of Home Assistant's WebSocket and REST APIs to exercise the WebSocket engine.</summary>
 internal sealed class FakeHomeAssistant : IAsyncDisposable
 {
@@ -28,6 +45,8 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     private readonly HashSet<string> _forgottenWebhookIds = [];
     private readonly Dictionary<string, JsonElement> _sensors = new(StringComparer.Ordinal);
     private int _pushSubscriptionId;
+    private readonly Dictionary<string, IntegrationEntity> _integrationEntities = new(StringComparer.Ordinal);
+    private bool _integrationConnected;
     private volatile WebSocket? _socket;
     private int _connectionAttempts;
 
@@ -47,6 +66,53 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
 
     /// <summary>Whether the token is an administrator's, who alone may subscribe to custom events.</summary>
     public bool IsAdministrator { get; set; } = true;
+
+    /// <summary>Whether the HADA integration is there to connect to. May be changed while a client is connected.</summary>
+    public FakeIntegration Integration { get; set; } = FakeIntegration.Missing;
+
+    /// <summary>The device of the last <c>hada/connect</c>; <see langword="null"/> before any.</summary>
+    public JsonElement? IntegrationDevice { get; private set; }
+
+    /// <summary>Whether a client is connected to the HADA integration as a device right now.</summary>
+    public bool IsIntegrationConnected
+    {
+        get
+        {
+            lock (_integrationEntities)
+            {
+                return _integrationConnected;
+            }
+        }
+    }
+
+    /// <summary>The ids of the entities the integration has for the device, sorted.</summary>
+    public string[] IntegrationEntityIds
+    {
+        get
+        {
+            lock (_integrationEntities)
+            {
+                return [.. _integrationEntities.Keys.Order(StringComparer.Ordinal)];
+            }
+        }
+    }
+
+    public IntegrationEntity? IntegrationEntity(string id)
+    {
+        lock (_integrationEntities)
+        {
+            return _integrationEntities.GetValueOrDefault(id);
+        }
+    }
+
+    /// <summary>As when the integration is reloaded in Home Assistant: it no longer has the client as the device.</summary>
+    public void ReloadIntegration()
+    {
+        lock (_integrationEntities)
+        {
+            _integrationConnected = false;
+        }
+    }
 
     /// <summary>Whether the mobile_app integration is there to register with.</summary>
     public bool HasMobileApp { get; set; } = true;
@@ -369,6 +435,39 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                         }
 
                         break;
+                    case "hada/connect" or "hada/entities" or "hada/update" when Integration == FakeIntegration.Missing:
+                        await SendAsync(socket, new { id, type = "result", success = false, error = new { code = "unknown_command", message = "Unknown command." } });
+                        break;
+                    case "hada/connect" when Integration == FakeIntegration.NotSetUp:
+                        await SendAsync(socket, new { id, type = "result", success = false, error = new { code = "not_found", message = "The HADA integration is not set up" } });
+                        break;
+                    case "hada/connect":
+                        IntegrationDevice = message.GetProperty("device").Clone();
+                        SetIntegrationEntities(message.GetProperty("entities"), connect: true);
+                        await SendAsync(socket, new { id, type = "result", success = true, result = new { protocol = 1, integration_version = "0.1.0", ignored = Array.Empty<string>() } });
+                        break;
+                    case "hada/entities" or "hada/update" when !IsIntegrationConnected:
+                        await SendAsync(socket, new { id, type = "result", success = false, error = new { code = "not_found", message = "This connection is not connected as that device" } });
+                        break;
+                    case "hada/entities":
+                        SetIntegrationEntities(message.GetProperty("entities"), connect: false);
+                        await SendAsync(socket, new { id, type = "result", success = true, result = new { ignored = Array.Empty<string>() } });
+                        break;
+                    case "hada/update":
+                        lock (_integrationEntities)
+                        {
+                            foreach (var update in message.GetProperty("states").EnumerateArray())
+                            {
+                                var entityId = update.GetProperty("id").GetString()!;
+                                if (_integrationEntities.TryGetValue(entityId, out var entity))
+                                {
+                                    _integrationEntities[entityId] = Apply(entity, update);
+                                }
+                            }
+                        }
+
+                        await SendAsync(socket, new { id, type = "result", success = true, result = (object?)null });
+                        break;
                     case "auth/sign_path":
                         var path = message.GetProperty("path").GetString()!;
                         await SendAsync(socket, new { id, type = "result", success = true, result = new { path = path + (path.Contains('?') ? "&" : "?") + "authSig=signed" } });
@@ -398,9 +497,34 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
             {
                 _socket = null;
                 Volatile.Write(ref _pushSubscriptionId, 0);
+                ReloadIntegration();
             }
         }
     }
+
+    /// <summary>The list is complete: what is not in it is gone, as the protocol has it.</summary>
+    private void SetIntegrationEntities(JsonElement entities, bool connect)
+    {
+        lock (_integrationEntities)
+        {
+            _integrationEntities.Clear();
+            foreach (var entity in entities.EnumerateArray())
+            {
+                var described = new IntegrationEntity(entity.Clone(), State: null, Attributes: null, Available: true);
+                _integrationEntities[entity.GetProperty("id").GetString()!] = Apply(described, entity);
+            }
+
+            _integrationConnected |= connect;
+        }
+    }
+
+    /// <summary>What is named changes; the rest stays.</summary>
+    private static IntegrationEntity Apply(IntegrationEntity entity, JsonElement update) => entity with
+    {
+        State = update.TryGetProperty("state", out var state) ? state.GetRawText() : entity.State,
+        Attributes = update.TryGetProperty("attributes", out var attributes) ? attributes.Clone() : entity.Attributes,
+        Available = update.TryGetProperty("available", out var available) ? available.GetBoolean() : entity.Available,
+    };
 
     private void Record(JsonElement message)
     {

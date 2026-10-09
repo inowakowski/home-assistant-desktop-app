@@ -91,7 +91,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         {
             if (slot is { Engine: { } engine, Options: { } options })
             {
-                statuses.Add(new EngineStatus(engineName, slot.IsConfigured, engine.State, slot.Id, nameOf(options) ?? string.Empty));
+                statuses.Add(new EngineStatus(engineName, slot.IsConfigured, engine.State, slot.Id, nameOf(options) ?? string.Empty, engine.Issue));
             }
         }
 

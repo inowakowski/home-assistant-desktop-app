@@ -254,6 +254,13 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Ha_SensorsOff" xml:space="preserve"><value>Wyłączone</value></data>
   <data name="Ha_SensorsEntities" xml:space="preserve"><value>Jako encje urządzenia (zalecane)</value></data>
   <data name="Ha_SensorsStates" xml:space="preserve"><value>Jako stany, bez unikalnego ID (dotychczasowy sposób)</value></data>
+  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Przez integrację HADA (do zainstalowania w Home Assistant)</value></data>
+  <data name="Issue_integration_missing" xml:space="preserve"><value>Integracja HADA nie jest zainstalowana w tym Home Assistant, więc encji tam nie ma. Zainstaluj ją przez HACS albo wybierz inny sposób dla sensorów.</value></data>
+  <data name="Issue_integration_not_set_up" xml:space="preserve"><value>Integracja HADA jest zainstalowana, ale nie skonfigurowana. W Home Assistant wejdź w Ustawienia, Urządzenia i usługi, Dodaj integrację i wybierz HADA.</value></data>
+  <data name="Issue_integration_unauthorized" xml:space="preserve"><value>Inny użytkownik Home Assistant połączył to ID urządzenia jako pierwszy. Użyj tokenu tego użytkownika albo administratora, albo innego ID urządzenia.</value></data>
+  <data name="Issue_integration_unsupported" xml:space="preserve"><value>Integracja HADA w tym Home Assistant jest za nowa dla tej wersji HADA. Zaktualizuj HADA.</value></data>
+  <data name="Issue_integration_failed" xml:space="preserve"><value>Integracja HADA nie przyjęła komputera. Zobacz logi tutaj i w Home Assistant.</value></data>
+  <data name="Issue_other" xml:space="preserve"><value>Coś nie pozwala temu połączeniu robić wszystkiego, co powinno: {0}.</value></data>
   <data name="Validation_HaServerName" xml:space="preserve"><value>Nadaj każdemu serwerowi Home Assistant nazwę, żeby dało się je odróżnić.</value></data>
   <data name="Validation_HaServerNameTwice" xml:space="preserve"><value>Dwa serwery Home Assistant nazywają się „{0}”.</value></data>
 </root>

@@ -60,12 +60,17 @@ public sealed record UpdateSettings(bool CheckAutomatically = true, bool Include
 /// <param name="Name"><c>mqtt</c> or <c>websocket</c>.</param>
 /// <param name="ServerId">Which of the servers of that kind this is: the id of its settings.</param>
 /// <param name="ServerName">What the user calls that server; empty when it has no name.</param>
+/// <param name="Issue">
+/// What keeps a connected engine from doing all it is set up to do, as a short code such as
+/// <c>integration_missing</c>; <see langword="null"/> when nothing does.
+/// </param>
 public sealed record EngineStatus(
     string Name,
     bool IsConfigured,
     EngineConnectionState State,
     string? ServerId = null,
-    string? ServerName = null);
+    string? ServerName = null,
+    string? Issue = null);
 
 /// <param name="Source"><c>service</c>, <c>custom</c> for a custom sensor, or the name of the tray client that registered the entity.</param>
 /// <param name="IsAvailable">False while the entity's source is away, e.g. a tray sensor after the tray app exited.</param>

@@ -151,6 +151,11 @@ public sealed class OverviewViewModel : ObservableObject
 
         switch (engine.State)
         {
+            case EngineConnectionState.Connected when engine.Issue is { Length: > 0 } issue:
+                // Connected, but not doing all it is set up to do.
+                card.Set(
+                    Loc.Get("State_Connected"), StatusKind.Warning, Loc.TryGet($"Issue_{issue}") ?? Loc.Format("Issue_other", issue));
+                break;
             case EngineConnectionState.Connected:
                 card.Set(Loc.Get("State_Connected"), StatusKind.Success);
                 break;
