@@ -17,4 +17,11 @@ public enum HomeAssistantSensorMode
     /// id, kept across restarts, and with the token of any user.
     /// </summary>
     Entities,
+
+    /// <summary>
+    /// Through the HADA integration for Home Assistant, which has to be installed there: as a device of its own,
+    /// whose entities follow the computer's, are removed when the computer no longer has them, and are
+    /// unavailable the moment it goes away.
+    /// </summary>
+    Integration,
 }

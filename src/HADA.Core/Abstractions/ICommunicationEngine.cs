@@ -15,6 +15,12 @@ public interface ICommunicationEngine : IAsyncDisposable
 
     EngineConnectionState State { get; }
 
+    /// <summary>
+    /// What keeps a connected engine from doing all it is set up to do, as a short code such as
+    /// <c>integration_missing</c>; <see langword="null"/> when nothing does.
+    /// </summary>
+    string? Issue => null;
+
     /// <summary>Connects to Home Assistant and starts bridging the event bus.</summary>
     Task StartAsync(CancellationToken cancellationToken);
 

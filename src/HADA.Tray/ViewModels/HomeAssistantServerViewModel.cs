@@ -114,6 +114,7 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
     [
         new(HomeAssistantSensorMode.Off, Loc.Get("Ha_SensorsOff")),
         new(HomeAssistantSensorMode.Entities, Loc.Get("Ha_SensorsEntities")),
+        new(HomeAssistantSensorMode.Integration, Loc.Get("Ha_SensorsIntegration")),
         new(HomeAssistantSensorMode.States, Loc.Get("Ha_SensorsStates")),
     ];
 

@@ -116,7 +116,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         try
         {
             var (haVersion, hasCommands) = await HandshakeAsync(
-                    connection, baseUrl, options.AccessToken, options.CommandEventType, commandsRequired: !UsesMobileApp(options), cancellationToken)
+                    connection, baseUrl, options.AccessToken, options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(options), cancellationToken)
                 .ConfigureAwait(false);
 
             using var closeTimeout = new CancellationTokenSource(CloseTimeout);
@@ -133,7 +133,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                 true,
                 hasCommands
                     ? $"Connected to Home Assistant {haVersion ?? "(unknown version)"}; the token can subscribe to '{options.CommandEventType}' events."
-                    : $"Connected to Home Assistant {haVersion ?? "(unknown version)"}. The token is not an administrator's: notifications and sensors as entities of the device will work, but sensors as states and '{options.CommandEventType}' events will not.");
+                    : $"Connected to Home Assistant {haVersion ?? "(unknown version)"}. The token is not an administrator's: notifications and sensors as entities will work, but sensors as states and '{options.CommandEventType}' events will not.");
         }
         catch (HaAuthenticationException ex)
         {
@@ -233,6 +233,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     {
         await StopAsync(CancellationToken.None).ConfigureAwait(false);
         _http.Dispose();
+        _integrationSignal.Dispose();
     }
 
     private async Task MaintainConnectionAsync(CancellationToken cancellationToken)
@@ -245,7 +246,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             try
             {
                 var (haVersion, hasCommands) = await HandshakeAsync(
-                        connection, _baseUrl!, _options.AccessToken!, _options.CommandEventType, commandsRequired: !UsesMobileApp(_options), cancellationToken)
+                        connection, _baseUrl!, _options.AccessToken!, _options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(_options), cancellationToken)
                     .ConfigureAwait(false);
                 LogConnected(_logger, _baseUrl!, haVersion ?? "unknown", _deviceId);
                 if (!hasCommands)
@@ -294,6 +295,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             {
                 _connection = null;
                 DisconnectMobileApp();
+                DisconnectIntegration();
             }
 
             try
@@ -374,6 +376,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     {
         using var session = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var heartbeat = Task.Run(() => KeepAliveAsync(connection, session.Token), CancellationToken.None);
+        var integration = UsesIntegration
+            ? Task.Run(() => RunIntegrationAsync(connection, session.Token), CancellationToken.None)
+            : Task.CompletedTask;
         try
         {
             // Not cancelled by the stopping token: StopAsync closes the socket gracefully instead, which ends this loop.
@@ -389,6 +394,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         {
             await session.CancelAsync().ConfigureAwait(false);
             await heartbeat.ConfigureAwait(false);
+            await integration.ConfigureAwait(false);
         }
     }
 
@@ -575,6 +581,11 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             {
                 var entity = change.Entity;
                 var connected = _state == EngineConnectionState.Connected;
+                if (change is EntityRegistered or EntityUnregistered && entity.Kind.ReportsState())
+                {
+                    NotifyEntitiesChanged();
+                }
+
                 switch (change)
                 {
                     case EntityUnregistered:
@@ -670,6 +681,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         {
             case HomeAssistantSensorMode.Entities:
                 return SetSensorEntityAsync(entity, state, attributes, cancellationToken);
+            case HomeAssistantSensorMode.Integration:
+                return SetIntegrationStateAsync(entity, state, attributes);
             case HomeAssistantSensorMode.Off:
                 return Task.CompletedTask;
         }
