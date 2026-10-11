@@ -113,13 +113,13 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
 
   <data name="Connections_Title" xml:space="preserve"><value>Połączenia</value></data>
-  <data name="Connections_Subtitle" xml:space="preserve"><value>Jak HADA łączy się z Home Assistant: przez MQTT lub przez WebSocket API, w obu przypadkach z jednym albo kilkoma Home Assistantami naraz.</value></data>
+  <data name="Connections_Subtitle" xml:space="preserve"><value>Jak HADA łączy się z Home Assistant: przez MQTT albo bezpośrednio, w obu przypadkach z jednym albo kilkoma Home Assistantami naraz.</value></data>
   <data name="Settings_LockedTitle" xml:space="preserve"><value>Tylko do odczytu</value></data>
   <data name="Settings_LockedMessage" xml:space="preserve"><value>Zmiana ustawień wymaga uprawnień administratora.</value></data>
   <data name="Settings_ElevationDeclined" xml:space="preserve"><value>Nie przyznano uprawnień administratora.</value></data>
   <data name="Settings_Unsaved" xml:space="preserve"><value>Masz niezapisane zmiany.</value></data>
-  <data name="Mqtt_Description" xml:space="preserve"><value>Zalecane. Encje pojawiają się w Home Assistant automatycznie dzięki MQTT discovery.</value></data>
-  <data name="Ha_Description" xml:space="preserve"><value>Bezpośrednie połączenie bez brokera: powiadomienia jak na telefonie i sensory jako encje urządzenia.</value></data>
+  <data name="Mqtt_Description" xml:space="preserve"><value>Dla tych, którzy mają brokera MQTT. Wszystko pojawia się w Home Assistant samo, z przyciskami i przełącznikami do klikania.</value></data>
+  <data name="Ha_Description" xml:space="preserve"><value>Połączenie bezpośrednie, bez brokera. To, co daje, zależy od ustawienia Encje poniżej.</value></data>
   <data name="Field_Host" xml:space="preserve"><value>Adres brokera</value></data>
   <data name="Field_Port" xml:space="preserve"><value>Port</value></data>
   <data name="Field_UseTls" xml:space="preserve"><value>Szyfrowanie TLS</value></data>
@@ -248,13 +248,12 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Preferences_BrowserDetail" xml:space="preserve"><value>W czym otwiera się adres powiadomienia albo jego przycisku, gdy go klikniesz.</value></data>
   <data name="Preferences_BrowserDefault" xml:space="preserve"><value>Domyślna przeglądarka</value></data>
   <data name="Field_HaNotifications" xml:space="preserve"><value>Powiadomienia</value></data>
-  <data name="Ha_NotificationsHint" xml:space="preserve"><value>Rejestruje ten komputer w Home Assistant tak jak telefon. W Home Assistant pojawia się wtedy akcja notify.mobile_app_ z nazwą urządzenia, z tytułem, obrazkiem i przyciskami.</value></data>
+  <data name="Ha_NotificationsHint" xml:space="preserve"><value>Rejestruje ten komputer w Home Assistant tak jak telefon. W Home Assistant pojawia się wtedy akcja notify.mobile_app_ z nazwą urządzenia, z tytułem, obrazkiem i przyciskami. Przy integracji HADA nie jest to potrzebne: ma ona własną akcję, hada.notify.</value></data>
   <data name="Field_HaSensors" xml:space="preserve"><value>Encje</value></data>
-  <data name="Ha_SensorsHint" xml:space="preserve"><value>Dokąd trafiają sensory tego komputera. Jako encje urządzenia: z unikalnym ID, zachowane po restarcie Home Assistant. Wybierz Wyłączone, gdy ten Home Assistant dostaje je już przez MQTT.</value></data>
   <data name="Ha_SensorsOff" xml:space="preserve"><value>Wyłączone</value></data>
-  <data name="Ha_SensorsEntities" xml:space="preserve"><value>Jako encje urządzenia (zalecane)</value></data>
-  <data name="Ha_SensorsStates" xml:space="preserve"><value>Jako stany, bez unikalnego ID (dotychczasowy sposób)</value></data>
-  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Przez integrację HADA: wszystko, jak przy MQTT (do zainstalowania w Home Assistant)</value></data>
+  <data name="Ha_SensorsEntities" xml:space="preserve"><value>Jako encje urządzenia</value></data>
+  <data name="Ha_SensorsStates" xml:space="preserve"><value>Jako stany (dotychczasowy sposób)</value></data>
+  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Przez integrację HADA</value></data>
   <data name="Issue_integration_missing" xml:space="preserve"><value>Integracja HADA nie jest zainstalowana w tym Home Assistant, więc encji tam nie ma. Zainstaluj ją przez HACS albo wybierz inny sposób dla sensorów.</value></data>
   <data name="Issue_integration_not_set_up" xml:space="preserve"><value>Integracja HADA jest zainstalowana, ale nie skonfigurowana. W Home Assistant wejdź w Ustawienia, Urządzenia i usługi, Dodaj integrację i wybierz HADA.</value></data>
   <data name="Issue_integration_unauthorized" xml:space="preserve"><value>Inny użytkownik Home Assistant połączył to ID urządzenia jako pierwszy. Użyj tokenu tego użytkownika albo administratora, albo innego ID urządzenia.</value></data>
@@ -263,4 +262,17 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Issue_other" xml:space="preserve"><value>Coś nie pozwala temu połączeniu robić wszystkiego, co powinno: {0}.</value></data>
   <data name="Validation_HaServerName" xml:space="preserve"><value>Nadaj każdemu serwerowi Home Assistant nazwę, żeby dało się je odróżnić.</value></data>
   <data name="Validation_HaServerNameTwice" xml:space="preserve"><value>Dwa serwery Home Assistant nazywają się „{0}”.</value></data>
+  <data name="Guide_Title" xml:space="preserve"><value>Którą drogę wybrać?</value></data>
+  <data name="Guide_Intro" xml:space="preserve"><value>HADA może łączyć się z Home Assistant na trzy sposoby. Możesz używać kilku naraz, byle encje szły tylko jedną drogą.</value></data>
+  <data name="Guide_MqttTitle" xml:space="preserve"><value>MQTT</value></data>
+  <data name="Guide_MqttText" xml:space="preserve"><value>Dla tych, którzy mają brokera MQTT, na przykład Mosquitto. Daje wszystko: czujniki oraz przyciski, przełączniki i suwaki do klikania w Home Assistant. Nic do instalowania w Home Assistant.</value></data>
+  <data name="Guide_DirectTitle" xml:space="preserve"><value>Połączenie bezpośrednie</value></data>
+  <data name="Guide_DirectText" xml:space="preserve"><value>Wystarczy adres Home Assistant i token dostępu. Daje czujniki oraz powiadomienia jak na telefonie, z obrazkami i przyciskami. W Home Assistant nie ma przycisków ani przełączników komputera do klikania. Poniżej ustaw Encje na „Jako encje urządzenia”.</value></data>
+  <data name="Guide_IntegrationTitle" xml:space="preserve"><value>Połączenie bezpośrednie z integracją HADA</value></data>
+  <data name="Guide_IntegrationText" xml:space="preserve"><value>Daje wszystko, tak jak MQTT, bez brokera. Najpierw trzeba zainstalować w Home Assistant integrację HADA, przez HACS. Poniżej ustaw Encje na „Przez integrację HADA”.</value></data>
+  <data name="Guide_Mix" xml:space="preserve"><value>Częste połączenie: MQTT dla encji, a obok połączenie bezpośrednie z Encjami ustawionymi na „Wyłączone”, tylko dla powiadomień z obrazami z kamer.</value></data>
+  <data name="Ha_SensorsDetail_Off" xml:space="preserve"><value>Przez to połączenie nic nie jest wysyłane. Wybierz, gdy ten Home Assistant dostaje encje przez MQTT.</value></data>
+  <data name="Ha_SensorsDetail_Entities" xml:space="preserve"><value>Same czujniki, bez instalowania czegokolwiek. Komputer pojawia się w Home Assistant w Mobile App. Nie ma tam przycisków ani przełączników do klikania.</value></data>
+  <data name="Ha_SensorsDetail_Integration" xml:space="preserve"><value>Czujniki, przyciski, przełączniki i suwaki, jak przy MQTT. Wymaga integracji HADA zainstalowanej w Home Assistant, przez HACS; gdy jej brakuje, widać to na stronie Przegląd.</value></data>
+  <data name="Ha_SensorsDetail_States" xml:space="preserve"><value>Dotychczasowy sposób: same czujniki, zapominane po restarcie Home Assistant, i wymaga tokenu administratora. Zostawiony dla połączeń ustawionych, zanim był wybór.</value></data>
 </root>

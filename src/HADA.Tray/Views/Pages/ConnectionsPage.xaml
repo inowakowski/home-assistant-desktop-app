@@ -63,6 +63,39 @@
                 </Grid>
             </ui:Card>
 
+            <!--  For those who do not know yet which of the ways below is theirs.  -->
+            <Expander Margin="0,0,0,12" Header="{l:Tr Guide_Title}">
+                <StackPanel Margin="4,8,4,4">
+                    <ui:TextBlock
+                        Margin="0,0,0,12"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{l:Tr Guide_Intro}"
+                        TextWrapping="Wrap" />
+                    <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Guide_MqttTitle}" />
+                    <ui:TextBlock
+                        Margin="0,2,0,12"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{l:Tr Guide_MqttText}"
+                        TextWrapping="Wrap" />
+                    <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Guide_DirectTitle}" />
+                    <ui:TextBlock
+                        Margin="0,2,0,12"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{l:Tr Guide_DirectText}"
+                        TextWrapping="Wrap" />
+                    <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Guide_IntegrationTitle}" />
+                    <ui:TextBlock
+                        Margin="0,2,0,12"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{l:Tr Guide_IntegrationText}"
+                        TextWrapping="Wrap" />
+                    <ui:TextBlock
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="{l:Tr Guide_Mix}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Expander>
+
             <StackPanel DataContext="{Binding Settings}">
                 <!--  MQTT: one server per Home Assistant, all connected at once; the form shows the selected one.  -->
                 <ui:Card
@@ -562,7 +595,7 @@
                                     Margin="0,6,0,0"
                                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                     FontTypography="Caption"
-                                    Text="{l:Tr Ha_SensorsHint}"
+                                    Text="{Binding SensorModeDescription}"
                                     TextWrapping="Wrap" />
                             </StackPanel>
 

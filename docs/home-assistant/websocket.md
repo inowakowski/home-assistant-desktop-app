@@ -2,7 +2,7 @@
 
 For when there is no MQTT broker, and for [notifications as on a phone](../features/notifications.md#notifications-as-on-a-phone). HADA talks to Home Assistant directly, with a long-lived access token. For controls it can do less than the [MQTT engine](mqtt.md); see the limitations below.
 
-> Send the sensors through **one** engine. With MQTT and this connection both sending them, every sensor appears in Home Assistant twice. To use both, set **Sensors** to **Off** here.
+> Send the sensors through **one** engine. With MQTT and this connection both sending them, every sensor appears in Home Assistant twice. To use both, set **Entities** to **Off** here. [Which connection to choose](choosing.md) compares the ways side by side.
 
 ## What the connection is used for
 
@@ -12,7 +12,7 @@ Each Home Assistant on the **Connections** page has two settings.
 
 **Notifications**, on or off. On, the computer registers with Home Assistant's `mobile_app` integration, which adds the action `notify.mobile_app_` followed by the device name; see [Notifications](../features/notifications.md#notifications-as-on-a-phone). Off, notifications arrive as `hada_command` events only.
 
-**Sensors**, one of:
+**Entities**, one of:
 
 | | What Home Assistant gets | Token |
 |---|---|---|

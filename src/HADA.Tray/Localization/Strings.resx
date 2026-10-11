@@ -113,13 +113,13 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Source_Tray" xml:space="preserve"><value>Tray ({0})</value></data>
 
   <data name="Connections_Title" xml:space="preserve"><value>Connections</value></data>
-  <data name="Connections_Subtitle" xml:space="preserve"><value>How HADA talks to Home Assistant: through MQTT or through the WebSocket API, either way to one Home Assistant or several at once.</value></data>
+  <data name="Connections_Subtitle" xml:space="preserve"><value>How HADA talks to Home Assistant: through MQTT or directly, either way to one Home Assistant or several at once.</value></data>
   <data name="Settings_LockedTitle" xml:space="preserve"><value>Read-only</value></data>
   <data name="Settings_LockedMessage" xml:space="preserve"><value>Changing settings requires administrator rights.</value></data>
   <data name="Settings_ElevationDeclined" xml:space="preserve"><value>Administrator rights were not granted.</value></data>
   <data name="Settings_Unsaved" xml:space="preserve"><value>You have unsaved changes.</value></data>
-  <data name="Mqtt_Description" xml:space="preserve"><value>Recommended. Entities appear in Home Assistant automatically through MQTT discovery.</value></data>
-  <data name="Ha_Description" xml:space="preserve"><value>Direct connection without a broker: notifications as on a phone, and sensors as entities of a device.</value></data>
+  <data name="Mqtt_Description" xml:space="preserve"><value>For those who have an MQTT broker. Everything appears in Home Assistant by itself, with buttons and switches to click.</value></data>
+  <data name="Ha_Description" xml:space="preserve"><value>Direct connection, without a broker. What it gives depends on Entities below.</value></data>
   <data name="Field_Host" xml:space="preserve"><value>Broker host</value></data>
   <data name="Field_Port" xml:space="preserve"><value>Port</value></data>
   <data name="Field_UseTls" xml:space="preserve"><value>TLS encryption</value></data>
@@ -248,13 +248,12 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Preferences_BrowserDetail" xml:space="preserve"><value>Where the address of a notification, or of one of its buttons, is opened when you press it.</value></data>
   <data name="Preferences_BrowserDefault" xml:space="preserve"><value>Default browser</value></data>
   <data name="Field_HaNotifications" xml:space="preserve"><value>Notifications</value></data>
-  <data name="Ha_NotificationsHint" xml:space="preserve"><value>Registers this computer in Home Assistant the way a phone is. Home Assistant then has the action notify.mobile_app_ followed by the device name, with a title, a picture and buttons.</value></data>
+  <data name="Ha_NotificationsHint" xml:space="preserve"><value>Registers this computer in Home Assistant the way a phone is. Home Assistant then has the action notify.mobile_app_ followed by the device name, with a title, a picture and buttons. With the HADA integration this is not needed: it has an action of its own, hada.notify.</value></data>
   <data name="Field_HaSensors" xml:space="preserve"><value>Entities</value></data>
-  <data name="Ha_SensorsHint" xml:space="preserve"><value>Where the sensors of this computer go. As entities of the device: with a unique ID, kept when Home Assistant restarts. Choose Off when this Home Assistant already gets them through MQTT.</value></data>
   <data name="Ha_SensorsOff" xml:space="preserve"><value>Off</value></data>
-  <data name="Ha_SensorsEntities" xml:space="preserve"><value>As entities of the device (recommended)</value></data>
-  <data name="Ha_SensorsStates" xml:space="preserve"><value>As states, without a unique ID (the earlier way)</value></data>
-  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Through the HADA integration: everything, as with MQTT (to be installed in Home Assistant)</value></data>
+  <data name="Ha_SensorsEntities" xml:space="preserve"><value>As entities of the device</value></data>
+  <data name="Ha_SensorsStates" xml:space="preserve"><value>As states (the earlier way)</value></data>
+  <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Through the HADA integration</value></data>
   <data name="Issue_integration_missing" xml:space="preserve"><value>The HADA integration is not installed in this Home Assistant, so the entities are not there. Install it with HACS, or choose another way for the sensors.</value></data>
   <data name="Issue_integration_not_set_up" xml:space="preserve"><value>The HADA integration is installed but not set up. In Home Assistant, go to Settings, Devices and services, Add integration, and choose HADA.</value></data>
   <data name="Issue_integration_unauthorized" xml:space="preserve"><value>Another Home Assistant user connected this Device ID first. Use that user's token or an administrator's, or another Device ID.</value></data>
@@ -263,4 +262,17 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Issue_other" xml:space="preserve"><value>Something keeps this connection from doing all it should: {0}.</value></data>
   <data name="Validation_HaServerName" xml:space="preserve"><value>Give each Home Assistant server a name, to tell them apart.</value></data>
   <data name="Validation_HaServerNameTwice" xml:space="preserve"><value>Two Home Assistant servers are called "{0}".</value></data>
+  <data name="Guide_Title" xml:space="preserve"><value>Which one to choose?</value></data>
+  <data name="Guide_Intro" xml:space="preserve"><value>There are three ways to connect HADA to Home Assistant. You can use more than one, as long as the entities go through only one of them.</value></data>
+  <data name="Guide_MqttTitle" xml:space="preserve"><value>MQTT</value></data>
+  <data name="Guide_MqttText" xml:space="preserve"><value>For those who have an MQTT broker, for example Mosquitto. Gives everything: sensors, and buttons, switches and sliders to click in Home Assistant. Nothing to install in Home Assistant.</value></data>
+  <data name="Guide_DirectTitle" xml:space="preserve"><value>Direct connection</value></data>
+  <data name="Guide_DirectText" xml:space="preserve"><value>Needs only the address of Home Assistant and an access token. Gives sensors, and notifications as on a phone, with pictures and buttons. There are no buttons or switches for the computer to click in Home Assistant. Below, set Entities to "As entities of the device".</value></data>
+  <data name="Guide_IntegrationTitle" xml:space="preserve"><value>Direct connection with the HADA integration</value></data>
+  <data name="Guide_IntegrationText" xml:space="preserve"><value>Gives everything, as MQTT does, without a broker. The HADA integration has to be installed in Home Assistant first, with HACS. Below, set Entities to "Through the HADA integration".</value></data>
+  <data name="Guide_Mix" xml:space="preserve"><value>A common mix: MQTT for the entities, and a direct connection with Entities set to "Off", only for notifications with pictures from cameras.</value></data>
+  <data name="Ha_SensorsDetail_Off" xml:space="preserve"><value>Nothing is sent through this connection. Choose this when this Home Assistant gets the entities through MQTT.</value></data>
+  <data name="Ha_SensorsDetail_Entities" xml:space="preserve"><value>Sensors only, with nothing to install. The computer appears in Home Assistant under Mobile App. There are no buttons or switches to click there.</value></data>
+  <data name="Ha_SensorsDetail_Integration" xml:space="preserve"><value>Sensors, buttons, switches and sliders, as with MQTT. Needs the HADA integration installed in Home Assistant, with HACS; while it is missing, the Overview page says so.</value></data>
+  <data name="Ha_SensorsDetail_States" xml:space="preserve"><value>The earlier way: sensors only, forgotten when Home Assistant restarts, and it needs an administrator’s token. Kept for connections set up before there was a choice.</value></data>
 </root>
