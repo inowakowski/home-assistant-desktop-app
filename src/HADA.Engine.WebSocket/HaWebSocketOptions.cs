@@ -21,6 +21,22 @@ public sealed class HaWebSocketOptions
     public string? BaseUrl { get; set; }
 
     /// <summary>
+    /// Another address of the same Home Assistant, used instead of <see cref="BaseUrl"/> while the computer is
+    /// on one of the <see cref="LocalNetworks"/>: the address it has at home, so that nothing goes out to the
+    /// internet and back. Empty for none.
+    /// </summary>
+    public string? LocalUrl { get; set; }
+
+    /// <summary>
+    /// The networks on which <see cref="LocalUrl"/> is used, by the names the system knows them by, one per
+    /// line. On any other network the local address is not tried at all: there it would be somebody else's.
+    /// </summary>
+    public string? LocalNetworks { get; set; }
+
+    /// <summary>The names in <see cref="LocalNetworks"/>, one each, without empty lines.</summary>
+    public static IReadOnlyList<string> NetworkNames(string? networks) => HADA.Core.NetworkScope.Names(networks);
+
+    /// <summary>
     /// Lets the connection be made to an <c>http</c> address out on the internet, where the access token can be
     /// read on the way. Off unless the user chose it: such an address is refused otherwise. An <c>http</c>
     /// address of the network the computer is on needs no leave.
@@ -67,6 +83,12 @@ public sealed class HaWebSocketOptions
 
     /// <summary>How often the HADA integration is looked for again while Home Assistant does not have it.</summary>
     public TimeSpan IntegrationRetryInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Networks change in bursts; a connection is not dropped more often than this to be made anew through the
+    /// other of the two addresses.
+    /// </summary>
+    public TimeSpan AddressSwitchInterval { get; set; } = TimeSpan.FromSeconds(5);
 
     public TimeSpan MinReconnectDelay { get; set; } = TimeSpan.FromSeconds(2);
 

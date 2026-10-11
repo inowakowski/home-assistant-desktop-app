@@ -35,6 +35,9 @@ public sealed partial class ServiceControl(
     private const int MaxLogEntriesPerRequest = 50;
     private const int MaxTextLength = 256;
     private const int MaxSecretLength = 4096;
+
+    // Network names are at most 32 characters; room for a good many.
+    private const int MaxNetworksLength = 2048;
     private const int MaxDisabledEntities = 256;
     private const int MaxServerNameLength = 64;
 
@@ -377,6 +380,17 @@ public sealed partial class ServiceControl(
             return "The Home Assistant URL must be an absolute http:// or https:// address.";
         }
 
+        if (homeAssistant.LocalUrl.Trim() is { Length: > 0 } localUrl
+            && !(Uri.TryCreate(localUrl, UriKind.Absolute, out var local) && (local.Scheme == Uri.UriSchemeHttp || local.Scheme == Uri.UriSchemeHttps)))
+        {
+            return "The local Home Assistant address must be an absolute http:// or https:// address.";
+        }
+
+        if (homeAssistant.LocalNetworks.Length > MaxNetworksLength)
+        {
+            return "The list of home networks is too long.";
+        }
+
         return string.IsNullOrWhiteSpace(homeAssistant.CommandEventType) || homeAssistant.CommandEventType.Trim().Any(char.IsWhiteSpace)
             ? "The command event type must not be empty or contain spaces."
             : null;
@@ -427,6 +441,8 @@ public sealed partial class ServiceControl(
         Notifications = homeAssistant.Notifications,
         SensorMode = homeAssistant.SensorMode,
         AllowUnencrypted = homeAssistant.AllowUnencrypted,
+        LocalUrl = homeAssistant.LocalUrl ?? string.Empty,
+        LocalNetworks = homeAssistant.LocalNetworks ?? string.Empty,
     };
 
     private Task<ConnectionTestResult> TestMqttAsync(MqttServerUpdate? server, CancellationToken cancellationToken)
@@ -469,6 +485,8 @@ public sealed partial class ServiceControl(
     {
         Name = settings.Name.Trim(),
         BaseUrl = settings.BaseUrl.Trim(),
+        LocalUrl = settings.LocalUrl.Trim(),
+        LocalNetworks = string.Join('\n', HaWebSocketOptions.NetworkNames(settings.LocalNetworks)),
         DeviceId = settings.DeviceId.Trim(),
         DeviceName = settings.DeviceName.Trim(),
         CommandEventType = settings.CommandEventType.Trim(),
@@ -496,6 +514,8 @@ public sealed partial class ServiceControl(
         Notifications = settings.Notifications,
         SensorMode = settings.SensorMode,
         AllowUnencrypted = settings.AllowUnencrypted,
+        LocalUrl = settings.LocalUrl,
+        LocalNetworks = settings.LocalNetworks,
         BaseUrl = settings.BaseUrl,
         AccessToken = accessToken,
         DeviceId = settings.DeviceId,

@@ -57,6 +57,9 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     /// </summary>
     public Task? UpdatesHeld { get; set; }
 
+    /// <summary>While set, nothing is answered but that the server is not there; connecting fails at once.</summary>
+    public bool IsDown { get; set; }
+
     /// <summary>The kinds of entity this integration is too old to know; it leaves entities of those out and says which.</summary>
     public string[] UnknownKinds { get; set; } = [];
 
@@ -267,6 +270,15 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
         var path = request.Url!.AbsolutePath;
         const string statesPrefix = "/api/states/";
         const string webhookPrefix = "/api/webhook/";
+
+        if (IsDown)
+        {
+            // What a proxy says while the Home Assistant behind it is not there.
+            Interlocked.Increment(ref _connectionAttempts);
+            context.Response.StatusCode = 502;
+            context.Response.Close();
+            return;
+        }
 
         if (path == "/api/websocket" && request.IsWebSocketRequest)
         {

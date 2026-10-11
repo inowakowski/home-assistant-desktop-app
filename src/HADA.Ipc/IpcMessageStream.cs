@@ -22,7 +22,7 @@ public sealed class IpcMessageStream(Stream stream)
     /// version 6 events from the tray, quick actions and richer notifications;
     /// version 7 several MQTT servers;
     /// version 8 several Home Assistants connected to directly, and what each connection is used for;
-    /// version 9 whether a Home Assistant may be connected to unencrypted over the internet.
+    /// version 9 whether a Home Assistant may be connected to unencrypted over the internet, and its local address.
     /// </summary>
     public const int ProtocolVersion = 9;
 

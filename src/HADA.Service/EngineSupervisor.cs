@@ -24,6 +24,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
     private readonly IEntityRegistry _registry;
     private readonly TelemetryCache? _telemetry;
     private readonly IMobileAppRegistrationStore _registrations;
+    private readonly INetworkLocation _networks;
     private readonly IOptionsMonitor<MqttOptions> _mqttOptions;
     private readonly IOptionsMonitor<MqttServersOptions> _mqttServers;
     private readonly IOptionsMonitor<HaWebSocketOptions> _homeAssistantOptions;
@@ -51,8 +52,10 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
         IOptionsMonitor<EntityOptions> entityOptions,
         ILoggerFactory loggerFactory,
         TelemetryCache? telemetry = null,
-        IMobileAppRegistrationStore? registrations = null)
+        IMobileAppRegistrationStore? registrations = null,
+        INetworkLocation? networks = null)
     {
+        _networks = networks ?? UnknownNetworkLocation.Instance;
         _bus = bus;
         _registry = registry;
         _telemetry = telemetry;
@@ -240,7 +243,7 @@ public sealed partial class EngineSupervisor : IHostedService, IAsyncDisposable
                 id => new EngineSlot<HaWebSocketOptions>(
                     options => !string.IsNullOrWhiteSpace(options.BaseUrl) && !string.IsNullOrWhiteSpace(options.AccessToken),
                     (options, engineFilter) => new HaWebSocketEngine(
-                        _bus, _registry, Options.Create(options), _loggerFactory.CreateLogger<HaWebSocketEngine>(), engineFilter, _registrations),
+                        _bus, _registry, Options.Create(options), _loggerFactory.CreateLogger<HaWebSocketEngine>(), engineFilter, _registrations, _networks),
                     id),
                 removed => LogHomeAssistantRemoved(_logger, removed.Name is { Length: > 0 } name ? name : removed.BaseUrl ?? removed.Id!),
                 filter,

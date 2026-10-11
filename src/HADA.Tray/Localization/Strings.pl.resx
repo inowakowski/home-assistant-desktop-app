@@ -286,4 +286,12 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Preferences_DashboardOtherDetail" xml:space="preserve"><value>Dla Home Assistanta połączonego przez MQTT albo dowolnej innej strony. Zostaw puste, jeśli nie potrzebujesz.</value></data>
   <data name="Tray_DashboardNamed" xml:space="preserve"><value>Pulpit: {0}</value></data>
   <data name="Dashboard_TitleNamed" xml:space="preserve"><value>HADA – {0}</value></data>
+  <data name="Ha_HomeTitle" xml:space="preserve"><value>Inny adres w sieci domowej</value></data>
+  <data name="Ha_HomeIntro" xml:space="preserve"><value>Gdy komputer jest w jednej z wymienionych tu sieci, HADA łączy się z Home Assistant pod tym adresem, bez wychodzenia do internetu i z powrotem. Wszędzie indziej używa adresu podanego wyżej; tak samo, gdy adres lokalny nie odpowiada.</value></data>
+  <data name="Field_LocalUrl" xml:space="preserve"><value>Adres w sieci domowej</value></data>
+  <data name="Field_HomeNetworks" xml:space="preserve"><value>Sieci domowe, jedna w wierszu</value></data>
+  <data name="Ha_ConnectedNetworks" xml:space="preserve"><value>Połączone teraz, pod nazwami, które zna Windows. Kliknij, aby dodać:</value></data>
+  <data name="Ha_HomeNoNetworks" xml:space="preserve"><value>Podaj co najmniej jedną sieć domową: bez niej adres lokalny nie będzie używany.</value></data>
+  <data name="Ha_HomeNoAddress" xml:space="preserve"><value>Podaj adres, pod którym Home Assistant jest dostępny w tych sieciach.</value></data>
+  <data name="Validation_LocalUrl" xml:space="preserve"><value>Adres w sieci domowej musi być pełnym adresem http:// lub https://.</value></data>
 </root>

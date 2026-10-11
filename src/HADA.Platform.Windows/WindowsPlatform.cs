@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
 using HADA.Platform.Windows.Actions;
+using HADA.Platform.Windows.Network;
 using HADA.Platform.Windows.Sensors;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,7 @@ public static class WindowsPlatform
     public static IServiceCollection AddWindowsServiceEntities(this IServiceCollection services)
     {
         services.AddSingleton<IDeviceDirectory, WindowsDeviceDirectory>();
+        services.AddSingleton<INetworkLocation, WindowsNetworkLocation>();
 
         services.AddHostedService<CpuLoadSensor>();
         services.AddHostedService<MemoryUsageSensor>();
