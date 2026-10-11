@@ -304,4 +304,6 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Entity_MediaPlayer" xml:space="preserve"><value>Media player</value></data>
   <data name="EntityHint_media_player" xml:space="preserve"><value>Playback, volume and what is playing as one entity, as Home Assistant shows a speaker. Only through the HADA integration; the separate media buttons, the volume slider and the playback sensor work every way.</value></data>
   <data name="Reach_MediaPlayer" xml:space="preserve"><value>appears in Home Assistant only through the HADA integration, which none of your connections uses. The media buttons, the volume slider and the playback sensor arrive as before.</value></data>
+  <data name="EntityHint_restart_required" xml:space="preserve"><value>On while Windows waits for a restart to finish installing updates.</value></data>
+  <data name="EntityHint_screen_brightness" xml:space="preserve"><value>The brightness of the built-in screen, which Home Assistant can also set. Only on computers with a screen Windows can dim.</value></data>
 </root>

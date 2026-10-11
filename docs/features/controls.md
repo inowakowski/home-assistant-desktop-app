@@ -8,6 +8,7 @@ What Home Assistant can do to the computer. With the MQTT engine, and with the [
 | `sleep`, `hibernate`, `shutdown`, `restart` | button | Service | **Off until you switch them on** on the Entities page. Nothing is forced: apps with unsaved work can still object, as when shutting down from the Start menu |
 | `turn_off_display`, `wake_display` | button | Tray | Turns the screen off, or back on as moving the mouse would |
 | `media_play_pause`, `media_next`, `media_previous`, `media_stop` | button | Tray | Press the multimedia keys; whichever app handles them reacts |
+| `screen_brightness` | number (0–100 %) | Service | *Not released yet.* Shows and sets the brightness of the built-in screen. Only on computers with a screen Windows can dim, a laptop's as a rule; external monitors are not covered |
 | `volume_level` | number (0–100 %) | Tray | Sets the volume of the default playback device |
 | `audio_mute` | switch | Tray | Mutes the default playback device |
 | `microphone_mute` | switch | Tray | Mutes the default microphone in Windows |
