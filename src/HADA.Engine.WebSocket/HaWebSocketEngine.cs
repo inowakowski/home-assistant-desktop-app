@@ -52,7 +52,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private readonly IMobileAppRegistrationStore _registrations;
     private readonly ConcurrentDictionary<string, TelemetryEvent> _lastReadings = new(StringComparer.Ordinal);
 
-    private Uri? _baseUrl;
+    // The address in use: the main one, or the local one while the computer is on a home network.
+    private volatile Uri? _baseUrl;
     private CancellationTokenSource? _stopping;
     private CancellationToken _stoppingToken;
     private Task _connectionLoop = Task.CompletedTask;
@@ -69,12 +70,14 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         IOptions<HaWebSocketOptions> options,
         ILogger<HaWebSocketEngine> logger,
         IEntityFilter? filter = null,
-        IMobileAppRegistrationStore? registrations = null)
+        IMobileAppRegistrationStore? registrations = null,
+        INetworkLocation? networks = null)
     {
         _bus = bus;
         _registry = registry;
         _filter = filter ?? EntityFilter.AllEnabled;
         _registrations = registrations ?? new InMemoryMobileAppRegistrationStore();
+        _networks = networks ?? UnknownNetworkLocation.Instance;
         _options = options.Value;
         _serverId = NullIfEmpty(_options.Id) ?? HaWebSocketOptions.DefaultId;
         _logger = logger;
@@ -115,11 +118,27 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             return new ConnectionTestResult(false, "No access token is configured.");
         }
 
+        var main = await TestAddressAsync(options, baseUrl, cancellationToken).ConfigureAwait(false);
+        if (NullIfEmpty(options.LocalUrl) is null)
+        {
+            return main;
+        }
+
+        // Both are tried, wherever the computer is: the test is asked for by someone who is there to read the answer.
+        var local = TryParseBaseUrl(options.LocalUrl, out var localUrl)
+            ? await TestAddressAsync(options, localUrl, cancellationToken).ConfigureAwait(false)
+            : new ConnectionTestResult(false, "The local address must be an absolute http:// or https:// address.");
+        return new ConnectionTestResult(
+            main.Success && local.Success, $"Main address: {main.Message}{Environment.NewLine}Local address: {local.Message}");
+    }
+
+    private static async Task<ConnectionTestResult> TestAddressAsync(HaWebSocketOptions options, Uri baseUrl, CancellationToken cancellationToken)
+    {
         using var connection = new HaConnection(new ClientWebSocket());
         try
         {
             var (haVersion, hasCommands) = await HandshakeAsync(
-                    connection, baseUrl, options.AccessToken, options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(options),
+                    connection, baseUrl, options.AccessToken!, options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(options),
                     options.AllowUnencrypted, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -171,7 +190,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             throw new InvalidOperationException("The WebSocket engine is already running.");
         }
 
+        _mainUrl = baseUrl;
         _baseUrl = baseUrl;
+        StartFollowingNetworks();
         _stopping = new CancellationTokenSource();
         _stoppingToken = _stopping.Token;
         var token = _stoppingToken;
@@ -233,6 +254,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             await _connectionLoop.ConfigureAwait(false);
         }
 
+        StopFollowingNetworks();
         _stopping.Dispose();
         _stopping = null;
         _state = EngineConnectionState.Disconnected;
@@ -251,6 +273,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         while (!cancellationToken.IsCancellationRequested)
         {
             _state = EngineConnectionState.Connecting;
+            _baseUrl = ChooseAddress();
             using var connection = new HaConnection(new ClientWebSocket());
             try
             {
@@ -272,6 +295,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
                 _connection = connection;
                 _state = EngineConnectionState.Connected;
+                AddressAnswered();
                 retryDelay = _options.MinReconnectDelay;
 
                 await RemoveDisabledSensorsAsync(cancellationToken).ConfigureAwait(false);
@@ -303,12 +327,26 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                 // on another, as a laptop finds out.
                 _state = EngineConnectionState.Faulted;
                 SetConnectionIssue(IssueUnencrypted);
+                if (AddressDidNotAnswer())
+                {
+                    // It was the local address that was refused; the main one may be fine.
+                    retryDelay = TimeSpan.Zero;
+                }
             }
             catch (Exception ex)
             {
                 _state = EngineConnectionState.Faulted;
                 SetConnectionIssue(null);
-                LogConnectionFailed(_logger, ex, retryDelay);
+                if (AddressDidNotAnswer())
+                {
+                    // The main address is tried next, and at once: Home Assistant may well be there.
+                    LogLocalAddressFailed(_logger, _baseUrl!, Describe(ex));
+                    retryDelay = TimeSpan.Zero;
+                }
+                else
+                {
+                    LogConnectionFailed(_logger, ex, retryDelay);
+                }
             }
             finally
             {
@@ -326,7 +364,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                 return;
             }
 
-            retryDelay = TimeSpan.FromTicks(Math.Min(retryDelay.Ticks * 2, _options.MaxReconnectDelay.Ticks));
+            retryDelay = TimeSpan.FromTicks(
+                Math.Clamp(retryDelay.Ticks * 2, _options.MinReconnectDelay.Ticks, _options.MaxReconnectDelay.Ticks));
         }
     }
 

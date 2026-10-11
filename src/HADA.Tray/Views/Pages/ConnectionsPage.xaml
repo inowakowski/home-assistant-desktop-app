@@ -490,6 +490,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <StackPanel Grid.Row="0" Margin="0,0,0,14">
@@ -623,8 +624,84 @@
                                     TextWrapping="Wrap" />
                             </StackPanel>
 
+                            <!--  Another address for the networks named as home.  -->
                             <Expander
                                 Grid.Row="4"
+                                Grid.ColumnSpan="3"
+                                Margin="0,0,0,8"
+                                Header="{l:Tr Ha_HomeTitle}"
+                                IsExpanded="{Binding UsesHomeNetwork, Mode=OneTime}">
+                                <StackPanel Margin="0,12,0,0">
+                                    <ui:TextBlock
+                                        Margin="0,0,0,12"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        Text="{l:Tr Ha_HomeIntro}"
+                                        TextWrapping="Wrap" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="20" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <ui:TextBlock
+                                                Margin="0,0,0,6"
+                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                FontTypography="Caption"
+                                                Text="{l:Tr Field_LocalUrl}" />
+                                            <ui:TextBox PlaceholderText="http://homeassistant.local:8123" Text="{Binding LocalUrl, UpdateSourceTrigger=PropertyChanged}" />
+                                            <ui:TextBlock
+                                                Margin="0,6,0,0"
+                                                Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                                FontTypography="Caption"
+                                                Text="{Binding HomeNetworkNote}"
+                                                TextWrapping="Wrap"
+                                                Visibility="{Binding HasHomeNetworkNote, Converter={StaticResource BooleanToVisibility}}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <ui:TextBlock
+                                                Margin="0,0,0,6"
+                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                FontTypography="Caption"
+                                                Text="{l:Tr Field_HomeNetworks}" />
+                                            <ui:TextBox
+                                                MinLines="2"
+                                                AcceptsReturn="True"
+                                                Text="{Binding LocalNetworks, UpdateSourceTrigger=PropertyChanged}"
+                                                TextWrapping="NoWrap" />
+                                            <ui:TextBlock
+                                                Margin="0,8,0,4"
+                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                FontTypography="Caption"
+                                                Text="{l:Tr Ha_ConnectedNetworks}"
+                                                TextWrapping="Wrap"
+                                                Visibility="{Binding HasConnectedNetworks, Converter={StaticResource BooleanToVisibility}}" />
+                                            <ItemsControl Focusable="False" ItemsSource="{Binding ConnectedNetworks}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <ui:Button
+                                                            Margin="0,0,6,6"
+                                                            Command="{Binding Add}"
+                                                            Content="{Binding Name}">
+                                                            <ui:Button.Icon>
+                                                                <ui:SymbolIcon Symbol="Add16" />
+                                                            </ui:Button.Icon>
+                                                        </ui:Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Expander>
+
+                            <Expander
+                                Grid.Row="5"
                                 Grid.ColumnSpan="3"
                                 Header="{l:Tr Field_Advanced}">
                                 <StackPanel Margin="0,12,0,0">

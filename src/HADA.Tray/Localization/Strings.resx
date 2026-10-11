@@ -286,4 +286,12 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Preferences_DashboardOtherDetail" xml:space="preserve"><value>For a Home Assistant connected through MQTT, or any other page. Leave empty if you do not need it.</value></data>
   <data name="Tray_DashboardNamed" xml:space="preserve"><value>Dashboard: {0}</value></data>
   <data name="Dashboard_TitleNamed" xml:space="preserve"><value>HADA – {0}</value></data>
+  <data name="Ha_HomeTitle" xml:space="preserve"><value>Another address on your home network</value></data>
+  <data name="Ha_HomeIntro" xml:space="preserve"><value>While the computer is on one of the networks named here, HADA connects to Home Assistant at this address, without going out to the internet and back. Everywhere else it uses the address above, and so it does when the local one does not answer.</value></data>
+  <data name="Field_LocalUrl" xml:space="preserve"><value>Address on the home network</value></data>
+  <data name="Field_HomeNetworks" xml:space="preserve"><value>Home networks, one per line</value></data>
+  <data name="Ha_ConnectedNetworks" xml:space="preserve"><value>Connected now, by the names Windows knows them by. Click one to add it:</value></data>
+  <data name="Ha_HomeNoNetworks" xml:space="preserve"><value>Name at least one home network: without one the local address is never used.</value></data>
+  <data name="Ha_HomeNoAddress" xml:space="preserve"><value>Enter the address Home Assistant has on these networks.</value></data>
+  <data name="Validation_LocalUrl" xml:space="preserve"><value>The address on the home network must be a full http:// or https:// address.</value></data>
 </root>

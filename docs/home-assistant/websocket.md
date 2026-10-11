@@ -82,6 +82,27 @@ Commands are sent by firing the command event, for example from a script. `actio
 
 `device_id` is required, so a single event never targets every PC at once. A notification also takes `image`, `actions` and [more](../features/notifications.md#more-than-a-text), as described under [Notifications](../features/notifications.md).
 
+## Another address on your home network
+
+*Not released yet.*
+
+A Home Assistant often has two addresses: one that works from anywhere, such as `https://home.example.org`, and one that only works at home, such as `http://192.168.1.20:8123`. At home the second is the shorter way: nothing goes out to the internet and back through a proxy or a tunnel, and it keeps working when the internet connection is down.
+
+On the **Connections** page, open **Another address on your home network** for the Home Assistant and give:
+
+- **Address on the home network:** the address Home Assistant has there.
+- **Home networks:** the networks on which that address is used, one per line, by the names Windows knows them by. The networks the computer is connected to right now are listed below the box; click one to add it. A Wi-Fi network goes by its own name; a wired one, or a VPN, by the name Windows gave it, such as *Network 2*.
+
+HADA then connects like this:
+
+- On one of the home networks, to the local address. When the computer's networks change, it changes over by itself.
+- Anywhere else, to the main address. The local address is not tried at all there: on a network that is not yours it would be somebody else's address, and whatever answers at it would be handed the access token.
+- When the local address does not answer although the computer is at home, to the main address, and to the local one again the next time it connects.
+
+Both are addresses of the same Home Assistant: the computer stays one device there, whichever way it comes. **Test connection** tries both and says which is which. The [dashboard window](../window.md#the-dashboard-window) shows the main address unless you give it another.
+
+A network is told by its name, which is the best Windows has to offer: someone who sets up a Wi-Fi network with your network's name, and the same password, can make the computer take it for home. An `http://` address is safe at home only as far as the home network itself is.
+
 ## Several Home Assistants at once
 
 *New in 1.4.0.*

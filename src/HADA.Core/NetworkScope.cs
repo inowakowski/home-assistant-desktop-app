@@ -51,6 +51,12 @@ public static class NetworkScope
             || (bytes[0] == 100 && bytes[1] is >= 64 and <= 127);
     }
 
+    /// <summary>The names of networks written one per line, each once, without the empty lines.</summary>
+    public static IReadOnlyList<string> Names(string? networks) =>
+        (networks ?? string.Empty).Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
     /// <summary>
     /// Whether a host, as typed into an address, reads like one of the network the computer is on: a local
     /// address, a name without a dot, or a name with an ending only used locally. A guess to word a hint by,

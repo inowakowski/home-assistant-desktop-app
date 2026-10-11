@@ -147,6 +147,15 @@ public sealed record HomeAssistantSettings(
     /// on the way there. Off unless the user chose it.
     /// </summary>
     public bool AllowUnencrypted { get; init; }
+
+    /// <summary>
+    /// Another address of this Home Assistant, used while the computer is on one of <see cref="LocalNetworks"/>;
+    /// empty for none.
+    /// </summary>
+    public string LocalUrl { get; init; } = string.Empty;
+
+    /// <summary>The networks on which <see cref="LocalUrl"/> is used, by their names, one per line.</summary>
+    public string LocalNetworks { get; init; } = string.Empty;
 }
 
 /// <summary>A server as shown to clients: its access token is never sent back, only whether one is saved.</summary>

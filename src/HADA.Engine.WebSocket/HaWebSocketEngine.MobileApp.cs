@@ -164,7 +164,8 @@ public sealed partial class HaWebSocketEngine
     private async Task<MobileAppRegistration> EnsureRegisteredAsync(CancellationToken cancellationToken)
     {
         var saved = _registrations.Load(_serverId);
-        if (saved is null || saved.BaseUrl != _baseUrl!.AbsoluteUri || saved.DeviceId != _deviceId)
+        // Told apart by the main address: the local one is another way to the same Home Assistant.
+        if (saved is null || saved.BaseUrl != _mainUrl!.AbsoluteUri || saved.DeviceId != _deviceId)
         {
             return await RegisterAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -250,7 +251,7 @@ public sealed partial class HaWebSocketEngine
             throw new InvalidDataException("Home Assistant answered the registration without a webhook id");
         }
 
-        var registration = new MobileAppRegistration(id, _baseUrl!.AbsoluteUri, _deviceId);
+        var registration = new MobileAppRegistration(id, _mainUrl!.AbsoluteUri, _deviceId);
         _registrations.Save(_serverId, registration);
         LogRegistered(_logger, _deviceName);
         return registration;

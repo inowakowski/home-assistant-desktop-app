@@ -1,13 +1,18 @@
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using HADA.Core;
 using HADA.Core.Entities;
 using HADA.Ipc;
+using HADA.Platform.Windows.Network;
 using HADA.Tray.Localization;
 using HADA.Tray.Mvvm;
 
 namespace HADA.Tray.ViewModels;
 
 public sealed record SensorModeOption(HomeAssistantSensorMode Mode, string Label);
+
+/// <summary>A network the computer is connected to right now, offered for adding to a server's home networks.</summary>
+public sealed record NetworkChoice(string Name, ICommand Add);
 
 /// <summary>
 /// One Home Assistant connected to directly, on the Connections page. Its access token is never shown: an empty
@@ -28,6 +33,8 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
     private bool _notifications;
     private HomeAssistantSensorMode _sensorMode;
     private bool _allowUnencrypted;
+    private string _localUrl;
+    private string _localNetworks;
 
     /// <param name="changed">Called after anything was typed, to find out whether there is something to save.</param>
     public HomeAssistantServerViewModel(HomeAssistantSettings settings, bool hasAccessToken, Action changed)
@@ -43,6 +50,14 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
         _notifications = settings.Notifications;
         _sensorMode = settings.SensorMode;
         _allowUnencrypted = settings.AllowUnencrypted;
+        _localUrl = settings.LocalUrl;
+
+        // One per line in the box, whatever line ends they were saved with.
+        _localNetworks = string.Join(Environment.NewLine, NetworkNames(settings.LocalNetworks));
+        ConnectedNetworks =
+        [
+            .. WindowsNetworkLocation.Read().Select(name => new NetworkChoice(name, new RelayCommand(() => AddHomeNetwork(name)))),
+        ];
     }
 
     /// <summary>A server that was just added: nothing typed yet, and an id of its own.</summary>
@@ -127,6 +142,73 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
     /// <summary>The switch is offered where it has a say, and stays in sight while it is on.</summary>
     public bool CanAllowUnencrypted => IsUnencryptedPublic || AllowUnencrypted;
 
+    /// <summary>The address used instead of <see cref="Url"/> while the computer is on one of the home networks.</summary>
+    public string LocalUrl
+    {
+        get => _localUrl;
+        set
+        {
+            if (SetSetting(ref _localUrl, value))
+            {
+                OnHomeNetworkChanged();
+            }
+        }
+    }
+
+    /// <summary>The home networks, by their names, one per line.</summary>
+    public string LocalNetworks
+    {
+        get => _localNetworks;
+        set
+        {
+            if (SetSetting(ref _localNetworks, value ?? string.Empty))
+            {
+                OnHomeNetworkChanged();
+            }
+        }
+    }
+
+    /// <summary>The networks the computer is on right now, by the names Windows knows them by; each can be added with a click.</summary>
+    public IReadOnlyList<NetworkChoice> ConnectedNetworks { get; }
+
+    public bool HasConnectedNetworks => ConnectedNetworks.Count > 0;
+
+    /// <summary>
+    /// What is missing for the local address to be used: the address itself, or a network to use it on. Empty
+    /// when both are there, and when neither is.
+    /// </summary>
+    public string HomeNetworkNote
+    {
+        get
+        {
+            var hasAddress = LocalUrl.Trim().Length > 0;
+            var hasNetworks = NetworkNames(LocalNetworks).Count > 0;
+            return hasAddress == hasNetworks ? string.Empty : Loc.Get(hasAddress ? "Ha_HomeNoNetworks" : "Ha_HomeNoAddress");
+        }
+    }
+
+    public bool HasHomeNetworkNote => HomeNetworkNote.Length > 0;
+
+    /// <summary>Whether the section opens by itself: it does where something is set up in it.</summary>
+    public bool UsesHomeNetwork => LocalUrl.Trim().Length > 0 || NetworkNames(LocalNetworks).Count > 0;
+
+    private static IReadOnlyList<string> NetworkNames(string networks) => NetworkScope.Names(networks);
+
+    private void AddHomeNetwork(string name)
+    {
+        var names = NetworkNames(LocalNetworks);
+        if (!names.Contains(name, StringComparer.OrdinalIgnoreCase))
+        {
+            LocalNetworks = string.Join(Environment.NewLine, [.. names, name]);
+        }
+    }
+
+    private void OnHomeNetworkChanged()
+    {
+        OnPropertyChanged(nameof(HomeNetworkNote));
+        OnPropertyChanged(nameof(HasHomeNetworkNote));
+    }
+
     public bool AllowUnencrypted
     {
         get => _allowUnencrypted;
@@ -184,6 +266,8 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
             Notifications = Notifications,
             SensorMode = SensorMode,
             AllowUnencrypted = AllowUnencrypted,
+            LocalUrl = LocalUrl.Trim(),
+            LocalNetworks = string.Join('\n', NetworkNames(LocalNetworks)),
         },
         SettingsViewModel.SecretUpdateFor(AccessToken, ClearAccessToken));
 
@@ -200,6 +284,13 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
             && !(Uri.TryCreate(url, UriKind.Absolute, out var parsed) && (parsed.Scheme == Uri.UriSchemeHttp || parsed.Scheme == Uri.UriSchemeHttps)))
         {
             return Loc.Get("Validation_Url");
+        }
+
+        var localUrl = LocalUrl.Trim();
+        if (localUrl.Length > 0
+            && !(Uri.TryCreate(localUrl, UriKind.Absolute, out var local) && (local.Scheme == Uri.UriSchemeHttp || local.Scheme == Uri.UriSchemeHttps)))
+        {
+            return Loc.Get("Validation_LocalUrl");
         }
 
         var eventType = CommandEventType.Trim();
