@@ -66,6 +66,7 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
                 data[prefix + nameof(homeAssistant.CommandEventType)] = homeAssistant.CommandEventType;
                 data[prefix + nameof(homeAssistant.Notifications)] = homeAssistant.Notifications ? "true" : "false";
                 data[prefix + nameof(homeAssistant.SensorMode)] = homeAssistant.SensorMode.ToString();
+                data[prefix + nameof(homeAssistant.AllowUnencrypted)] = homeAssistant.AllowUnencrypted ? "true" : "false";
                 data[prefix + "AccessToken"] = SettingsStore.TryUnprotect(homeAssistants[i].AccessToken) ?? string.Empty;
             }
         }

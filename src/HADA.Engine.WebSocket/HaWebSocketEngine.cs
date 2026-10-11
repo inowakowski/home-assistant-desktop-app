@@ -116,7 +116,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         try
         {
             var (haVersion, hasCommands) = await HandshakeAsync(
-                    connection, baseUrl, options.AccessToken, options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(options), cancellationToken)
+                    connection, baseUrl, options.AccessToken, options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(options),
+                    options.AllowUnencrypted, cancellationToken)
                 .ConfigureAwait(false);
 
             using var closeTimeout = new CancellationTokenSource(CloseTimeout);
@@ -138,6 +139,11 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         catch (HaAuthenticationException ex)
         {
             return new ConnectionTestResult(false, $"Home Assistant rejected the access token: {ex.Message}");
+        }
+        catch (HaUnencryptedException ex)
+        {
+            return new ConnectionTestResult(
+                false, $"{ex.Message} Use an https:// address, or allow the unencrypted connection for this server.");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -246,8 +252,10 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             try
             {
                 var (haVersion, hasCommands) = await HandshakeAsync(
-                        connection, _baseUrl!, _options.AccessToken!, _options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(_options), cancellationToken)
+                        connection, _baseUrl!, _options.AccessToken!, _options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(_options),
+                        _options.AllowUnencrypted, cancellationToken)
                     .ConfigureAwait(false);
+                SetConnectionIssue(null);
                 LogConnected(_logger, _baseUrl!, haVersion ?? "unknown", _deviceId);
                 if (!hasCommands)
                 {
@@ -286,9 +294,17 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                 LogAuthenticationFailed(_logger, ex.Message);
                 return;
             }
+            catch (HaUnencryptedException)
+            {
+                // Tried again all the same: a name may stand for a local address on one network and a public one
+                // on another, as a laptop finds out.
+                _state = EngineConnectionState.Faulted;
+                SetConnectionIssue(IssueUnencrypted);
+            }
             catch (Exception ex)
             {
                 _state = EngineConnectionState.Faulted;
+                SetConnectionIssue(null);
                 LogConnectionFailed(_logger, ex, retryDelay);
             }
             finally
@@ -316,18 +332,22 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     /// the subscription was granted, which it is to administrators only.
     /// </summary>
     /// <param name="commandsRequired">Whether a refused subscription is a failure, rather than something to do without.</param>
+    /// <param name="allowUnencrypted">Whether an <c>http</c> address out on the internet is connected to all the same.</param>
     private static async Task<(string? HaVersion, bool HasCommands)> HandshakeAsync(
         HaConnection connection,
         Uri baseUrl,
         string accessToken,
         string commandEventType,
         bool commandsRequired,
+        bool allowUnencrypted,
         CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(HandshakeTimeout);
         var token = timeout.Token;
 
+        // Before anything is sent: the first thing sent after connecting is the access token.
+        await EnsureEncryptedOrLocalAsync(baseUrl, allowUnencrypted, token).ConfigureAwait(false);
         await connection.ConnectAsync(WebSocketUri(baseUrl), token).ConfigureAwait(false);
 
         string? haVersion;

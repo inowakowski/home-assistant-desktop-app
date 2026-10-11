@@ -21,6 +21,13 @@ public sealed class HaWebSocketOptions
     public string? BaseUrl { get; set; }
 
     /// <summary>
+    /// Lets the connection be made to an <c>http</c> address out on the internet, where the access token can be
+    /// read on the way. Off unless the user chose it: such an address is refused otherwise. An <c>http</c>
+    /// address of the network the computer is on needs no leave.
+    /// </summary>
+    public bool AllowUnencrypted { get; set; }
+
+    /// <summary>
     /// Long-lived access token (Home Assistant profile, Security tab). It must belong to an administrator,
     /// because non-admin users cannot subscribe to custom events. Keep it out of appsettings.json:
     /// use <c>dotnet user-secrets</c> during development or the <c>HomeAssistant__AccessToken</c> environment variable.

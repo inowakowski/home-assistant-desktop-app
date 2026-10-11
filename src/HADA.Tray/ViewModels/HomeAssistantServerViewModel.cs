@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using HADA.Core;
 using HADA.Core.Entities;
 using HADA.Ipc;
 using HADA.Tray.Localization;
@@ -26,6 +27,7 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
     private string _commandEventType;
     private bool _notifications;
     private HomeAssistantSensorMode _sensorMode;
+    private bool _allowUnencrypted;
 
     /// <param name="changed">Called after anything was typed, to find out whether there is something to save.</param>
     public HomeAssistantServerViewModel(HomeAssistantSettings settings, bool hasAccessToken, Action changed)
@@ -40,6 +42,7 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
         _commandEventType = settings.CommandEventType;
         _notifications = settings.Notifications;
         _sensorMode = settings.SensorMode;
+        _allowUnencrypted = settings.AllowUnencrypted;
     }
 
     /// <summary>A server that was just added: nothing typed yet, and an id of its own.</summary>
@@ -92,6 +95,47 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
             if (SetSetting(ref _url, value))
             {
                 OnPropertyChanged(nameof(DisplayName));
+                OnPropertyChanged(nameof(EncryptionNote));
+                OnPropertyChanged(nameof(HasEncryptionNote));
+                OnPropertyChanged(nameof(IsUnencryptedPublic));
+                OnPropertyChanged(nameof(CanAllowUnencrypted));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Says under the address whether what is sent there is encrypted, and what that means for an address that is
+    /// not; empty until the address is one.
+    /// </summary>
+    public string EncryptionNote =>
+        !Uri.TryCreate(Url.Trim(), UriKind.Absolute, out var url) || url.Host.Length == 0 ? string.Empty
+        : url.Scheme == Uri.UriSchemeHttps ? Loc.Get("Ha_UrlEncrypted")
+        : url.Scheme != Uri.UriSchemeHttp ? string.Empty
+        : NetworkScope.LooksLocal(url.DnsSafeHost) ? Loc.Get("Ha_UrlUnencryptedLocal")
+        : Loc.Get(AllowUnencrypted ? "Ha_UrlUnencryptedAllowed" : "Ha_UrlUnencryptedPublic");
+
+    public bool HasEncryptionNote => EncryptionNote.Length > 0;
+
+    /// <summary>
+    /// An <c>http</c> address that reads like one out on the internet. Whether it is one is found out when
+    /// connecting, by what the name stands for; this only decides how the note is worded and coloured.
+    /// </summary>
+    public bool IsUnencryptedPublic =>
+        Uri.TryCreate(Url.Trim(), UriKind.Absolute, out var url) && url.Scheme == Uri.UriSchemeHttp
+        && url.Host.Length > 0 && !NetworkScope.LooksLocal(url.DnsSafeHost);
+
+    /// <summary>The switch is offered where it has a say, and stays in sight while it is on.</summary>
+    public bool CanAllowUnencrypted => IsUnencryptedPublic || AllowUnencrypted;
+
+    public bool AllowUnencrypted
+    {
+        get => _allowUnencrypted;
+        set
+        {
+            if (SetSetting(ref _allowUnencrypted, value))
+            {
+                OnPropertyChanged(nameof(EncryptionNote));
+                OnPropertyChanged(nameof(CanAllowUnencrypted));
             }
         }
     }
@@ -139,6 +183,7 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
             Name = Name.Trim(),
             Notifications = Notifications,
             SensorMode = SensorMode,
+            AllowUnencrypted = AllowUnencrypted,
         },
         SettingsViewModel.SecretUpdateFor(AccessToken, ClearAccessToken));
 

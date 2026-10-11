@@ -275,4 +275,10 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Ha_SensorsDetail_Entities" xml:space="preserve"><value>Sensors only, with nothing to install. The computer appears in Home Assistant under Mobile App. There are no buttons or switches to click there.</value></data>
   <data name="Ha_SensorsDetail_Integration" xml:space="preserve"><value>Sensors, buttons, switches and sliders, as with MQTT. Needs the HADA integration installed in Home Assistant, with HACS; while it is missing, the Overview page says so.</value></data>
   <data name="Ha_SensorsDetail_States" xml:space="preserve"><value>The earlier way: sensors only, forgotten when Home Assistant restarts, and it needs an administrator’s token. Kept for connections set up before there was a choice.</value></data>
+  <data name="Ha_UrlEncrypted" xml:space="preserve"><value>Encrypted: nobody on the way can read the access token or what is sent.</value></data>
+  <data name="Ha_UrlUnencryptedLocal" xml:space="preserve"><value>Not encrypted. Fine on your own network; from outside it, use an https:// address.</value></data>
+  <data name="Ha_UrlUnencryptedPublic" xml:space="preserve"><value>Not encrypted, and this reads like an address on the internet: the access token could be read on the way. HADA does not connect to such an address. Use https://, or allow it below if you are sure.</value></data>
+  <data name="Ha_UrlUnencryptedAllowed" xml:space="preserve"><value>Not encrypted, and allowed all the same: the access token can be read on the way to this address.</value></data>
+  <data name="Ha_AllowUnencrypted" xml:space="preserve"><value>Connect to this address without encryption</value></data>
+  <data name="Issue_unencrypted_public" xml:space="preserve"><value>HADA did not connect: the address is not encrypted (http) and is a public one, so the access token would travel in the open. Use an https:// address, or allow the unencrypted connection for this server on the Connections page.</value></data>
 </root>

@@ -275,4 +275,10 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Ha_SensorsDetail_Entities" xml:space="preserve"><value>Same czujniki, bez instalowania czegokolwiek. Komputer pojawia się w Home Assistant w Mobile App. Nie ma tam przycisków ani przełączników do klikania.</value></data>
   <data name="Ha_SensorsDetail_Integration" xml:space="preserve"><value>Czujniki, przyciski, przełączniki i suwaki, jak przy MQTT. Wymaga integracji HADA zainstalowanej w Home Assistant, przez HACS; gdy jej brakuje, widać to na stronie Przegląd.</value></data>
   <data name="Ha_SensorsDetail_States" xml:space="preserve"><value>Dotychczasowy sposób: same czujniki, zapominane po restarcie Home Assistant, i wymaga tokenu administratora. Zostawiony dla połączeń ustawionych, zanim był wybór.</value></data>
+  <data name="Ha_UrlEncrypted" xml:space="preserve"><value>Szyfrowane: nikt po drodze nie odczyta tokenu ani tego, co jest przesyłane.</value></data>
+  <data name="Ha_UrlUnencryptedLocal" xml:space="preserve"><value>Nieszyfrowane. We własnej sieci to wystarcza; spoza niej użyj adresu https://.</value></data>
+  <data name="Ha_UrlUnencryptedPublic" xml:space="preserve"><value>Nieszyfrowane, a ten adres wygląda na internetowy: token dostępu dałoby się odczytać po drodze. HADA nie łączy się z takim adresem. Użyj https:// albo zezwól na to poniżej, jeśli wiesz, co robisz.</value></data>
+  <data name="Ha_UrlUnencryptedAllowed" xml:space="preserve"><value>Nieszyfrowane, a mimo to dozwolone: token dostępu da się odczytać po drodze do tego adresu.</value></data>
+  <data name="Ha_AllowUnencrypted" xml:space="preserve"><value>Łącz z tym adresem bez szyfrowania</value></data>
+  <data name="Issue_unencrypted_public" xml:space="preserve"><value>HADA nie połączyła się: adres nie jest szyfrowany (http) i jest publiczny, więc token dostępu szedłby otwartym tekstem. Użyj adresu https:// albo zezwól na nieszyfrowane połączenie z tym serwerem na stronie Połączenia.</value></data>
 </root>

@@ -2,6 +2,10 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## Unreleased
+
+- **No unencrypted connection over the internet.** A Home Assistant connected to directly at an `http://` address is refused when the address is a public one, as the access token could be read on the way; the Overview page says so. Addresses of the computer's own network work as before, and `https://` ones always do. The refusal can be lifted per server on the Connections page, which now also says under the address whether the connection is encrypted. See [Security](reference/security.md#the-connection-to-home-assistant).
+
 ## 1.4.0 (pre-release)
 
 Home Assistant without a broker: notifications as on a phone, and the computer as a device with entities of its own, through Home Assistant's `mobile_app` integration or through the new HADA integration. A pre-release, so that it gets tried before a stable version carries it. MQTT works as before.

@@ -2,6 +2,8 @@
 
 For when there is no MQTT broker, and for [notifications as on a phone](../features/notifications.md#notifications-as-on-a-phone). HADA talks to Home Assistant directly, with a long-lived access token. For controls it can do less than the [MQTT engine](mqtt.md); see the limitations below.
 
+Over the internet, give Home Assistant's `https://` address. An `http://` address is fine on your own network; to a public address HADA refuses it, as the access token could be read on the way. See [Security](../reference/security.md#the-connection-to-home-assistant).
+
 > Send the sensors through **one** engine. With MQTT and this connection both sending them, every sensor appears in Home Assistant twice. To use both, set **Entities** to **Off** here. [Which connection to choose](choosing.md) compares the ways side by side.
 
 ## What the connection is used for

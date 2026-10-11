@@ -518,6 +518,30 @@
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_BaseUrl}" />
                                 <ui:TextBox PlaceholderText="http://homeassistant.local:8123" Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <!--  Whether what is sent to this address is encrypted, said in a sentence.  -->
+                                <ui:TextBlock
+                                    Margin="0,6,0,0"
+                                    FontTypography="Caption"
+                                    Text="{Binding EncryptionNote}"
+                                    TextWrapping="Wrap"
+                                    Visibility="{Binding HasEncryptionNote, Converter={StaticResource BooleanToVisibility}}">
+                                    <ui:TextBlock.Style>
+                                        <Style TargetType="ui:TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsUnencryptedPublic}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ui:TextBlock.Style>
+                                </ui:TextBlock>
+                                <CheckBox
+                                    Margin="0,6,0,0"
+                                    Content="{l:Tr Ha_AllowUnencrypted}"
+                                    IsChecked="{Binding AllowUnencrypted}"
+                                    Visibility="{Binding CanAllowUnencrypted, Converter={StaticResource BooleanToVisibility}}" />
                             </StackPanel>
 
                             <StackPanel

@@ -21,9 +21,10 @@ public sealed class IpcMessageStream(Stream stream)
     /// version 5 update settings and the request to look for an update now;
     /// version 6 events from the tray, quick actions and richer notifications;
     /// version 7 several MQTT servers;
-    /// version 8 several Home Assistants connected to directly, and what each connection is used for.
+    /// version 8 several Home Assistants connected to directly, and what each connection is used for;
+    /// version 9 whether a Home Assistant may be connected to unencrypted over the internet.
     /// </summary>
-    public const int ProtocolVersion = 8;
+    public const int ProtocolVersion = 9;
 
     /// <summary>Caps how much memory a misbehaving peer can make the other side allocate.</summary>
     public const int MaxMessageBytes = 256 * 1024;
