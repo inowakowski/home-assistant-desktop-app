@@ -2,9 +2,9 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## 1.5.0 (pre-release)
+## 1.5.0
 
-More for a Home Assistant connected to directly: the computer as a media player, signing in instead of pasting a token, a local address for the networks you call home, and a refusal to send the token unencrypted over the internet. The app now says which of your connections carries what. A pre-release, so that it gets tried before a stable version carries it. The media player needs version 0.4.0 of the HADA integration.
+More for a Home Assistant connected to directly: the computer as a media player, signing in instead of pasting a token, a local address for the networks you call home, and a refusal to send the token unencrypted over the internet. The app now says which of your connections carries what. A stable version, which also brings everything new in 1.3.0 and 1.4.0 to those who use stable versions. The media player needs version 0.4.0 of the HADA integration.
 
 - **No unencrypted connection over the internet.** A Home Assistant connected to directly at an `http://` address is refused when the address is a public one, as the access token could be read on the way; the Overview page says so. Addresses of the computer's own network work as before, and `https://` ones always do. The refusal can be lifted per server on the Connections page, which now also says under the address whether the connection is encrypted. See [Security](reference/security.md#the-connection-to-home-assistant).
 - **Signing in through Home Assistant.** Instead of making a long-lived token and pasting it, choose **Sign in through Home Assistant** on the Connections page: the browser opens Home Assistant's own sign-in page, and HADA keeps what comes back. It can be withdrawn in your Home Assistant profile, under Refresh tokens. A pasted token works as before. See [WebSocket engine](home-assistant/websocket.md#signing-in-instead-of-pasting-a-token).
