@@ -1,5 +1,7 @@
 # MQTT engine
 
+*Not sure whether MQTT is the way for you? See [Which connection to choose](choosing.md).*
+
 The recommended way to connect. HADA announces itself through MQTT discovery, so the computer appears in Home Assistant as a device with all its entities, each with a unique ID, and Home Assistant knows when the computer goes away.
 
 

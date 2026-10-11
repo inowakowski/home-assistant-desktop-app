@@ -27,7 +27,7 @@ HADA łączy komputer z Windows z [Home Assistant](https://www.home-assistant.io
 ## Zacznij tutaj
 
 1. [Zainstaluj HADA](getting-started/installation.md) albo rozpakuj [wersję przenośną](getting-started/portable.md)
-2. [Połącz ją z Home Assistant](getting-started/first-setup.md)
+2. [Połącz ją z Home Assistant](getting-started/first-setup.md); jeśli nie wiesz jak, zobacz [Którą drogę połączenia wybrać](home-assistant/choosing.md)
 3. Użyj encji w [automatyzacjach](home-assistant/examples.md)
 
 HADA jest darmowa i otwartoźródłowa, na [licencji MIT](https://github.com/inowakowski/home-assistant-desktop-app/blob/main/LICENSE). Wersje stabilne zachowują ustawienia i tematy MQTT między kolejnymi wydaniami; wersje oznaczone jako pre-release zawierają nowe funkcje, które były krócej testowane.

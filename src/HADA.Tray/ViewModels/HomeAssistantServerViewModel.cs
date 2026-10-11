@@ -108,7 +108,20 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
 
     public bool Notifications { get => _notifications; set => SetSetting(ref _notifications, value); }
 
-    public HomeAssistantSensorMode SensorMode { get => _sensorMode; set => SetSetting(ref _sensorMode, value); }
+    public HomeAssistantSensorMode SensorMode
+    {
+        get => _sensorMode;
+        set
+        {
+            if (SetSetting(ref _sensorMode, value))
+            {
+                OnPropertyChanged(nameof(SensorModeDescription));
+            }
+        }
+    }
+
+    /// <summary>What the chosen way means, in a sentence or two, shown under the list.</summary>
+    public string SensorModeDescription => Loc.TryGet($"Ha_SensorsDetail_{SensorMode}") ?? string.Empty;
 
     public IReadOnlyList<SensorModeOption> SensorModes { get; } =
     [

@@ -68,6 +68,7 @@ plugins:
             Custom sensors, buttons, quick actions: Własne czujniki, przyciski, szybkie akcje
             Several users on one computer: Kilku użytkowników na jednym komputerze
             The HADA window: Okno HADA
+            Which connection to choose: Którą drogę połączenia wybrać
             MQTT engine: Silnik MQTT
             WebSocket engine: Silnik WebSocket
             Automation examples: Przykłady automatyzacji
@@ -107,6 +108,7 @@ nav:
       - Several users on one computer: features/several-users.md
       - The HADA window: window.md
   - Home Assistant:
+      - Which connection to choose: home-assistant/choosing.md
       - MQTT engine: home-assistant/mqtt.md
       - WebSocket engine: home-assistant/websocket.md
       - Automation examples: home-assistant/examples.md

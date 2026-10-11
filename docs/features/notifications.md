@@ -61,7 +61,7 @@ A press is reported only while the tray app that showed the notification is stil
 
 *Not released yet.*
 
-`notify.send_message` takes a text and nothing else. For the same notifications a phone with the companion app gets, connect the computer to Home Assistant directly and switch **Notifications** on, on the **Connections** page under **Home Assistant (WebSocket)**. This works next to MQTT: set **Sensors** to **Off** there, and the connection is used for notifications only.
+`notify.send_message` takes a text and nothing else. For the same notifications a phone with the companion app gets, connect the computer to Home Assistant directly and switch **Notifications** on, on the **Connections** page under **Home Assistant (WebSocket)**. This works next to MQTT: set **Entities** to **Off** there, and the connection is used for notifications only.
 
 The computer then registers with Home Assistant's `mobile_app` integration, and Home Assistant has the action `notify.mobile_app_` followed by the device name:
 
