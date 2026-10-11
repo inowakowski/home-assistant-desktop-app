@@ -22,7 +22,7 @@ We wszystkich trzech komputer jest w Home Assistant urządzeniem z encjami, któ
 
 ## Co działa którą drogą
 
-*Druga i trzecia kolumna są nowe w wersji 1.4.0; wiersze oznaczone \* nie są jeszcze wydane.*
+*Druga i trzecia kolumna są nowe w wersji 1.4.0; wiersze oznaczone \* są nowe w wersji 1.5.0.*
 
 HADA robi tyle, na ile pozwala dana droga. Jeśli czegoś nie da się nią przekazać, wynika to z Home Assistanta, a nie z ustawienia, którego trzeba szukać: tabela mówi, czego dotyczy, a strona **Encje** w HADA mówi to samo o połączeniach, które masz.
 
