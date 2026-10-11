@@ -66,7 +66,7 @@
   <data name="Preferences_Idle" xml:space="preserve"><value>Activity threshold</value></data>
   <data name="Preferences_IdleDetail" xml:space="preserve"><value>How many seconds after the last keyboard or mouse input the "User active" sensor turns off.</value></data>
   <data name="Preferences_Dashboard" xml:space="preserve"><value>Home Assistant dashboard</value></data>
-  <data name="Preferences_DashboardDetail" xml:space="preserve"><value>An address to show in a small window opened from the tray icon's menu. Leave empty for no such window.</value></data>
+  <data name="Preferences_DashboardDetail" xml:space="preserve"><value>A small window opened from the tray icon's menu. Each Home Assistant that HADA connects to directly has its dashboard here: switch off the ones you do not want, or give an address of your own, a particular dashboard for instance.</value></data>
   <data name="Dashboard_Title" xml:space="preserve"><value>HADA – Home Assistant</value></data>
   <data name="Dashboard_Failed" xml:space="preserve"><value>The dashboard cannot be shown: {0}
 
@@ -282,4 +282,8 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Ha_AllowUnencrypted" xml:space="preserve"><value>Connect to this address without encryption</value></data>
   <data name="Issue_unencrypted_public" xml:space="preserve"><value>HADA did not connect: the address is not encrypted (http) and is a public one, so the access token would travel in the open. Use an https:// address, or allow the unencrypted connection for this server on the Connections page.</value></data>
   <data name="Issue_integration_outdated" xml:space="preserve"><value>The HADA integration in this Home Assistant is older than this version of HADA, and left some entities out. Update it in Home Assistant, with HACS, and restart Home Assistant.</value></data>
+  <data name="Preferences_DashboardOther" xml:space="preserve"><value>Another address</value></data>
+  <data name="Preferences_DashboardOtherDetail" xml:space="preserve"><value>For a Home Assistant connected through MQTT, or any other page. Leave empty if you do not need it.</value></data>
+  <data name="Tray_DashboardNamed" xml:space="preserve"><value>Dashboard: {0}</value></data>
+  <data name="Dashboard_TitleNamed" xml:space="preserve"><value>HADA – {0}</value></data>
 </root>

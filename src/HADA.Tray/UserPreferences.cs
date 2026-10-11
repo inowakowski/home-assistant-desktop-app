@@ -36,6 +36,8 @@ internal static class UserPreferences
     private const string LanguageValue = "Language";
     private const string IdleValue = "IdleSeconds";
     private const string DashboardValue = "DashboardUrl";
+    private const string DashboardServersValue = "DashboardServers";
+    private const string DashboardSelectedValue = "DashboardSelected";
     private const string BrowserValue = "NotificationBrowser";
 
     private static readonly IPreferenceStore Store = AppInstance.PortableDataFolder is { } folder
@@ -57,13 +59,47 @@ internal static class UserPreferences
     }
 
     /// <summary>
-    /// The Home Assistant address the dashboard window shows; empty for no dashboard window. Only <c>http</c> and
-    /// <c>https</c> addresses are kept.
+    /// An address of the user's own for the dashboard window to show, besides those of the Home Assistants
+    /// connected to directly; empty for none. Only <c>http</c> and <c>https</c> addresses are kept.
     /// </summary>
     public static string DashboardUrl
     {
-        get => Store.ReadText(DashboardValue) is { } url && TryGetDashboardAddress(url, out _) ? url : string.Empty;
-        set => Store.Write(DashboardValue, TryGetDashboardAddress(value, out var address) ? address.AbsoluteUri : null);
+        get => Store.ReadText(DashboardValue) is { } url && Dashboards.TryGetAddress(url, out _) ? url : string.Empty;
+        set => Store.Write(DashboardValue, Dashboards.TryGetAddress(value, out var address) ? address.AbsoluteUri : null);
+    }
+
+    /// <summary>
+    /// The Home Assistants connected to directly, as the settings window last saw them, each with what the user
+    /// chose for its dashboard. The window keeps the list up to date; the tray icon's menu only reads it.
+    /// </summary>
+    public static IReadOnlyList<ServerDashboard> DashboardServers
+    {
+        get => Dashboards.Parse(Store.ReadText(DashboardServersValue));
+        set => Store.Write(DashboardServersValue, value.Count == 0 ? null : Dashboards.Serialize(value));
+    }
+
+    /// <summary>The dashboards there are to show: see <see cref="Dashboards.List"/>.</summary>
+    public static IReadOnlyList<Dashboard> AllDashboards => Dashboards.List(DashboardServers, DashboardUrl);
+
+    /// <summary>
+    /// The id of the dashboard chosen last in the tray icon's menu. Written by the tray app and read by the
+    /// dashboard window, which is another process and may be open already.
+    /// </summary>
+    public static string DashboardSelected
+    {
+        get => Store.ReadText(DashboardSelectedValue) ?? string.Empty;
+        set => Store.Write(DashboardSelectedValue, string.IsNullOrEmpty(value) ? null : value);
+    }
+
+    /// <summary>The dashboard chosen last if it is still there, else the first; <see langword="null"/> when there is none.</summary>
+    public static Dashboard? SelectedDashboard
+    {
+        get
+        {
+            var all = AllDashboards;
+            var selected = DashboardSelected;
+            return all.FirstOrDefault(dashboard => dashboard.Id == selected) ?? (all.Count > 0 ? all[0] : null);
+        }
     }
 
     /// <summary>
@@ -75,10 +111,6 @@ internal static class UserPreferences
         get => Store.ReadText(BrowserValue) ?? string.Empty;
         set => Store.Write(BrowserValue, string.IsNullOrWhiteSpace(value) ? null : value);
     }
-
-    public static bool TryGetDashboardAddress(string? text, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Uri? address) =>
-        Uri.TryCreate(text?.Trim(), UriKind.Absolute, out address)
-        && (address.Scheme == Uri.UriSchemeHttp || address.Scheme == Uri.UriSchemeHttps);
 }
 
 /// <summary>Named values, each a text or a whole number. One that cannot be read is simply not set; the defaults then apply.</summary>

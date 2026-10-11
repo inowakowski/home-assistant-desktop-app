@@ -24,12 +24,12 @@ internal sealed class TrayIcon : IDisposable
     private readonly Icon _appIcon;
     private readonly DispatcherTimer _statusTimer;
     private readonly Action _open;
-    private readonly Action _openDashboard;
+    private readonly Action<string> _openDashboard;
     private readonly Action _exit;
     private IReadOnlyList<(string Name, string Shortcut, Action Chosen)> _quickActions = [];
 
-    /// <param name="openDashboard">Opens the dashboard window; offered only while an address for it is set.</param>
-    public TrayIcon(Func<bool> isConnected, Action open, Action openDashboard, Action exit)
+    /// <param name="openDashboard">Opens the dashboard window at the dashboard of that id; offered for each there is.</param>
+    public TrayIcon(Func<bool> isConnected, Action open, Action<string> openDashboard, Action exit)
     {
         _open = open;
         _openDashboard = openDashboard;
@@ -37,7 +37,7 @@ internal sealed class TrayIcon : IDisposable
         _menu = new ContextMenuStrip { ShowImageMargin = false };
         _boldFont = new Font(_menu.Font, System.Drawing.FontStyle.Bold);
 
-        // Built each time it opens: the dashboard address is a setting another process may have changed, and
+        // Built each time it opens: the dashboards are settings another process may have changed, and
         // Windows Forms menus know nothing about dark mode, so the colours are those of the theme at that moment.
         _menu.Opening += (_, _) =>
         {
@@ -87,9 +87,14 @@ internal sealed class TrayIcon : IDisposable
         }
 
         _menu.Items.Add(new ToolStripMenuItem(Loc.Get("Tray_Open"), image: null, (_, _) => _open()) { Font = _boldFont });
-        if (UserPreferences.DashboardUrl.Length > 0)
+        // One dashboard needs no name; several are told apart by the Home Assistant each shows.
+        var dashboards = UserPreferences.AllDashboards;
+        foreach (var dashboard in dashboards)
         {
-            _menu.Items.Add(Loc.Get("Tray_Dashboard"), image: null, (_, _) => _openDashboard());
+            _menu.Items.Add(
+                dashboards.Count == 1 ? Loc.Get("Tray_Dashboard") : Loc.Format("Tray_DashboardNamed", dashboard.Name),
+                image: null,
+                (_, _) => _openDashboard(dashboard.Id));
         }
 
         _menu.Items.Add(new ToolStripSeparator());

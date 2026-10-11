@@ -307,26 +307,68 @@
                         </Border>
 
                         <Border Style="{StaticResource SettingRow}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                    <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Preferences_Dashboard}" />
-                                    <ui:TextBlock
-                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                        FontTypography="Caption"
-                                        Text="{l:Tr Preferences_DashboardDetail}"
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-                                <ui:TextBox
-                                    Grid.Column="1"
-                                    Width="320"
-                                    VerticalAlignment="Center"
-                                    PlaceholderText="http://homeassistant.local:8123"
-                                    Text="{Binding DashboardUrl, UpdateSourceTrigger=LostFocus}" />
-                            </Grid>
+                            <StackPanel>
+                                <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Preferences_Dashboard}" />
+                                <ui:TextBlock
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    FontTypography="Caption"
+                                    Text="{l:Tr Preferences_DashboardDetail}"
+                                    TextWrapping="Wrap" />
+
+                                <!--  One row for each Home Assistant connected to directly.  -->
+                                <ItemsControl
+                                    Margin="0,12,0,0"
+                                    Focusable="False"
+                                    ItemsSource="{Binding DashboardServers}"
+                                    Visibility="{Binding HasDashboardServers, Converter={StaticResource BooleanToVisibility}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:ToggleSwitch VerticalAlignment="Center" IsChecked="{Binding Show}" />
+                                                <ui:TextBlock
+                                                    Grid.Column="1"
+                                                    Margin="12,0,16,0"
+                                                    VerticalAlignment="Center"
+                                                    Text="{Binding Name}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <ui:TextBox
+                                                    Grid.Column="2"
+                                                    Width="320"
+                                                    VerticalAlignment="Center"
+                                                    IsEnabled="{Binding Show}"
+                                                    PlaceholderText="{Binding Url}"
+                                                    Text="{Binding OwnUrl, UpdateSourceTrigger=LostFocus}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Grid Margin="0,4,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <ui:TextBlock Text="{l:Tr Preferences_DashboardOther}" />
+                                        <ui:TextBlock
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                            FontTypography="Caption"
+                                            Text="{l:Tr Preferences_DashboardOtherDetail}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <ui:TextBox
+                                        Grid.Column="1"
+                                        Width="320"
+                                        VerticalAlignment="Center"
+                                        PlaceholderText="http://homeassistant.local:8123"
+                                        Text="{Binding DashboardUrl, UpdateSourceTrigger=LostFocus}" />
+                                </Grid>
+                            </StackPanel>
                         </Border>
 
                         <Border Style="{StaticResource SettingRow}">
