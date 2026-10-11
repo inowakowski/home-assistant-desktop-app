@@ -213,7 +213,7 @@ public partial class App : Application
 
         var ipc = _host.Services.GetRequiredService<IpcClient>();
         _trayIcon = new TrayIcon(
-            () => ipc.IsConnected, () => OpenWindow(page: null), () => StartCopy(DashboardArgument), ExitFromMenu);
+            () => ipc.IsConnected, () => OpenWindow(page: null), OpenDashboard, ExitFromMenu);
 
         // Notifications: toasts, which can carry a picture and buttons; the icon's plain balloon when a toast fails.
         var bus = _host.Services.GetRequiredService<IEventBus>();
@@ -303,6 +303,16 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Opens the dashboard window at the dashboard chosen in the menu. The window is another process, and may be
+    /// open already: which dashboard is wanted is left where it looks, among the preferences.
+    /// </summary>
+    private void OpenDashboard(string id)
+    {
+        UserPreferences.DashboardSelected = id;
+        StartCopy(DashboardArgument);
+    }
+
     /// <summary>Starts this program again in another of its roles: the settings window or the dashboard window.</summary>
     private void StartCopy(params string[] arguments)
     {
@@ -326,14 +336,13 @@ public partial class App : Application
     /// <summary>The dashboard window: one per user; asked for again, the one that is open comes to the front.</summary>
     private void StartDashboard()
     {
-        if (!UserPreferences.TryGetDashboardAddress(UserPreferences.DashboardUrl, out var address)
-            || !TakeWindowRole(DashboardRole + AppInstance.Suffix))
+        if (UserPreferences.SelectedDashboard is not { } dashboard || !TakeWindowRole(DashboardRole + AppInstance.Suffix))
         {
             Shutdown();
             return;
         }
 
-        var window = new DashboardWindow(address);
+        var window = new DashboardWindow(dashboard.Address, DashboardName(dashboard));
         _roleWindow = window;
         window.Closed += (_, _) => Shutdown();
         window.Show();
@@ -411,11 +420,20 @@ public partial class App : Application
         _mainWindow.Activate();
     }
 
+    /// <summary>The name a dashboard goes by where there are several; none where it is the only one.</summary>
+    private static string? DashboardName(Dashboard dashboard) => UserPreferences.AllDashboards.Count > 1 ? dashboard.Name : null;
+
     private void BringWindowToFront()
     {
         if (_roleWindow is null)
         {
             return;
+        }
+
+        // Asked for again from the menu, perhaps for another Home Assistant than the one it shows.
+        if (_roleWindow is DashboardWindow dashboardWindow && UserPreferences.SelectedDashboard is { } selected)
+        {
+            dashboardWindow.ShowDashboard(selected.Address, DashboardName(selected));
         }
 
         if (_roleWindow.WindowState == WindowState.Minimized)

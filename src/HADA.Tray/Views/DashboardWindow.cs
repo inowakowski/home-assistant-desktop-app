@@ -8,9 +8,10 @@ using Microsoft.Web.WebView2.Wpf;
 namespace HADA.Tray.Views;
 
 /// <summary>
-/// A small window showing the Home Assistant address the user chose on the Settings page, opened from the tray
-/// icon's menu. It is a browser of its own, with its own sign-in, kept in the user's profile; closing the window
-/// ends its process, as with the settings window.
+/// A small window showing a Home Assistant dashboard, opened from the tray icon's menu: that of a Home Assistant
+/// connected to directly, or the address the user chose on the Settings page. There is one window; choosing
+/// another dashboard has it show that one. It is a browser of its own, with its own sign-in, kept in the user's
+/// profile; closing the window ends its process, as with the settings window.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Design",
@@ -21,13 +22,14 @@ public sealed class DashboardWindow : Window
     private const double Gap = 12;
 
     private readonly WebView2 _browser = new();
-    private readonly Uri _address;
+    private Uri _address;
     private readonly TaskCompletionSource<bool> _firstNavigation = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public DashboardWindow(Uri address)
+    /// <param name="name">Whose dashboard it is, for the title; <see langword="null"/> when there is only one.</param>
+    public DashboardWindow(Uri address, string? name)
     {
         _address = address;
-        Title = Loc.Get("Dashboard_Title");
+        Title = TitleFor(name);
         Icon = BitmapFrame.Create(AppIcon.Uri);
         Width = 480;
         Height = 760;
@@ -43,6 +45,24 @@ public sealed class DashboardWindow : Window
         Loaded += OnLoaded;
         Closed += (_, _) => _browser.Dispose();
     }
+
+    /// <summary>Shows another dashboard in this window; one it shows already is left as it is, not loaded anew.</summary>
+    public void ShowDashboard(Uri address, string? name)
+    {
+        Title = TitleFor(name);
+        if (address == _address)
+        {
+            return;
+        }
+
+        _address = address;
+
+        // Before the browser is ready, the address is the one it starts with.
+        _browser.CoreWebView2?.Navigate(address.AbsoluteUri);
+    }
+
+    private static string TitleFor(string? name) =>
+        string.IsNullOrEmpty(name) ? Loc.Get("Dashboard_Title") : Loc.Format("Dashboard_TitleNamed", name);
 
     /// <summary>Completes when the address was loaded, or failed to: <see langword="true"/> when the page came up.</summary>
     public Task<bool> FirstNavigation => _firstNavigation.Task;

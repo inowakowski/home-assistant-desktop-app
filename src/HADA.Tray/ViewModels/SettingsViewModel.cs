@@ -146,6 +146,13 @@ public sealed class SettingsViewModel : ObservableObject
     /// <summary>The Home Assistants connected to directly; there is always at least one to type into.</summary>
     public ObservableCollection<HomeAssistantServerViewModel> HomeAssistantServers { get; } = [];
 
+    /// <summary>Raised whenever the settings as they are saved were read: when loaded, after saving, and when changes were discarded.</summary>
+    public event EventHandler? SnapshotApplied;
+
+    /// <summary>The Home Assistants connected to directly as they are saved, not as they are being edited.</summary>
+    public IReadOnlyList<HomeAssistantSettings> SavedHomeAssistantServers =>
+        _snapshot is { } snapshot ? [.. snapshot.HomeAssistantServers.Select(server => server.Settings)] : [];
+
     /// <summary>The Home Assistant the form on the Connections page shows.</summary>
     public HomeAssistantServerViewModel? SelectedHomeAssistantServer
     {
@@ -372,6 +379,7 @@ public sealed class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(HasOneHomeAssistantServer));
         OnPropertyChanged(nameof(HasNoCustomSensors));
         DisabledEntitiesChanged?.Invoke(this, EventArgs.Empty);
+        SnapshotApplied?.Invoke(this, EventArgs.Empty);
         UpdateDirty();
         RefreshCommands();
     }

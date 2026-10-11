@@ -66,7 +66,7 @@
   <data name="Preferences_Idle" xml:space="preserve"><value>Próg aktywności</value></data>
   <data name="Preferences_IdleDetail" xml:space="preserve"><value>Po ilu sekundach od ostatniego użycia klawiatury lub myszy sensor „User active” się wyłącza.</value></data>
   <data name="Preferences_Dashboard" xml:space="preserve"><value>Pulpit Home Assistant</value></data>
-  <data name="Preferences_DashboardDetail" xml:space="preserve"><value>Adres pokazywany w małym oknie otwieranym z menu ikony w zasobniku. Zostaw puste, jeśli nie chcesz takiego okna.</value></data>
+  <data name="Preferences_DashboardDetail" xml:space="preserve"><value>Małe okno otwierane z menu ikony w zasobniku. Każdy Home Assistant, z którym HADA łączy się bezpośrednio, ma tu swój pulpit: wyłącz te, których nie chcesz, albo podaj własny adres, na przykład konkretnego dashboardu.</value></data>
   <data name="Dashboard_Title" xml:space="preserve"><value>HADA – Home Assistant</value></data>
   <data name="Dashboard_Failed" xml:space="preserve"><value>Nie można pokazać pulpitu: {0}
 
@@ -282,4 +282,8 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Ha_AllowUnencrypted" xml:space="preserve"><value>Łącz z tym adresem bez szyfrowania</value></data>
   <data name="Issue_unencrypted_public" xml:space="preserve"><value>HADA nie połączyła się: adres nie jest szyfrowany (http) i jest publiczny, więc token dostępu szedłby otwartym tekstem. Użyj adresu https:// albo zezwól na nieszyfrowane połączenie z tym serwerem na stronie Połączenia.</value></data>
   <data name="Issue_integration_outdated" xml:space="preserve"><value>Integracja HADA w tym Home Assistant jest starsza niż ta wersja HADA i pominęła część encji. Zaktualizuj ją w Home Assistant, przez HACS, i zrestartuj Home Assistant.</value></data>
+  <data name="Preferences_DashboardOther" xml:space="preserve"><value>Inny adres</value></data>
+  <data name="Preferences_DashboardOtherDetail" xml:space="preserve"><value>Dla Home Assistanta połączonego przez MQTT albo dowolnej innej strony. Zostaw puste, jeśli nie potrzebujesz.</value></data>
+  <data name="Tray_DashboardNamed" xml:space="preserve"><value>Pulpit: {0}</value></data>
+  <data name="Dashboard_TitleNamed" xml:space="preserve"><value>HADA – {0}</value></data>
 </root>

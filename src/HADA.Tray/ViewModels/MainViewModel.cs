@@ -32,6 +32,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         Updates = new UpdateViewModel(client, isElevated, isPortable);
         Preferences = new PreferencesViewModel(isElevated, isPortable);
         Settings = new SettingsViewModel(client, isElevated || isPortable);
+
+        // Each Home Assistant connected to directly has a dashboard, a personal setting that follows the servers.
+        Settings.SnapshotApplied += (_, _) => Preferences.SyncDashboards(Settings.SavedHomeAssistantServers);
         Entities = new EntitiesViewModel(Settings);
         Logs = new LogsViewModel(client);
         UnlockCommand = new RelayCommand(
