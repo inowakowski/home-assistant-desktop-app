@@ -2,7 +2,7 @@
 
 HADA can talk to Home Assistant in three ways. They do not exclude each other, and none is wrong; they differ in what you need to have and in what you get. This page helps you pick.
 
-*The second and third way are not released yet.*
+*The second and third way are new in 1.4.0.*
 
 ## In short
 
