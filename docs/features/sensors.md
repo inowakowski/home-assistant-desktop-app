@@ -16,6 +16,7 @@ What HADA tells Home Assistant about the computer. Every sensor can be turned of
 | `session_locked` | binary sensor | Service | On while Windows is locked or showing the sign-in screen |
 | `active_user` | sensor | Service | The account name of whoever is signed in at the computer's own screen; `none` on the sign-in screen |
 | `last_boot` | sensor (timestamp) | Service | When Windows was started |
+| `restart_required` | binary sensor | Service | *Not released yet.* On while Windows waits for a restart to finish installing updates. `reason` is an attribute: `windows_update`, `servicing`, or both |
 | `battery_level` | sensor (%) | Service | Only on computers with a battery |
 | `battery_charging` | binary sensor | Service | Only on computers with a battery |
 | `plugged_in` | binary sensor | Service | Only on computers with a battery |

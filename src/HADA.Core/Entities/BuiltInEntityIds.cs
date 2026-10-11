@@ -48,6 +48,8 @@ public static class BuiltInEntityIds
     public const string MediaPlayback = "media_playback";
     public const string MediaPlayer = "media_player";
     public const string UpdateAvailable = "update_available";
+    public const string RestartRequired = "restart_required";
+    public const string ScreenBrightness = "screen_brightness";
 
     private const string DiskPrefix = "disk_";
     private const string DiskSuffix = "_usage";

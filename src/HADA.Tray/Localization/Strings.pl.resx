@@ -304,4 +304,6 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Entity_MediaPlayer" xml:space="preserve"><value>Odtwarzacz multimediów</value></data>
   <data name="EntityHint_media_player" xml:space="preserve"><value>Odtwarzanie, głośność i to, co gra, jako jedna encja, tak jak Home Assistant pokazuje głośnik. Tylko przez integrację HADA; osobne przyciski multimediów, suwak głośności i czujnik odtwarzania działają każdą drogą.</value></data>
   <data name="Reach_MediaPlayer" xml:space="preserve"><value>pojawia się w Home Assistant tylko przez integrację HADA, której nie używa żadne z Twoich połączeń. Przyciski multimediów, suwak głośności i czujnik odtwarzania docierają jak dotąd.</value></data>
+  <data name="EntityHint_restart_required" xml:space="preserve"><value>Włączony, gdy Windows czeka na restart, żeby dokończyć instalowanie aktualizacji.</value></data>
+  <data name="EntityHint_screen_brightness" xml:space="preserve"><value>Jasność wbudowanego ekranu, którą Home Assistant może też ustawić. Tylko na komputerach z ekranem, który Windows potrafi przyciemnić.</value></data>
 </root>

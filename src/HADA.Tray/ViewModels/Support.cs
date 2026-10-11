@@ -103,6 +103,8 @@ internal static class EntityVisuals
         "media_playback" => SymbolRegular.MusicNote224,
         "media_player" => SymbolRegular.PlayCircle24,
         "update_available" => SymbolRegular.ArrowDownload24,
+        "restart_required" => SymbolRegular.ArrowSync24,
+        "screen_brightness" => SymbolRegular.BrightnessHigh24,
         "gpu_load" => SymbolRegular.DeveloperBoard24,
         "sleep" or "hibernate" => SymbolRegular.WeatherMoon24,
         "shutdown" => SymbolRegular.Power24,

@@ -195,6 +195,34 @@ public class SystemReaderTests
     }
 
     [Fact]
+    public void A_pending_restart_can_be_told_and_names_what_waits()
+    {
+        var reasons = PendingRestart.TryRead();
+
+        Assert.NotNull(reasons);
+        Assert.All(reasons.Split(',', StringSplitOptions.RemoveEmptyEntries), reason => Assert.Contains(reason, new[] { "windows_update", "servicing" }));
+    }
+
+    [Fact]
+    public void Screen_brightness_is_a_percentage_or_not_there_at_all()
+    {
+        // A desktop, and the machines that build this, have no screen Windows can dim.
+        if (HADA.Platform.Windows.Actions.ScreenBrightness.TryRead() is { } percent)
+        {
+            Assert.InRange(percent, 0, 100);
+        }
+    }
+
+    [Fact]
+    public void The_connected_networks_have_names_and_none_twice()
+    {
+        var networks = HADA.Platform.Windows.Network.WindowsNetworkLocation.Read();
+
+        Assert.All(networks, name => Assert.False(string.IsNullOrWhiteSpace(name)));
+        Assert.Equal(networks.Count, networks.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
     public async Task Display_state_is_reported_as_soon_as_it_is_watched()
     {
         var changes = Channel.CreateUnbounded<(Guid Setting, int Value)>();

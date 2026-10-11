@@ -32,6 +32,8 @@ public static class WindowsPlatform
         services.AddHostedService<NetworkSensor>();
         services.AddHostedService<DiskUsageSensor>();
         services.AddHostedService<GpuLoadSensor>();
+        services.AddHostedService<RestartRequiredSensor>();
+        services.AddHostedService<ScreenBrightnessControl>();
         services.AddHostedService<LockScreenAction>();
         services.AddHostedService<PowerActions>();
         return services;
