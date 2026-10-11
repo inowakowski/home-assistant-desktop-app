@@ -8,11 +8,11 @@ What Home Assistant can do to the computer. With the MQTT engine, and with the [
 | `sleep`, `hibernate`, `shutdown`, `restart` | button | Service | **Off until you switch them on** on the Entities page. Nothing is forced: apps with unsaved work can still object, as when shutting down from the Start menu |
 | `turn_off_display`, `wake_display` | button | Tray | Turns the screen off, or back on as moving the mouse would |
 | `media_play_pause`, `media_next`, `media_previous`, `media_stop` | button | Tray | Press the multimedia keys; whichever app handles them reacts |
-| `screen_brightness` | number (0–100 %) | Service | *Not released yet.* Shows and sets the brightness of the built-in screen. Only on computers with a screen Windows can dim, a laptop's as a rule; external monitors are not covered |
+| `screen_brightness` | number (0–100 %) | Service | *New in 1.5.0.* Shows and sets the brightness of the built-in screen. Only on computers with a screen Windows can dim, a laptop's as a rule; external monitors are not covered |
 | `volume_level` | number (0–100 %) | Tray | Sets the volume of the default playback device |
 | `audio_mute` | switch | Tray | Mutes the default playback device |
 | `microphone_mute` | switch | Tray | Mutes the default microphone in Windows |
-| `media_player` | media player | Tray | *Not released yet.* What is playing, play, pause, next, previous, stop, volume and mute in one entity. **Through the HADA integration only**; see [below](#the-media-player) |
+| `media_player` | media player | Tray | *New in 1.5.0.* What is playing, play, pause, next, previous, stop, volume and mute in one entity. **Through the HADA integration only**; see [below](#the-media-player) |
 | `notification` | notify | Tray | A message sent to it is shown as a Windows notification. See [Notifications](notifications.md) |
 
 ## The power buttons are off by default
@@ -23,7 +23,7 @@ Nothing is forced. Shutting down and restarting go through Windows the same way 
 
 ## The media player
 
-*Not released yet.*
+*New in 1.5.0. Needs version 0.4.0 of the HADA integration.*
 
 Home Assistant shows a speaker or a television as one *media player*: a card with what is playing, the buttons under it and a volume slider. `media_player` makes the computer one of those. It says what Windows' own media controls show, the title, artist, album and app, and how loud the default playback device is; and it takes play, pause, next, previous, stop, the volume and mute.
 

@@ -22,7 +22,7 @@ A [portable copy](../getting-started/portable.md) encrypts its secrets for the u
 
 ## The connection to Home Assistant
 
-This is about a Home Assistant connected to directly, with or without the HADA integration. *The refusal described here is not released yet.*
+This is about a Home Assistant connected to directly, with or without the HADA integration. *The refusal, the local address and signing in are new in 1.5.0.*
 
 - **Encrypted or not.** With an `https://` address everything between HADA and Home Assistant is encrypted, and Windows checks the server's certificate. A certificate that does not check out ends the connection; there is no setting to accept it anyway. With an `http://` address nothing is encrypted: the token, the commands and the notifications can be read, and changed, by whoever is on the way.
 - **What HADA refuses.** An `http://` address is connected to only if it is the computer's own or one of a private network: `10.x`, `172.16` to `172.31`, `192.168.x`, `169.254.x`, `100.64` to `100.127` (which VPNs such as Tailscale use), and their IPv6 counterparts. A name is looked up first, and one public address among those it stands for is enough to refuse. The **Overview** page and the log then say why there is no connection. HADA keeps trying, as a laptop may be back on the network where the name is a local one.

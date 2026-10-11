@@ -33,7 +33,7 @@ Right-click the HADA icon in the notification area:
 
 Enter an address on the **Settings** page, under **Home Assistant dashboard**, for example `http://homeassistant.local:8123/lovelace/desk`. The tray icon's menu then offers **Home Assistant dashboard**: a small window near the notification area showing that address.
 
-*Not released yet:* every Home Assistant that HADA connects to directly has a dashboard there by itself, at the address of the connection. On the **Settings** page each has a switch, for the ones you do not want in the menu, and a box for an address of your own, a particular dashboard for instance; left empty, the connection's address is shown. **Another address** is for a Home Assistant connected through MQTT, whose address HADA does not know, or for any other page.
+*New in 1.5.0:* every Home Assistant that HADA connects to directly has a dashboard there by itself, at the address of the connection. On the **Settings** page each has a switch, for the ones you do not want in the menu, and a box for an address of your own, a particular dashboard for instance; left empty, the connection's address is shown. **Another address** is for a Home Assistant connected through MQTT, whose address HADA does not know, or for any other page.
 
 With one dashboard the menu says **Home Assistant dashboard**; with several, each is listed by the name of its Home Assistant. There is one window: choosing another dashboard has it show that one.
 

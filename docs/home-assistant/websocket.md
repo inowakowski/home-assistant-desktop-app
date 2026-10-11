@@ -50,7 +50,7 @@ Compared with entities of the `mobile_app` device:
 - **Quick actions** are `event` entities of the device. What happens on the computer fires `hada_event` as [below](#events-from-the-computer), with the token of any user: it is the integration that fires it.
 - The computer is a device of its own, apart from the one **Notifications** makes under Mobile App.
 
-While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected. An integration older than HADA is used for what it knows, and the card says that it wants updating, in Home Assistant with HACS (*not released yet*).
+While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected. An integration older than HADA is used for what it knows, and the card says that it wants updating, in Home Assistant with HACS (*new in 1.5.0*).
 
 ## Commands
 
@@ -84,7 +84,7 @@ Commands are sent by firing the command event, for example from a script. `actio
 
 ## Signing in instead of pasting a token
 
-*Not released yet.*
+*New in 1.5.0.*
 
 A long-lived access token has to be made in Home Assistant, copied and pasted. The other way is to sign in, as Home Assistant's own apps do:
 
@@ -103,7 +103,7 @@ The browser comes back to HADA at an address on this computer itself, `127.0.0.1
 
 ## Another address on your home network
 
-*Not released yet.*
+*New in 1.5.0.*
 
 A Home Assistant often has two addresses: one that works from anywhere, such as `https://home.example.org`, and one that only works at home, such as `http://192.168.1.20:8123`. At home the second is the shorter way: nothing goes out to the internet and back through a proxy or a tunnel, and it keeps working when the internet connection is down.
 
@@ -139,7 +139,7 @@ As with [MQTT servers](mqtt.md#several-home-assistants-at-once), the computer ca
 
 ## Events from the computer
 
-When a [quick action](../features/custom-entities.md#quick-actions) is chosen, or a button of a notification is pressed, HADA fires the event `hada_event` in Home Assistant. Firing an event is an administrator's to do there; with the token of an ordinary user the event goes through the HADA integration, or through the `mobile_app` registration that **Notifications** or **As entities of the device** make (*through the registration is not released yet*). A connection that has none of these needs an administrator's token for it.
+When a [quick action](../features/custom-entities.md#quick-actions) is chosen, or a button of a notification is pressed, HADA fires the event `hada_event` in Home Assistant. Firing an event is an administrator's to do there; with the token of an ordinary user the event goes through the HADA integration, or through the `mobile_app` registration that **Notifications** or **As entities of the device** make (*through the registration is new in 1.5.0*). A connection that has none of these needs an administrator's token for it.
 
 ```yaml
 automation:

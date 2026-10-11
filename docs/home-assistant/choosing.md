@@ -22,7 +22,7 @@ All three show the computer in Home Assistant as a device with entities that can
 
 ## What works through which connection
 
-*The second and third column are new in 1.4.0; rows marked \* are not released yet.*
+*The second and third column are new in 1.4.0; rows marked \* are new in 1.5.0.*
 
 HADA does as much as each way allows. Where a way cannot carry something, that is Home Assistant's doing, not a setting to find: the table says what, and the **Entities** page in HADA says it for the connections you have.
 
