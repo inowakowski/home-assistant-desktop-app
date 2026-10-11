@@ -10,7 +10,7 @@ HADA runs in the background on Windows. It reports what your PC is doing to [Hom
 - **Your own sensors and buttons** without code: whether a program runs or a device is connected, the output of a PowerShell command, a button that runs a command, starts a program or presses keys.
 - **Quick actions:** start Home Assistant automations from the tray icon's menu or a keyboard shortcut. A small window for your dashboard.
 - A Windows service plus a small tray app: about 15 MB and 20 to 25 MB of memory. Works with nobody signed in.
-- MQTT discovery, or a direct WebSocket connection. x64 and ARM64, Windows 10 (1809+) and 11. Polish and English.
+- MQTT discovery, or a direct connection without a broker, on its own or with the [HADA integration](https://github.com/inowakowski/hada-homeassistant) for Home Assistant. x64 and ARM64, Windows 10 (1809+) and 11. Polish and English.
 
 ## Install
 
@@ -22,7 +22,7 @@ Download the installer for your computer from the [releases page](https://github
 |---|---|
 | **Getting started** | [Installation](docs/getting-started/installation.md) · [Portable version](docs/getting-started/portable.md) · [First setup](docs/getting-started/first-setup.md) · [Updating](docs/getting-started/updating.md) |
 | **What it does** | [Sensors](docs/features/sensors.md) · [Controls](docs/features/controls.md) · [Notifications](docs/features/notifications.md) · [Custom sensors and buttons](docs/features/custom-entities.md) · [Several users](docs/features/several-users.md) · [The HADA window](docs/window.md) |
-| **Home Assistant** | [MQTT engine](docs/home-assistant/mqtt.md) · [WebSocket engine](docs/home-assistant/websocket.md) · [Automation examples](docs/home-assistant/examples.md) |
+| **Home Assistant** | [Which connection to choose](docs/home-assistant/choosing.md) · [MQTT engine](docs/home-assistant/mqtt.md) · [WebSocket engine](docs/home-assistant/websocket.md) · [Automation examples](docs/home-assistant/examples.md) |
 | **Reference** | [Configuration](docs/reference/configuration.md) · [Logs](docs/reference/logs.md) · [Security](docs/reference/security.md) · [Known limitations](docs/reference/limitations.md) · [Troubleshooting](docs/reference/troubleshooting.md) · [FAQ](docs/faq.md) |
 | **Development** | [Architecture](docs/development/architecture.md) · [Building and running](docs/development/building.md) · [Adding entities in code](docs/development/adding-entities.md) |
 | | [Changelog](docs/changelog.md) |

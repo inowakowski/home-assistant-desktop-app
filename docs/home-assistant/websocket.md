@@ -6,7 +6,7 @@ For when there is no MQTT broker, and for [notifications as on a phone](../featu
 
 ## What the connection is used for
 
-*Not released yet.*
+*New in 1.4.0.*
 
 Each Home Assistant on the **Connections** page has two settings.
 
@@ -35,7 +35,7 @@ A server added in the window starts with **Notifications** on, and with sensors 
 
 ### Sensors through the HADA integration
 
-*Not released yet.*
+*New in 1.4.0.*
 
 The [HADA integration](https://github.com/inowakowski/hada-homeassistant) is a part of HADA that runs inside Home Assistant. Install it there with HACS and add it once under **Settings → Devices & services**; its page says how. Computers then show up by themselves.
 
@@ -82,7 +82,7 @@ Commands are sent by firing the command event, for example from a script. `actio
 
 ## Several Home Assistants at once
 
-*Not released yet.*
+*New in 1.4.0.*
 
 As with [MQTT servers](mqtt.md#several-home-assistants-at-once), the computer can be connected directly to more than one Home Assistant at the same time. On the **Connections** page, under **Home Assistant (WebSocket)**:
 

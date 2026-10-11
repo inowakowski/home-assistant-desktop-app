@@ -2,7 +2,7 @@
 
 HADA może rozmawiać z Home Assistant na trzy sposoby. Nie wykluczają się i żaden nie jest zły; różnią się tym, co trzeba mieć, i tym, co się dostaje. Ta strona pomaga wybrać.
 
-*Drugi i trzeci sposób nie są jeszcze wydane.*
+*Drugi i trzeci sposób są nowe w wersji 1.4.0.*
 
 ## W skrócie
 

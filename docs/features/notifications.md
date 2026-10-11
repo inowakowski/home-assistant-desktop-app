@@ -36,7 +36,7 @@ data:
 - `image` is an `http` or `https` address of a PNG, JPEG, GIF or BMP of at most 5 MB. The computer fetches it, so it must be reachable from there without signing in. A picture that cannot be fetched is left out; the notification still shows.
 - `actions` become buttons, five at most. `action` is an ID of your choice (letters, digits, `_`, `-`, `.`), `title` what the button says.
 
-*Not released yet:* the same JSON also takes what is described under [More than a text](#more-than-a-text): `tag`, `url`, `sticky`, `silent`, and `uri` on a button.
+*New in 1.4.0:* the same JSON also takes what is described under [More than a text](#more-than-a-text): `tag`, `url`, `sticky`, `silent`, and `uri` on a button.
 
 When a button is pressed, HADA publishes its `action` to `hada/{device}/event/notification_action`:
 
@@ -59,7 +59,7 @@ A press is reported only while the tray app that showed the notification is stil
 
 ## Notifications as on a phone
 
-*Not released yet.*
+*New in 1.4.0.*
 
 `notify.send_message` takes a text and nothing else. For the same notifications a phone with the companion app gets, connect the computer to Home Assistant directly and switch **Notifications** on, on the **Connections** page under **Home Assistant (WebSocket)**. This works next to MQTT: set **Entities** to **Off** there, and the connection is used for notifications only.
 
@@ -103,7 +103,7 @@ automation:
 
 ### Through the HADA integration
 
-*Not released yet.*
+*New in 1.4.0.*
 
 With the [HADA integration](../home-assistant/websocket.md#sensors-through-the-hada-integration) installed in Home Assistant and chosen for the connection, the same notifications are sent with `hada.notify`, to the notify entity of the computer; nothing is registered with `mobile_app`:
 
@@ -136,7 +136,7 @@ triggers:
 
 ## More than a text
 
-*Not released yet.*
+*New in 1.4.0.*
 
 Inside `data` of a `notify.mobile_app_…` or `hada.notify` action, or beside `message` in the JSON published through MQTT:
 
