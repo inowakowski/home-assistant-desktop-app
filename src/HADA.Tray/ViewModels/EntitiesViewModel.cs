@@ -1,9 +1,15 @@
 using System.Collections.ObjectModel;
+using HADA.Core.Entities;
 using HADA.Ipc;
+using HADA.Tray.Localization;
 using HADA.Tray.Mvvm;
 using Wpf.Ui.Controls;
 
 namespace HADA.Tray.ViewModels;
+
+/// <summary>What a connection does not carry to Home Assistant, said on the Entities page.</summary>
+/// <param name="Connection">The name of the connection's Home Assistant.</param>
+public sealed record ReachNote(string Connection, string Text);
 
 public sealed class EntitiesViewModel : ObservableObject
 {
@@ -12,6 +18,7 @@ public sealed class EntitiesViewModel : ObservableObject
     public EntitiesViewModel(SettingsViewModel settings)
     {
         Settings = settings;
+        settings.SnapshotApplied += (_, _) => UpdateReach();
         settings.DisabledEntitiesChanged += (_, _) =>
         {
             foreach (var row in Rows)
@@ -30,6 +37,52 @@ public sealed class EntitiesViewModel : ObservableObject
         get => _hasNoEntities;
         private set => SetProperty(ref _hasNoEntities, value);
     }
+
+    /// <summary>
+    /// One note for each connection that carries less than the list below offers, so that an entity switched on
+    /// here and missing in Home Assistant is no riddle. Empty when every connection carries everything.
+    /// </summary>
+    public ObservableCollection<ReachNote> ReachNotes { get; } = [];
+
+    public bool HasReachNotes => ReachNotes.Count > 0;
+
+    private void UpdateReach()
+    {
+        var mqtt = Settings.SavedMqttServers.Where(server => server.Host.Trim().Length > 0).ToList();
+        var direct = Settings.SavedHomeAssistantServers.Where(server => server.BaseUrl.Trim().Length > 0).ToList();
+
+        // Through MQTT and through the HADA integration everything arrives.
+        var carriesAll = mqtt.Count > 0 || direct.Exists(server => server.SensorMode == HomeAssistantSensorMode.Integration);
+        ReachNotes.Clear();
+        foreach (var server in direct)
+        {
+            var key = server.SensorMode switch
+            {
+                HomeAssistantSensorMode.Entities => "Reach_Entities",
+                HomeAssistantSensorMode.States => "Reach_States",
+
+                // Beside a connection that carries the entities, one for notifications alone is as it is meant to be.
+                HomeAssistantSensorMode.Off when !carriesAll => server.Notifications ? "Reach_NotificationsOnly" : "Reach_Nothing",
+                _ => null,
+            };
+            if (key is not null)
+            {
+                ReachNotes.Add(new ReachNote(NameOf(server), Loc.Get(key)));
+            }
+        }
+
+        if (mqtt.Count == 0 && direct.Count == 0 && Settings.IsLoaded)
+        {
+            ReachNotes.Add(new ReachNote(Loc.Get("Reach_NoConnectionTitle"), Loc.Get("Reach_NoConnection")));
+        }
+
+        OnPropertyChanged(nameof(HasReachNotes));
+    }
+
+    private static string NameOf(HomeAssistantSettings server) =>
+        server.Name.Length > 0 ? server.Name
+        : Uri.TryCreate(server.BaseUrl, UriKind.Absolute, out var url) ? url.Host
+        : server.BaseUrl;
 
     public void Update(ServiceStatus status)
     {

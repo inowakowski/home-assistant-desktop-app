@@ -294,4 +294,11 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Ha_HomeNoNetworks" xml:space="preserve"><value>Name at least one home network: without one the local address is never used.</value></data>
   <data name="Ha_HomeNoAddress" xml:space="preserve"><value>Enter the address Home Assistant has on these networks.</value></data>
   <data name="Validation_LocalUrl" xml:space="preserve"><value>The address on the home network must be a full http:// or https:// address.</value></data>
+  <data name="Reach_Title" xml:space="preserve"><value>Not everything below reaches Home Assistant</value></data>
+  <data name="Reach_Entities" xml:space="preserve"><value>sensors arrive as entities of the device. Buttons, switches and sliders cannot be clicked in Home Assistant through this connection; choose &quot;Through the HADA integration&quot; for it on the Connections page, or use MQTT.</value></data>
+  <data name="Reach_States" xml:space="preserve"><value>the earlier way: sensors only, as states that Home Assistant forgets when it restarts. Buttons, switches and sliders cannot be clicked there; choose &quot;Through the HADA integration&quot; for this connection on the Connections page, or use MQTT.</value></data>
+  <data name="Reach_NotificationsOnly" xml:space="preserve"><value>notifications only. No entities are sent through this connection, and there is no other.</value></data>
+  <data name="Reach_Nothing" xml:space="preserve"><value>nothing is sent through this connection: its entities and its notifications are both switched off.</value></data>
+  <data name="Reach_NoConnectionTitle" xml:space="preserve"><value>No connection</value></data>
+  <data name="Reach_NoConnection" xml:space="preserve"><value>HADA is not connected to any Home Assistant yet. Set one up on the Connections page.</value></data>
 </root>

@@ -149,6 +149,10 @@ public sealed class SettingsViewModel : ObservableObject
     /// <summary>Raised whenever the settings as they are saved were read: when loaded, after saving, and when changes were discarded.</summary>
     public event EventHandler? SnapshotApplied;
 
+    /// <summary>The MQTT servers as they are saved, not as they are being edited.</summary>
+    public IReadOnlyList<MqttSettings> SavedMqttServers =>
+        _snapshot is { } snapshot ? [.. snapshot.MqttServers.Select(server => server.Settings)] : [];
+
     /// <summary>The Home Assistants connected to directly as they are saved, not as they are being edited.</summary>
     public IReadOnlyList<HomeAssistantSettings> SavedHomeAssistantServers =>
         _snapshot is { } snapshot ? [.. snapshot.HomeAssistantServers.Select(server => server.Settings)] : [];

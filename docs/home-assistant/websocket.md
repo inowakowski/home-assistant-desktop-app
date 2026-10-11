@@ -120,7 +120,7 @@ As with [MQTT servers](mqtt.md#several-home-assistants-at-once), the computer ca
 
 ## Events from the computer
 
-When a [quick action](../features/custom-entities.md#quick-actions) is chosen, or a button of a notification is pressed, HADA fires the event `hada_event` in Home Assistant:
+When a [quick action](../features/custom-entities.md#quick-actions) is chosen, or a button of a notification is pressed, HADA fires the event `hada_event` in Home Assistant. Firing an event is an administrator's to do there; with the token of an ordinary user the event goes through the HADA integration, or through the `mobile_app` registration that **Notifications** or **As entities of the device** make (*through the registration is not released yet*). A connection that has none of these needs an administrator's token for it.
 
 ```yaml
 automation:

@@ -419,6 +419,43 @@ public sealed partial class HaWebSocketEngine
     }
 
     /// <summary>
+    /// Fires what happened on the computer through the mobile_app webhook, which takes events from any user's
+    /// registration. Returns <see langword="false"/> when that is not the way to go: the token is an
+    /// administrator's, whose events go over the socket as they always did, or there is no registration.
+    /// </summary>
+    private async Task<bool> TryFireThroughWebhookAsync(DeviceEvent deviceEvent, CancellationToken cancellationToken)
+    {
+        if (_isAdministrator || _registration is not { } registration)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var response = await PostToWebhookAsync(
+                    registration.WebhookId,
+                    new
+                    {
+                        type = "fire_event",
+                        data = new
+                        {
+                            event_type = _options.DeviceEventType,
+                            event_data = new { device_id = _deviceId, name = deviceEvent.Name, value = deviceEvent.Value },
+                        },
+                    },
+                    cancellationToken)
+                .ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            LogActionNotReported(_logger, ex);
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Writes sensors as entities of the mobile_app device. The first time since the connection was made each is
     /// registered, which also brings its name, icon and unit up to date; after that only states are sent, those
     /// of all the sensors in one request.

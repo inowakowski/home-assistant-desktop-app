@@ -25,6 +25,39 @@
                 Text="{l:Tr Entities_Subtitle}"
                 TextWrapping="Wrap" />
 
+            <!--  What the connections that are set up do not carry.  -->
+            <ui:Card
+                Margin="0,0,0,12"
+                Padding="16,12"
+                Visibility="{Binding Entities.HasReachNotes, Converter={StaticResource BooleanToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon
+                        VerticalAlignment="Top"
+                        FontSize="24"
+                        Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                        Symbol="Info24" />
+                    <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                        <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Reach_Title}" />
+                        <ItemsControl Focusable="False" ItemsSource="{Binding Entities.ReachNotes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ui:TextBlock
+                                        Margin="0,6,0,0"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                        TextWrapping="Wrap">
+                                        <Run FontWeight="SemiBold" Text="{Binding Connection, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Text, Mode=OneWay}" />
+                                    </ui:TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Grid>
+            </ui:Card>
+
             <ui:Card
                 Margin="0,0,0,12"
                 Padding="16,12"

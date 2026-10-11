@@ -62,6 +62,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     private Task _eventLoop = Task.CompletedTask;
     private volatile HaConnection? _connection;
     private volatile EngineConnectionState _state;
+    private volatile bool _isAdministrator;
     private bool _statesRemoved;
 
     public HaWebSocketEngine(
@@ -283,6 +284,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                     .ConfigureAwait(false);
                 SetConnectionIssue(null);
                 LogConnected(_logger, _baseUrl!, haVersion ?? "unknown", _deviceId);
+                _isAdministrator = hasCommands;
                 if (!hasCommands)
                 {
                     LogNoCommands(_logger, _options.CommandEventType);
@@ -621,7 +623,10 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                 try
                 {
                     // The integration fires the event itself, and triggers the entity of a quick action besides.
-                    if (!await TrySendIntegrationEventAsync(connection, deviceEvent, cancellationToken).ConfigureAwait(false))
+                    // Without it, firing an event over the socket is an administrator's to do; anyone else's
+                    // goes through the mobile_app registration, where there is one.
+                    if (!await TrySendIntegrationEventAsync(connection, deviceEvent, cancellationToken).ConfigureAwait(false)
+                        && !await TryFireThroughWebhookAsync(deviceEvent, cancellationToken).ConfigureAwait(false))
                     {
                         await connection.SendAsync(
                                 new
