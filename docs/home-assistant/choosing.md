@@ -40,6 +40,8 @@ HADA does as much as each way allows. Where a way cannot carry something, that i
 | Removed or switched-off entities disappear | Yes | They stay, as *unavailable* | Yes |
 | Token of an ordinary user is enough | Not applicable: the broker's user | Yes; \* quick actions too | Yes |
 | Another address on the home network \* | Not applicable | Yes | Yes |
+| Signing in through Home Assistant instead of a token \* | Not applicable: the broker has a user name and a password | Yes | Yes |
+| The screen's brightness \*, the volume: shown and set | Yes | Shown; set only by firing an event | Yes |
 | Several Home Assistants at once | Yes | Yes | Yes |
 
 The earlier way of the direct connection, **As states**, is left out: it does what the second column does, with sensors that Home Assistant forgets when it restarts, and needs an administrator's token for all of it.

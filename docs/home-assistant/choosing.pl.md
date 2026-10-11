@@ -40,6 +40,8 @@ HADA robi tyle, na ile pozwala dana droga. Jeśli czegoś nie da się nią przek
 | Usunięte lub wyłączone encje znikają | Tak | Zostają jako *niedostępne* | Tak |
 | Wystarczy token zwykłego użytkownika | Nie dotyczy: użytkownik brokera | Tak; \* także dla szybkich akcji | Tak |
 | Inny adres w sieci domowej \* | Nie dotyczy | Tak | Tak |
+| Logowanie przez Home Assistant zamiast tokenu \* | Nie dotyczy: broker ma nazwę użytkownika i hasło | Tak | Tak |
+| Jasność ekranu \*, głośność: odczyt i ustawianie | Tak | Odczyt; ustawianie tylko przez odpalenie zdarzenia | Tak |
 | Kilka Home Assistantów naraz | Tak | Tak | Tak |
 
 Dotychczasowy sposób połączenia bezpośredniego, **Jako stany**, jest pominięty: robi to, co druga kolumna, z czujnikami, które Home Assistant zapomina po restarcie, i wymaga do wszystkiego tokenu administratora.
