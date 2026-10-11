@@ -306,4 +306,16 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Reach_MediaPlayer" xml:space="preserve"><value>appears in Home Assistant only through the HADA integration, which none of your connections uses. The media buttons, the volume slider and the playback sensor arrive as before.</value></data>
   <data name="EntityHint_restart_required" xml:space="preserve"><value>On while Windows waits for a restart to finish installing updates.</value></data>
   <data name="EntityHint_screen_brightness" xml:space="preserve"><value>The brightness of the built-in screen, which Home Assistant can also set. Only on computers with a screen Windows can dim.</value></data>
+  <data name="SignIn_Button" xml:space="preserve"><value>Sign in through Home Assistant</value></data>
+  <data name="SignIn_Hint" xml:space="preserve"><value>Instead of a token: opens Home Assistant in your browser, where you sign in and allow the access.</value></data>
+  <data name="SignIn_Waiting" xml:space="preserve"><value>Waiting for you to sign in in the browser…</value></data>
+  <data name="SignIn_Done" xml:space="preserve"><value>Signed in. Save to start using it.</value></data>
+  <data name="SignIn_NeedsAddress" xml:space="preserve"><value>Enter the address of Home Assistant first.</value></data>
+  <data name="SignIn_Unencrypted" xml:space="preserve"><value>Signing in needs an encrypted address (https://), or your leave for this one under the address.</value></data>
+  <data name="SignIn_TimedOut" xml:space="preserve"><value>Nobody signed in within five minutes. Try again.</value></data>
+  <data name="SignIn_Failed" xml:space="preserve"><value>Signing in did not work: {0}</value></data>
+  <data name="SignIn_BrowserDone" xml:space="preserve"><value>Signed in</value></data>
+  <data name="SignIn_BrowserClose" xml:space="preserve"><value>You can close this tab and go back to HADA.</value></data>
+  <data name="Placeholder_SignedIn" xml:space="preserve"><value>Signed in through Home Assistant – leave empty to keep</value></data>
+  <data name="Issue_sign_in_expired" xml:space="preserve"><value>Home Assistant no longer accepts this sign-in: it was removed there, or it expired. Sign in again on the Connections page.</value></data>
 </root>

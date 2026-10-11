@@ -560,6 +560,23 @@
                                     Content="{l:Tr Field_ClearSecret}"
                                     IsChecked="{Binding ClearAccessToken}"
                                     Visibility="{Binding HasAccessToken, Converter={StaticResource BooleanToVisibility}}" />
+
+                                <!--  The other way to a token: signing in at Home Assistant itself.  -->
+                                <ui:Button
+                                    Margin="0,8,0,0"
+                                    Command="{Binding SignInCommand}"
+                                    Content="{l:Tr SignIn_Button}"
+                                    ToolTip="{l:Tr SignIn_Hint}">
+                                    <ui:Button.Icon>
+                                        <ui:SymbolIcon Symbol="Key24" />
+                                    </ui:Button.Icon>
+                                </ui:Button>
+                                <ui:TextBlock
+                                    Margin="0,6,0,0"
+                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                    FontTypography="Caption"
+                                    Text="{Binding SignInNote}"
+                                    TextWrapping="Wrap" />
                             </StackPanel>
 
                             <StackPanel Grid.Row="2" Margin="0,0,0,14">

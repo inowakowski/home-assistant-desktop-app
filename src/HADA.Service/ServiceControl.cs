@@ -391,6 +391,14 @@ public sealed partial class ServiceControl(
             return "The list of home networks is too long.";
         }
 
+        // A sign-in is made under an address of this computer's own, and under nothing else.
+        if (homeAssistant.ClientId.Length > 0
+            && !(Uri.TryCreate(homeAssistant.ClientId, UriKind.Absolute, out var client)
+                && client is { Scheme: "http", Host: "127.0.0.1", AbsolutePath: "/" }))
+        {
+            return "The client id of a sign-in must be an address of this computer.";
+        }
+
         return string.IsNullOrWhiteSpace(homeAssistant.CommandEventType) || homeAssistant.CommandEventType.Trim().Any(char.IsWhiteSpace)
             ? "The command event type must not be empty or contain spaces."
             : null;
@@ -443,6 +451,7 @@ public sealed partial class ServiceControl(
         AllowUnencrypted = homeAssistant.AllowUnencrypted,
         LocalUrl = homeAssistant.LocalUrl ?? string.Empty,
         LocalNetworks = homeAssistant.LocalNetworks ?? string.Empty,
+        ClientId = homeAssistant.ClientId ?? string.Empty,
     };
 
     private Task<ConnectionTestResult> TestMqttAsync(MqttServerUpdate? server, CancellationToken cancellationToken)
@@ -516,6 +525,7 @@ public sealed partial class ServiceControl(
         AllowUnencrypted = settings.AllowUnencrypted,
         LocalUrl = settings.LocalUrl,
         LocalNetworks = settings.LocalNetworks,
+        ClientId = settings.ClientId,
         BaseUrl = settings.BaseUrl,
         AccessToken = accessToken,
         DeviceId = settings.DeviceId,

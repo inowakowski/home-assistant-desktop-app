@@ -35,6 +35,9 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
     private bool _allowUnencrypted;
     private string _localUrl;
     private string _localNetworks;
+    private readonly string _savedClientId;
+    private HomeAssistantSignInResult? _signIn;
+    private string _signInStatus = string.Empty;
 
     /// <param name="changed">Called after anything was typed, to find out whether there is something to save.</param>
     public HomeAssistantServerViewModel(HomeAssistantSettings settings, bool hasAccessToken, Action changed)
@@ -51,6 +54,9 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
         _sensorMode = settings.SensorMode;
         _allowUnencrypted = settings.AllowUnencrypted;
         _localUrl = settings.LocalUrl;
+        _savedClientId = settings.ClientId;
+        IsSavedSignIn = hasAccessToken && settings.ClientId.Length > 0;
+        SignInCommand = new AsyncCommand(SignInAsync);
 
         // One per line in the box, whatever line ends they were saved with.
         _localNetworks = string.Join(Environment.NewLine, NetworkNames(settings.LocalNetworks));
@@ -76,7 +82,69 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
 
     public bool HasAccessToken { get; }
 
-    public string AccessTokenPlaceholder => Loc.Get(HasAccessToken ? "Placeholder_SecretSaved" : "Placeholder_SecretNone");
+    /// <summary>Whether what is saved is a sign-in made through Home Assistant, not a token that was pasted.</summary>
+    public bool IsSavedSignIn { get; }
+
+    public string AccessTokenPlaceholder =>
+        Loc.Get(IsSavedSignIn ? "Placeholder_SignedIn" : HasAccessToken ? "Placeholder_SecretSaved" : "Placeholder_SecretNone");
+
+    /// <summary>Signs in through Home Assistant in the browser, as the other way to a token than pasting one.</summary>
+    public ICommand SignInCommand { get; }
+
+    /// <summary>How the sign-in is going, or went; empty before one was tried.</summary>
+    public string SignInStatus
+    {
+        get => _signInStatus;
+        private set
+        {
+            if (SetProperty(ref _signInStatus, value))
+            {
+                OnPropertyChanged(nameof(SignInNote));
+            }
+        }
+    }
+
+    /// <summary>Under the button: what it does, until it was pressed; then how that went.</summary>
+    public string SignInNote => SignInStatus.Length > 0 ? SignInStatus : Loc.Get("SignIn_Hint");
+
+    private async Task SignInAsync()
+    {
+        var typed = Url.Trim();
+        if (!Uri.TryCreate(typed.EndsWith('/') ? typed : typed + "/", UriKind.Absolute, out var baseUrl)
+            || (baseUrl.Scheme != Uri.UriSchemeHttp && baseUrl.Scheme != Uri.UriSchemeHttps))
+        {
+            SignInStatus = Loc.Get("SignIn_NeedsAddress");
+            return;
+        }
+
+        // What comes back opens as much as a password does; it travels no way the access token may not.
+        if (IsUnencryptedPublic && !AllowUnencrypted)
+        {
+            SignInStatus = Loc.Get("SignIn_Unencrypted");
+            return;
+        }
+
+        SignInStatus = Loc.Get("SignIn_Waiting");
+        try
+        {
+            _signIn = await HomeAssistantSignIn.RunAsync(baseUrl, HomeAssistantSignIn.OpenInBrowser, CancellationToken.None);
+
+            // The token box holds what the sign-in gave, as it would a pasted token, until it is saved.
+            AccessToken = _signIn.RefreshToken;
+            ClearAccessToken = false;
+            _changed();
+            SignInStatus = Loc.Get("SignIn_Done");
+        }
+        catch (TimeoutException)
+        {
+            SignInStatus = Loc.Get("SignIn_TimedOut");
+        }
+        catch (Exception ex) when (ex is HomeAssistantSignInExpiredException or System.Net.Http.HttpRequestException or System.IO.InvalidDataException
+            or System.ComponentModel.Win32Exception or System.Net.Sockets.SocketException or OperationCanceledException)
+        {
+            SignInStatus = Loc.Format("SignIn_Failed", ex.Message);
+        }
+    }
 
     public string MachineNamePlaceholder { get; } = Loc.Format("Placeholder_MachineName", Environment.MachineName);
 
@@ -224,6 +292,17 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
 
     public string AccessToken { get => _accessToken; set => SetSetting(ref _accessToken, value ?? string.Empty); }
 
+    /// <summary>
+    /// The client id that goes with the token as it would be saved: that of the sign-in just made, when the box
+    /// still holds what it gave; the saved one, when the box is empty and the saved token is kept; and none for
+    /// a token that was typed or pasted, which is a long-lived one.
+    /// </summary>
+    private string ClientIdToSave =>
+        ClearAccessToken ? string.Empty
+        : AccessToken.Length == 0 ? _savedClientId
+        : _signIn is { } signIn && signIn.RefreshToken == AccessToken ? signIn.ClientId
+        : string.Empty;
+
     public bool ClearAccessToken { get => _clearAccessToken; set => SetSetting(ref _clearAccessToken, value); }
 
     public string DeviceId { get => _deviceId; set => SetSetting(ref _deviceId, value); }
@@ -268,6 +347,8 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
             AllowUnencrypted = AllowUnencrypted,
             LocalUrl = LocalUrl.Trim(),
             LocalNetworks = string.Join('\n', NetworkNames(LocalNetworks)),
+
+            ClientId = ClientIdToSave,
         },
         SettingsViewModel.SecretUpdateFor(AccessToken, ClearAccessToken));
 

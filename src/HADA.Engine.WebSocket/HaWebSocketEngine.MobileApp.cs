@@ -236,7 +236,8 @@ public sealed partial class HaWebSocketEngine
                 app_data = AppData,
             }),
         };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer", await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false));
 
         using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (response.StatusCode == HttpStatusCode.NotFound)

@@ -306,4 +306,16 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Reach_MediaPlayer" xml:space="preserve"><value>pojawia się w Home Assistant tylko przez integrację HADA, której nie używa żadne z Twoich połączeń. Przyciski multimediów, suwak głośności i czujnik odtwarzania docierają jak dotąd.</value></data>
   <data name="EntityHint_restart_required" xml:space="preserve"><value>Włączony, gdy Windows czeka na restart, żeby dokończyć instalowanie aktualizacji.</value></data>
   <data name="EntityHint_screen_brightness" xml:space="preserve"><value>Jasność wbudowanego ekranu, którą Home Assistant może też ustawić. Tylko na komputerach z ekranem, który Windows potrafi przyciemnić.</value></data>
+  <data name="SignIn_Button" xml:space="preserve"><value>Zaloguj przez Home Assistant</value></data>
+  <data name="SignIn_Hint" xml:space="preserve"><value>Zamiast tokenu: otwiera Home Assistant w przeglądarce, gdzie się logujesz i zezwalasz na dostęp.</value></data>
+  <data name="SignIn_Waiting" xml:space="preserve"><value>Czekam, aż zalogujesz się w przeglądarce…</value></data>
+  <data name="SignIn_Done" xml:space="preserve"><value>Zalogowano. Zapisz, aby zacząć z tego korzystać.</value></data>
+  <data name="SignIn_NeedsAddress" xml:space="preserve"><value>Najpierw podaj adres Home Assistant.</value></data>
+  <data name="SignIn_Unencrypted" xml:space="preserve"><value>Logowanie wymaga adresu szyfrowanego (https://) albo zezwolenia na ten adres, pod polem adresu.</value></data>
+  <data name="SignIn_TimedOut" xml:space="preserve"><value>Nikt nie zalogował się w ciągu pięciu minut. Spróbuj ponownie.</value></data>
+  <data name="SignIn_Failed" xml:space="preserve"><value>Logowanie nie powiodło się: {0}</value></data>
+  <data name="SignIn_BrowserDone" xml:space="preserve"><value>Zalogowano</value></data>
+  <data name="SignIn_BrowserClose" xml:space="preserve"><value>Możesz zamknąć tę kartę i wrócić do HADA.</value></data>
+  <data name="Placeholder_SignedIn" xml:space="preserve"><value>Zalogowano przez Home Assistant – zostaw puste, aby zachować</value></data>
+  <data name="Issue_sign_in_expired" xml:space="preserve"><value>Home Assistant nie przyjmuje już tego logowania: zostało tam usunięte albo wygasło. Zaloguj się ponownie na stronie Połączenia.</value></data>
 </root>

@@ -156,6 +156,12 @@ public sealed record HomeAssistantSettings(
 
     /// <summary>The networks on which <see cref="LocalUrl"/> is used, by their names, one per line.</summary>
     public string LocalNetworks { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The client id of a sign-in made through Home Assistant: the saved token is then that sign-in's refresh
+    /// token. Empty when the saved token is a long-lived access token. Not a secret.
+    /// </summary>
+    public string ClientId { get; init; } = string.Empty;
 }
 
 /// <summary>A server as shown to clients: its access token is never sent back, only whether one is saved.</summary>
