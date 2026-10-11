@@ -34,7 +34,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     public const string ValidToken = "valid-token";
     public const string Version = "2026.9.0";
 
-    private readonly HttpListener _listener = new();
+    private readonly HttpListener _listener;
     private readonly Task _acceptLoop;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private readonly List<JsonElement> _socketMessages = [];
@@ -65,10 +65,31 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
 
     public FakeHomeAssistant()
     {
-        BaseUrl = new Uri($"http://localhost:{GetFreePort()}/");
-        _listener.Prefixes.Add(BaseUrl.ToString());
-        _listener.Start();
+        (_listener, BaseUrl) = Listen();
         _acceptLoop = AcceptAsync();
+    }
+
+    /// <summary>
+    /// A port that was free a moment ago may have been taken since, by another of these in a test running
+    /// alongside; then another port is tried.
+    /// </summary>
+    private static (HttpListener Listener, Uri BaseUrl) Listen()
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            var baseUrl = new Uri($"http://localhost:{GetFreePort()}/");
+            var listener = new HttpListener();
+            listener.Prefixes.Add(baseUrl.ToString());
+            try
+            {
+                listener.Start();
+                return (listener, baseUrl);
+            }
+            catch (HttpListenerException) when (attempt < 10)
+            {
+                listener.Close();
+            }
+        }
     }
 
     public Uri BaseUrl { get; }
