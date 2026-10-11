@@ -60,7 +60,15 @@ foreach ($arch in $Platform) {
     Write-Host "Packing the portable copy for $arch..." -ForegroundColor Cyan
     $portableRoot = Join-Path $artifacts "portable\$arch\HADA"
     if (Test-Path $portableRoot) {
-        Remove-Item $portableRoot -Recurse -Force
+        # A copy that is running keeps its files open: removing them would stop halfway, with the settings gone.
+        $running = Get-Process -Name 'HADA.*' -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -and $_.Path.StartsWith($portableRoot + '\', [StringComparison]::OrdinalIgnoreCase) }
+        if ($running) {
+            throw "The portable copy in $portableRoot is running. Close it (Quit in the tray icon's menu), then run this again."
+        }
+
+        # Everything but "data": the settings and logs of whoever tried the copy out here stay through a rebuild.
+        Get-ChildItem $portableRoot -Force | Where-Object Name -ne 'data' | Remove-Item -Recurse -Force
     }
 
     New-Item $portableRoot -ItemType Directory -Force | Out-Null
@@ -82,7 +90,14 @@ foreach ($arch in $Platform) {
     # Every entry is below "HADA/", so unpacking gives one folder and not hundreds of files.
     $archive = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)
     try {
+        $dataFolder = Join-Path $portableRoot 'data\'
         foreach ($file in Get-ChildItem $portableRoot -Recurse -File) {
+            # What was kept through the rebuild is this computer's, and has no place in what is handed out.
+            if ($file.FullName.StartsWith($dataFolder, [StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+
+
             $entry = 'HADA/' + $file.FullName.Substring($portableRoot.Length + 1).Replace('\', '/')
             [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
                 $archive, $file.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal)
