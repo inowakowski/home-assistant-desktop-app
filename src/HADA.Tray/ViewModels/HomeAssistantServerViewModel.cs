@@ -124,10 +124,17 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
             return;
         }
 
-        SignInStatus = Loc.Get("SignIn_Waiting");
         try
         {
-            _signIn = await HomeAssistantSignIn.RunAsync(baseUrl, HomeAssistantSignIn.OpenInBrowser, CancellationToken.None);
+            _signIn = await HomeAssistantSignIn.RunAsync(
+                baseUrl,
+                start =>
+                {
+                    // Said before the browser is opened, with the address to open by hand should none come up.
+                    SignInStatus = Loc.Format("SignIn_Waiting", start.AbsoluteUri);
+                    HomeAssistantSignIn.OpenInBrowser(start);
+                },
+                CancellationToken.None);
 
             // The token box holds what the sign-in gave, as it would a pasted token, until it is saved.
             AccessToken = _signIn.RefreshToken;

@@ -60,6 +60,28 @@ public sealed class SignInTests : IAsyncLifetime
     }
 
     [Fact]
+    public void The_browser_is_opened_at_a_plain_address_of_this_computer()
+    {
+        // Explorer, which opens the browser from the administrator copy of the window, does not hand an address
+        // with a query string on to a browser. The sign-in page's has one, so the browser is sent there from here.
+        var start = HomeAssistantAuth.StartUri(50123);
+
+        Assert.Equal("http://127.0.0.1:50123/start", start.AbsoluteUri);
+        Assert.Equal(string.Empty, start.Query);
+    }
+
+    [Theory]
+    [InlineData("GET /start HTTP/1.1", true)]
+    [InlineData("GET /start?x=1 HTTP/1.1", false)]
+    [InlineData("POST /start HTTP/1.1", false)]
+    [InlineData("GET /callback?code=abc123&state=s3cret HTTP/1.1", false)]
+    [InlineData("GET /favicon.ico HTTP/1.1", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void Only_a_request_for_the_start_address_is_sent_on_to_the_sign_in_page(string? requestLine, bool expected) =>
+        Assert.Equal(expected, HomeAssistantAuth.IsStart(requestLine));
+
+    [Fact]
     public async Task The_code_is_exchanged_for_a_refresh_token_and_that_for_access_tokens()
     {
         using var http = new HttpClient();
