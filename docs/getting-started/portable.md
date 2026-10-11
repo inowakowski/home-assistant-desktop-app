@@ -12,7 +12,7 @@ HADA without installing it: unpack a folder and run it. No administrator rights,
 4. Start **Start HADA.cmd**. The HADA icon appears in the notification area and the window opens.
 5. Set up a connection as described under [First setup](first-setup.md). There is no **Unlock editing** here: the settings are yours to change.
 
-To stop it, choose **Exit** in the icon's menu, or start **Stop HADA.cmd**.
+To stop it, choose **Exit** in the icon's menu, or start **Stop HADA.cmd**. Either closes HADA's windows as well, so the folder can be replaced, moved or deleted afterwards.
 
 ## What is in the folder
 
@@ -66,4 +66,4 @@ A portable copy shares nothing with an installed HADA or with another portable c
 |---|---|
 | `tray\\HADA.Tray.exe` | Start, and open the window |
 | `tray\\HADA.Tray.exe --background` | Start without opening the window |
-| `tray\\HADA.Tray.exe --exit` | Tell the running copy to exit, which also stops its service |
+| `tray\\HADA.Tray.exe --exit` | Tell the running copy to exit, which also stops its service and closes its windows |

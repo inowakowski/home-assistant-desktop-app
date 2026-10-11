@@ -40,7 +40,7 @@ namespace HADA.Tray;
 /// <c>--autostart</c> marks a start made by Windows at sign-in; the tray then exits if the user turned autostart off.
 /// <c>--settings</c> runs as the window, without tray icon or sensors.
 /// <c>--dashboard</c> runs as the dashboard window, showing the address chosen on the Settings page.
-/// <c>--exit</c> tells the tray app that is already running to exit, and does nothing else.
+/// <c>--exit</c> tells the tray app that is already running to exit, and its windows to close, and does nothing else.
 /// <c>--page overview|connections|entities|custom|settings|logs</c> chooses the page the window opens on.
 /// </para>
 /// </remarks>
@@ -55,11 +55,18 @@ public partial class App : Application
     private const string DashboardArgument = "--dashboard";
     private const string ExitArgument = "--exit";
     private const string PageArgument = "--page";
+
+    // What the windows are known by, each a process of its own; a portable copy's suffix is added to these.
+    private const string WindowRole = @"Local\HADA.Window";
+    private const string AdminWindowRole = @"Local\HADA.Window.Admin";
+    private const string DashboardRole = @"Local\HADA.Dashboard";
     private const int AnyProcess = -1;
 
     private Mutex? _singleInstance;
     private EventWaitHandle? _showWindowSignal;
     private RegisteredWaitHandle? _showWindowRegistration;
+    private EventWaitHandle? _closeWindowSignal;
+    private RegisteredWaitHandle? _closeWindowRegistration;
     private FileLoggerProvider? _fileLog;
     private ILogger _logger = NullLogger.Instance;
     private IHost? _host;
@@ -126,6 +133,8 @@ public partial class App : Application
     {
         _showWindowRegistration?.Unregister(null);
         _showWindowSignal?.Dispose();
+        _closeWindowRegistration?.Unregister(null);
+        _closeWindowSignal?.Dispose();
         _exitRegistration?.Unregister(null);
         _exitSignal?.Dispose();
         _hotkeys?.Dispose();
@@ -164,6 +173,8 @@ public partial class App : Application
                 }
             }
 
+            // And its windows, which would keep the program's files in use.
+            CloseWindows();
             Shutdown();
             return;
         }
@@ -202,7 +213,7 @@ public partial class App : Application
 
         var ipc = _host.Services.GetRequiredService<IpcClient>();
         _trayIcon = new TrayIcon(
-            () => ipc.IsConnected, () => OpenWindow(page: null), () => StartCopy(DashboardArgument), () => Shutdown());
+            () => ipc.IsConnected, () => OpenWindow(page: null), () => StartCopy(DashboardArgument), ExitFromMenu);
 
         // Notifications: toasts, which can carry a picture and buttons; the icon's plain balloon when a toast fails.
         var bus = _host.Services.GetRequiredService<IEventBus>();
@@ -243,6 +254,42 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Exit was chosen in the icon's menu. A portable copy's service stops with its tray app, so its windows
+    /// have nothing left to show and are closed too; an installed HADA's service runs on, and so may its windows.
+    /// </summary>
+    private void ExitFromMenu()
+    {
+        if (AppInstance.IsPortable)
+        {
+            CloseWindows();
+        }
+
+        Shutdown();
+    }
+
+    /// <summary>Asks the windows of this copy, the settings window and the dashboard, to close.</summary>
+    private static void CloseWindows()
+    {
+        foreach (var role in (string[])[WindowRole, AdminWindowRole, DashboardRole])
+        {
+            try
+            {
+                if (EventWaitHandle.TryOpenExisting(role + AppInstance.Suffix + ".Close", out var close))
+                {
+                    using (close)
+                    {
+                        close.Set();
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // The window opened as administrator is not this process's to close.
+            }
+        }
+    }
+
     /// <summary>Starts the window as its own process; if one is open already, that process brings it to the front instead.</summary>
     private void OpenWindow(string? page)
     {
@@ -280,7 +327,7 @@ public partial class App : Application
     private void StartDashboard()
     {
         if (!UserPreferences.TryGetDashboardAddress(UserPreferences.DashboardUrl, out var address)
-            || !TakeWindowRole(@"Local\HADA.Dashboard" + AppInstance.Suffix))
+            || !TakeWindowRole(DashboardRole + AppInstance.Suffix))
         {
             Shutdown();
             return;
@@ -323,6 +370,11 @@ public partial class App : Application
             state: null,
             Timeout.Infinite,
             executeOnlyOnce: false);
+
+        // Shutdown and not Close: whoever asks is about to replace or remove the program, and cannot wait for an answer.
+        _closeWindowSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, name + ".Close");
+        _closeWindowRegistration = ThreadPool.RegisterWaitForSingleObject(
+            _closeWindowSignal, (_, _) => Dispatcher.InvokeAsync(() => Shutdown()), state: null, Timeout.Infinite, executeOnlyOnce: true);
         return true;
     }
 
@@ -330,7 +382,7 @@ public partial class App : Application
     {
         // One window per user and privilege level: the administrator copy opened with "Unlock editing" may run
         // next to the normal one for a moment, while that one is closing.
-        if (!TakeWindowRole((Elevation.IsElevated ? @"Local\HADA.Window.Admin" : @"Local\HADA.Window") + AppInstance.Suffix))
+        if (!TakeWindowRole((Elevation.IsElevated ? AdminWindowRole : WindowRole) + AppInstance.Suffix))
         {
             Shutdown();
             return;
