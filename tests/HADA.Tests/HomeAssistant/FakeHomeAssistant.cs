@@ -32,6 +32,11 @@ public sealed record IntegrationEntity(JsonElement Descriptor, string? State, Js
 internal sealed class FakeHomeAssistant : IAsyncDisposable
 {
     public const string ValidToken = "valid-token";
+
+    /// <summary>What signing in through Home Assistant yields: a code, good for a refresh token, good for <see cref="ValidToken"/>.</summary>
+    public const string ValidCode = "valid-code";
+    public const string ValidRefreshToken = "valid-refresh-token";
+    public const string ClientId = "http://127.0.0.1:50123/";
     public const string Version = "2026.9.0";
 
     private readonly HttpListener _listener;
@@ -50,12 +55,19 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     private int _integrationSubscriptionId;
     private volatile WebSocket? _socket;
     private int _connectionAttempts;
+    private int _tokenRequests;
 
     /// <summary>
     /// While set and not completed, updates of sensors are taken but not answered: what the engine reports
     /// meanwhile has to wait, as it does with a Home Assistant that is slow or far away.
     /// </summary>
     public Task? UpdatesHeld { get; set; }
+
+    /// <summary>How many times a token was asked for at <c>/auth/token</c>.</summary>
+    public int TokenRequests => Volatile.Read(ref _tokenRequests);
+
+    /// <summary>As when the user removed the sign-in in their Home Assistant profile: its refresh token is no longer taken.</summary>
+    public bool SignInWithdrawn { get; set; }
 
     /// <summary>While set, nothing is answered but that the server is not there; connecting fails at once.</summary>
     public bool IsDown { get; set; }
@@ -322,6 +334,24 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
             }
 
             context.Response.StatusCode = request.HttpMethod == "POST" ? 201 : 200;
+            context.Response.Close();
+        }
+        else if (request.HttpMethod == "POST" && path == "/auth/token")
+        {
+            using var reader = new StreamReader(request.InputStream);
+            var form = System.Web.HttpUtility.ParseQueryString(await reader.ReadToEndAsync());
+            Interlocked.Increment(ref _tokenRequests);
+            object? answer = (form["grant_type"], form["client_id"]) switch
+            {
+                ("refresh_token", ClientId) when form["refresh_token"] == ValidRefreshToken && !SignInWithdrawn
+                    => new { access_token = ValidToken, expires_in = 1800, token_type = "Bearer" },
+                ("authorization_code", ClientId) when form["code"] == ValidCode
+                    => new { access_token = ValidToken, expires_in = 1800, refresh_token = ValidRefreshToken, token_type = "Bearer" },
+                _ => null,
+            };
+            context.Response.StatusCode = answer is null ? 400 : 200;
+            await context.Response.OutputStream.WriteAsync(
+                JsonSerializer.SerializeToUtf8Bytes(answer ?? new { error = "invalid_grant", error_description = "Invalid refresh token" }));
             context.Response.Close();
         }
         else if (request.HttpMethod == "POST" && path == "/api/mobile_app/registrations" && HasMobileApp)

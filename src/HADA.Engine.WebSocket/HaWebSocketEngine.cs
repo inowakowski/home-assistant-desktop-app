@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text.Json;
+using HADA.Core;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Models;
@@ -138,8 +139,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         using var connection = new HaConnection(new ClientWebSocket());
         try
         {
+            var accessToken = await GetAccessTokenAsync(options, baseUrl, cancellationToken).ConfigureAwait(false);
             var (haVersion, hasCommands) = await HandshakeAsync(
-                    connection, baseUrl, options.AccessToken!, options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(options),
+                    connection, baseUrl, accessToken, options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(options),
                     options.AllowUnencrypted, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -162,6 +164,10 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         catch (HaAuthenticationException ex)
         {
             return new ConnectionTestResult(false, $"Home Assistant rejected the access token: {ex.Message}");
+        }
+        catch (HomeAssistantSignInExpiredException ex)
+        {
+            return new ConnectionTestResult(false, $"{ex.Message} Sign in again.");
         }
         catch (HaUnencryptedException ex)
         {
@@ -266,6 +272,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         await StopAsync(CancellationToken.None).ConfigureAwait(false);
         _http.Dispose();
         _integrationSignal.Dispose();
+        _accessGate.Dispose();
     }
 
     private async Task MaintainConnectionAsync(CancellationToken cancellationToken)
@@ -278,8 +285,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             using var connection = new HaConnection(new ClientWebSocket());
             try
             {
+                var accessToken = await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
                 var (haVersion, hasCommands) = await HandshakeAsync(
-                        connection, _baseUrl!, _options.AccessToken!, _options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(_options),
+                        connection, _baseUrl!, accessToken, _options.CommandEventType, commandsRequired: !WorksWithoutAdministrator(_options),
                         _options.AllowUnencrypted, cancellationToken)
                     .ConfigureAwait(false);
                 SetConnectionIssue(null);
@@ -321,6 +329,14 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                 // Retrying with the same token is pointless and can get this machine's IP banned by Home Assistant.
                 _state = EngineConnectionState.Faulted;
                 LogAuthenticationFailed(_logger, ex.Message);
+                return;
+            }
+            catch (HomeAssistantSignInExpiredException ex)
+            {
+                // The same goes for a sign-in Home Assistant no longer knows.
+                _state = EngineConnectionState.Faulted;
+                SetConnectionIssue(IssueSignInExpired);
+                LogSignInExpired(_logger, ex.Message);
                 return;
             }
             catch (HaUnencryptedException)
@@ -840,10 +856,10 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         {
             Content = content,
         };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
-
         try
         {
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", await GetAccessTokenAsync(cancellationToken).ConfigureAwait(false));
             using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
             // Deleting a state that does not exist is fine.
@@ -854,7 +870,8 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
             response.EnsureSuccessStatusCode();
         }
-        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        catch (Exception ex) when (ex is HttpRequestException or HomeAssistantSignInExpiredException or HaUnencryptedException or InvalidDataException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
             LogStateRequestFailed(_logger, ex, method.Method, entity.Id);
         }

@@ -82,6 +82,25 @@ Commands are sent by firing the command event, for example from a script. `actio
 
 `device_id` is required, so a single event never targets every PC at once. A notification also takes `image`, `actions` and [more](../features/notifications.md#more-than-a-text), as described under [Notifications](../features/notifications.md).
 
+## Signing in instead of pasting a token
+
+*Not released yet.*
+
+A long-lived access token has to be made in Home Assistant, copied and pasted. The other way is to sign in, as Home Assistant's own apps do:
+
+1. On the **Connections** page, enter the address of Home Assistant and choose **Sign in through Home Assistant**.
+2. Your browser opens Home Assistant's own sign-in page. Sign in, if you are not signed in there already, and allow the access.
+3. The browser says *Signed in*; close the tab, go back to HADA and **Save**.
+
+What HADA keeps is not your password, which it never sees, but a *refresh token*: Home Assistant exchanges it for access tokens that last half an hour each, and HADA asks for the next one in time. It is saved encrypted, as a pasted token is.
+
+- **Withdrawing it.** In Home Assistant, open your profile, **Security**, and look under **Refresh tokens** for the one whose name starts with `http://127.0.0.1`: that is HADA on this computer. Delete it, and HADA is out; the **Overview** page says so, and nothing is tried again until you sign in anew.
+- **Left unused.** Home Assistant removes a sign-in that was not used for a long time, 90 days when this was written. A computer that is switched on now and then keeps it alive.
+- **Whose it is.** The sign-in is that of the Home Assistant user who signed in, as a token is that of the user who made it. An ordinary user is enough for notifications and for the HADA integration.
+- **A token still works.** Paste one into the box instead, and it is used as before; the two ways are alternatives for each Home Assistant.
+
+The browser comes back to HADA at an address on this computer itself, `127.0.0.1`, which no other computer can reach, and only the browser that was given the page can finish the sign-in. Opened from the administrator copy of the window, the browser still runs as you.
+
 ## Another address on your home network
 
 *Not released yet.*

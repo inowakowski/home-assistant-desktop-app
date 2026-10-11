@@ -69,6 +69,7 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
                 data[prefix + nameof(homeAssistant.AllowUnencrypted)] = homeAssistant.AllowUnencrypted ? "true" : "false";
                 data[prefix + nameof(homeAssistant.LocalUrl)] = homeAssistant.LocalUrl;
                 data[prefix + nameof(homeAssistant.LocalNetworks)] = homeAssistant.LocalNetworks;
+                data[prefix + nameof(homeAssistant.ClientId)] = homeAssistant.ClientId;
                 data[prefix + "AccessToken"] = SettingsStore.TryUnprotect(homeAssistants[i].AccessToken) ?? string.Empty;
             }
         }

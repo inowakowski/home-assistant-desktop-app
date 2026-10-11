@@ -50,6 +50,13 @@ public sealed class HaWebSocketOptions
     /// </summary>
     public string? AccessToken { get; set; }
 
+    /// <summary>
+    /// Set after signing in through Home Assistant instead of pasting a token: <see cref="AccessToken"/> is then
+    /// a refresh token, which Home Assistant exchanges for access tokens only together with this, the client id
+    /// the sign-in was made under. Empty for a long-lived access token.
+    /// </summary>
+    public string? ClientId { get; set; }
+
     /// <summary>Used in entity ids (<c>sensor.{DeviceId}_{entity}</c>) and to target commands. Defaults to the machine name.</summary>
     public string? DeviceId { get; set; }
 
