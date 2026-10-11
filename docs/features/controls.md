@@ -1,6 +1,6 @@
 # Controls
 
-What Home Assistant can do to the computer. With the MQTT engine these show up as ordinary `button`, `switch`, `number` and `notify` entities of the device, usable from a dashboard or an automation.
+What Home Assistant can do to the computer. With the MQTT engine, and with the [HADA integration](../home-assistant/websocket.md#sensors-through-the-hada-integration), these show up as ordinary `button`, `switch`, `number` and `notify` entities of the device, usable from a dashboard or an automation. [What works through which connection](../home-assistant/choosing.md#what-works-through-which-connection) has the whole picture.
 
 | Entity | Type | Provided by | Notes |
 |---|---|---|---|
@@ -11,6 +11,7 @@ What Home Assistant can do to the computer. With the MQTT engine these show up a
 | `volume_level` | number (0–100 %) | Tray | Sets the volume of the default playback device |
 | `audio_mute` | switch | Tray | Mutes the default playback device |
 | `microphone_mute` | switch | Tray | Mutes the default microphone in Windows |
+| `media_player` | media player | Tray | *Not released yet.* What is playing, play, pause, next, previous, stop, volume and mute in one entity. **Through the HADA integration only**; see [below](#the-media-player) |
 | `notification` | notify | Tray | A message sent to it is shown as a Windows notification. See [Notifications](notifications.md) |
 
 ## The power buttons are off by default
@@ -18,6 +19,29 @@ What Home Assistant can do to the computer. With the MQTT engine these show up a
 `sleep`, `hibernate`, `shutdown` and `restart` do not exist in Home Assistant until you switch them on: open the HADA window, choose **Entities**, **Unlock editing**, turn on the ones you want and **Save**. Whoever can press a button in Home Assistant can then switch this computer off, so turn on only what you use.
 
 Nothing is forced. Shutting down and restarting go through Windows the same way the Start menu does: an app with unsaved work can still object and hold it up.
+
+## The media player
+
+*Not released yet.*
+
+Home Assistant shows a speaker or a television as one *media player*: a card with what is playing, the buttons under it and a volume slider. `media_player` makes the computer one of those. It says what Windows' own media controls show, the title, artist, album and app, and how loud the default playback device is; and it takes play, pause, next, previous, stop, the volume and mute.
+
+- **Through the HADA integration only.** Home Assistant has no media player over MQTT, and none for a computer connected without the integration. There the separate entities do the same work: the four media buttons, `volume_level`, `audio_mute`, and the sensor `media_playback`.
+- **The separate entities stay**, whichever way you connect. If the media player is all you want in Home Assistant, switch them off on the **Entities** page; if you do not want the media player, switch that off.
+- Play and pause go to the app Windows shows in its media controls, so *play* never pauses and *pause* never starts anything, unlike the play/pause key.
+- The **Entities** page says so when the media player is switched on and none of your connections can show it.
+
+```yaml
+actions:
+  - action: media_player.volume_set
+    target:
+      entity_id: media_player.laptop_media_player
+    data:
+      volume_level: 0.3
+  - action: media_player.media_pause
+    target:
+      entity_id: media_player.laptop_media_player
+```
 
 ## Using them
 

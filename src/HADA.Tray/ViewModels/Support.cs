@@ -101,6 +101,7 @@ internal static class EntityVisuals
         "audio_device" => SymbolRegular.Headphones24,
         "do_not_disturb" => SymbolRegular.AlertOff24,
         "media_playback" => SymbolRegular.MusicNote224,
+        "media_player" => SymbolRegular.PlayCircle24,
         "update_available" => SymbolRegular.ArrowDownload24,
         "gpu_load" => SymbolRegular.DeveloperBoard24,
         "sleep" or "hibernate" => SymbolRegular.WeatherMoon24,
@@ -136,12 +137,19 @@ internal static class EntityVisuals
         EntityKind.Number => "Entity_Number",
         EntityKind.Notify => "Entity_Notify",
         EntityKind.Trigger => "Entity_Trigger",
+        EntityKind.MediaPlayer => "Entity_MediaPlayer",
         _ => "Entity_Sensor",
     });
 
     /// <summary>The state as shown in the window: on/off in the user's language, numbers with their unit.</summary>
     public static string FormatState(EntityDescriptor entity, string? state)
     {
+        if (entity.Kind == EntityKind.MediaPlayer && state is not null)
+        {
+            // Playing, paused or idle, as it is reported.
+            return state;
+        }
+
         if (!entity.Kind.ReportsState() || state is null)
         {
             return "—";

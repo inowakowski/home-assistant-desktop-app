@@ -46,6 +46,7 @@ public static class BuiltInEntityIds
     public const string MicrophoneMute = "microphone_mute";
     public const string Notification = "notification";
     public const string MediaPlayback = "media_playback";
+    public const string MediaPlayer = "media_player";
     public const string UpdateAvailable = "update_available";
 
     private const string DiskPrefix = "disk_";

@@ -114,6 +114,30 @@ public sealed class MqttEngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_media_player_is_left_out_as_home_assistant_has_none_over_mqtt()
+    {
+        var player = new EntityDescriptor { Id = "media_player", Name = "Media player", Kind = EntityKind.MediaPlayer };
+        await _registry.RegisterAsync(player);
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitForMessageAsync("homeassistant/button/testpc/lock_screen/config");
+
+        // Reported, taken away, and back again: none of it reaches the broker, and the rest goes on.
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "media_player", State = "playing" });
+        await _registry.UnregisterAsync("media_player");
+        await _registry.RegisterAsync(player);
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "7" });
+        await WaitForMessageAsync("hada/testpc/cpu_load/state", "7");
+
+        lock (_observed)
+        {
+            Assert.DoesNotContain(_observed, message => message.Topic.Contains("media_player", StringComparison.Ordinal));
+        }
+
+        Assert.Equal(EngineConnectionState.Connected, engine.State);
+    }
+
+    [Fact]
     public async Task Telemetry_for_registered_sensor_is_published_to_state_topic()
     {
         await using var engine = CreateEngine();

@@ -20,6 +20,30 @@ HADA can talk to Home Assistant in three ways. They do not exclude each other, a
 
 All three show the computer in Home Assistant as a device with entities that can be renamed and put in an area.
 
+## What works through which connection
+
+*The second and third column are new in 1.4.0; rows marked \* are not released yet.*
+
+HADA does as much as each way allows. Where a way cannot carry something, that is Home Assistant's doing, not a setting to find: the table says what, and the **Entities** page in HADA says it for the connections you have.
+
+| | **MQTT** | **Direct connection** | **Direct connection with the HADA integration** |
+|---|---|---|---|
+| Sensors and binary sensors | Entities | Entities | Entities |
+| Buttons, switches, the volume slider | Entities | Not in Home Assistant; from an automation, by [firing an event](websocket.md#commands), with an administrator's token | Entities |
+| Media player as one entity \* | No: Home Assistant has none over MQTT. The media buttons, the volume and the playback sensor are there | No; the playback sensor is there | Yes |
+| Notification: text and title | `notify.send_message` | `notify.mobile_app_…` | `notify.send_message` and `hada.notify` |
+| Notification: picture, buttons, tag, address, sticky, silent | Yes, written as JSON in the message | Yes | Yes, with `hada.notify` |
+| Notification: a camera's picture | No: it needs signing in at Home Assistant | Yes | Yes |
+| Pressed notification button | Topic `…/event/notification_action` | Events `mobile_app_notification_action` and `hada_event` | Event `hada_event` |
+| Quick action starts an automation | Trigger of the device, and a topic | Event `hada_event` | `event` entity, and event `hada_event` |
+| Entities unavailable when the computer goes away | At once, however it went | Only when HADA was closed properly | At once, however it went |
+| Removed or switched-off entities disappear | Yes | They stay, as *unavailable* | Yes |
+| Token of an ordinary user is enough | Not applicable: the broker's user | Yes; \* quick actions too | Yes |
+| Another address on the home network \* | Not applicable | Yes | Yes |
+| Several Home Assistants at once | Yes | Yes | Yes |
+
+The earlier way of the direct connection, **As states**, is left out: it does what the second column does, with sensors that Home Assistant forgets when it restarts, and needs an administrator's token for all of it.
+
 ## Which one is for me
 
 **I already have an MQTT broker.** Use MQTT. It needs nothing installed in Home Assistant and gives everything except a camera's picture in a notification. If you want notifications as on a phone as well, [add a direct connection just for them](#mqtt-and-notifications-as-on-a-phone).

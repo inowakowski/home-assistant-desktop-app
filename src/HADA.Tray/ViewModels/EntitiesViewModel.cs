@@ -14,6 +14,7 @@ public sealed record ReachNote(string Connection, string Text);
 public sealed class EntitiesViewModel : ObservableObject
 {
     private bool _hasNoEntities = true;
+    private bool _hasMediaPlayer;
 
     public EntitiesViewModel(SettingsViewModel settings)
     {
@@ -71,6 +72,13 @@ public sealed class EntitiesViewModel : ObservableObject
             }
         }
 
+        // The one entity not even MQTT carries.
+        var hasIntegration = direct.Exists(server => server.SensorMode == HomeAssistantSensorMode.Integration);
+        if (_hasMediaPlayer && !hasIntegration && (mqtt.Count > 0 || direct.Count > 0))
+        {
+            ReachNotes.Add(new ReachNote(Loc.Get("Entity_MediaPlayer"), Loc.Get("Reach_MediaPlayer")));
+        }
+
         if (mqtt.Count == 0 && direct.Count == 0 && Settings.IsLoaded)
         {
             ReachNotes.Add(new ReachNote(Loc.Get("Reach_NoConnectionTitle"), Loc.Get("Reach_NoConnection")));
@@ -86,6 +94,13 @@ public sealed class EntitiesViewModel : ObservableObject
 
     public void Update(ServiceStatus status)
     {
+        var hadMediaPlayer = _hasMediaPlayer;
+        _hasMediaPlayer = status.Entities.Any(entity => entity.Entity.Kind == EntityKind.MediaPlayer && entity.IsEnabled);
+        if (_hasMediaPlayer != hadMediaPlayer)
+        {
+            UpdateReach();
+        }
+
         CollectionSync.Sync(
             Rows,
             status.Entities,

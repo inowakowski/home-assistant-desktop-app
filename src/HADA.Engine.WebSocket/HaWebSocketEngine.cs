@@ -864,7 +864,13 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entity);
 
     private bool TryGetExposedSensor(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
-        TryGetExposed(entityId, out entity) && entity.Kind.ReportsState();
+        TryGetExposed(entityId, out entity) && ReportsHere(entity.Kind);
+
+    /// <summary>
+    /// Whether what entities of this kind report is sent through this connection. A media player's is where the
+    /// HADA integration is there to make an entity of it; states and the mobile_app device have no such thing.
+    /// </summary>
+    private bool ReportsHere(EntityKind kind) => kind.ReportsState() || (kind == EntityKind.MediaPlayer && UsesIntegration);
 
     private static async Task<JsonDocument> ReceiveRequiredAsync(HaConnection connection, CancellationToken cancellationToken) =>
         await connection.ReceiveAsync(cancellationToken).ConfigureAwait(false)

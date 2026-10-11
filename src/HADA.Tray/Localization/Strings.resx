@@ -301,4 +301,7 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Reach_Nothing" xml:space="preserve"><value>nothing is sent through this connection: its entities and its notifications are both switched off.</value></data>
   <data name="Reach_NoConnectionTitle" xml:space="preserve"><value>No connection</value></data>
   <data name="Reach_NoConnection" xml:space="preserve"><value>HADA is not connected to any Home Assistant yet. Set one up on the Connections page.</value></data>
+  <data name="Entity_MediaPlayer" xml:space="preserve"><value>Media player</value></data>
+  <data name="EntityHint_media_player" xml:space="preserve"><value>Playback, volume and what is playing as one entity, as Home Assistant shows a speaker. Only through the HADA integration; the separate media buttons, the volume slider and the playback sensor work every way.</value></data>
+  <data name="Reach_MediaPlayer" xml:space="preserve"><value>appears in Home Assistant only through the HADA integration, which none of your connections uses. The media buttons, the volume slider and the playback sensor arrive as before.</value></data>
 </root>

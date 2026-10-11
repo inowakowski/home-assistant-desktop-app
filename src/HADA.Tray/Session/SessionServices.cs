@@ -43,6 +43,7 @@ public static class SessionServices
         services.AddSingleton<NotificationPresenter>();
         services.AddHostedService<AudioControl>();
         services.AddHostedService<MediaKeyActions>();
+        services.AddHostedService<MediaPlayerControl>();
         services.AddHostedService<DisplayActions>();
         services.AddHostedService<NotificationAction>();
         services.AddHostedService<LaunchAction>();
