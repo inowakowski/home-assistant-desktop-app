@@ -116,6 +116,7 @@ public sealed partial class HaWebSocketEngine
         EntityKind.Number => "number",
         EntityKind.Notify => "notify",
         EntityKind.Trigger => "event",
+        EntityKind.MediaPlayer => "media_player",
         _ => null,
     };
 
@@ -146,13 +147,18 @@ public sealed partial class HaWebSocketEngine
             error = "There is no such entity, or it is switched off in HADA";
         }
         else if ((kind, entity.Kind) is not (("press", EntityKind.Button) or ("set", EntityKind.Switch) or ("set", EntityKind.Number)
-            or ("notify", EntityKind.Notify)))
+            or ("notify", EntityKind.Notify) or ("media", EntityKind.MediaPlayer)))
         {
             error = $"This version of HADA cannot '{kind}' this entity";
         }
         else if (!TryReadIntegrationCommand(entity, command, out var value, out var parameters))
         {
-            error = entity.Kind == EntityKind.Notify ? "The notification has no message" : "The value is not one this entity takes";
+            error = entity.Kind switch
+            {
+                EntityKind.Notify => "The notification has no message",
+                EntityKind.MediaPlayer => "This version of HADA's media player cannot do that",
+                _ => "The value is not one this entity takes",
+            };
         }
         else
         {
@@ -213,6 +219,19 @@ public sealed partial class HaWebSocketEngine
         EntityDescriptor entity, JsonElement command, out string? value, out Dictionary<string, object?>? parameters)
     {
         parameters = null;
+        if (entity.Kind == EntityKind.MediaPlayer)
+        {
+            // What to do is the command's value here, and how loud, or whether muted, goes along with it.
+            value = ReadText(command, "action");
+            if (!MediaCommand.TryRead(value, ReadText(command, "value"), out var argument))
+            {
+                return false;
+            }
+
+            parameters = argument is null ? null : new Dictionary<string, object?> { [MediaCommand.Value] = argument };
+            return true;
+        }
+
         if (entity.Kind != EntityKind.Notify)
         {
             return CommandValue.TryNormalize(entity, ReadText(command, "value"), out value);
@@ -316,7 +335,7 @@ public sealed partial class HaWebSocketEngine
 
     private Task SendAllStatesAsync(HaConnection connection)
     {
-        var states = ExposedEntities().Where(entity => entity.Kind.ReportsState()).Select(IntegrationState).ToArray();
+        var states = ExposedEntities().Where(entity => ReportsHere(entity.Kind)).Select(IntegrationState).ToArray();
         return states.Length == 0 ? Task.CompletedTask : SendStatesAsync(connection, states);
     }
 
@@ -400,6 +419,12 @@ public sealed partial class HaWebSocketEngine
                 described["min"] = entity.Min;
                 described["max"] = entity.Max;
                 described["step"] = entity.Step;
+            }
+
+            if (entity.Kind == EntityKind.MediaPlayer)
+            {
+                // What it can be told, so that Home Assistant offers those controls and no others.
+                described["features"] = MediaCommand.All;
             }
 
             return described;

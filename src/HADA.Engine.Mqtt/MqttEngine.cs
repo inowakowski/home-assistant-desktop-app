@@ -498,6 +498,11 @@ public sealed partial class MqttEngine : ICommunicationEngine
         {
             await foreach (var change in changes.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                if (!IsCarried(change.Entity.Kind))
+                {
+                    continue;
+                }
+
                 var connected = _state == EngineConnectionState.Connected;
                 switch (change)
                 {
@@ -547,7 +552,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
     {
         await ClearPendingRemovalsAsync(cancellationToken).ConfigureAwait(false);
 
-        var entities = _registry.Entities;
+        var entities = _registry.Entities.Where(entity => IsCarried(entity.Kind)).ToList();
         foreach (var entity in entities)
         {
             await TryAnnounceEntityAsync(entity, cancellationToken).ConfigureAwait(false);
@@ -682,6 +687,12 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
                 .Build(),
             cancellationToken);
+
+    /// <summary>
+    /// Home Assistant's MQTT integration has no media player to discover; the computer's media controls reach it
+    /// as the buttons, the volume slider and the playback sensor.
+    /// </summary>
+    private static bool IsCarried(EntityKind kind) => kind != EntityKind.MediaPlayer;
 
     private bool TryGetExposed(string entityId, [MaybeNullWhen(false)] out EntityDescriptor entity) =>
         _registry.TryGet(entityId, out entity) && _filter.IsEnabled(entity);

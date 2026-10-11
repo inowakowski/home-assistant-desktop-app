@@ -20,6 +20,30 @@ HADA może rozmawiać z Home Assistant na trzy sposoby. Nie wykluczają się i �
 
 We wszystkich trzech komputer jest w Home Assistant urządzeniem z encjami, które można przemianować i przypisać do pomieszczenia.
 
+## Co działa którą drogą
+
+*Druga i trzecia kolumna są nowe w wersji 1.4.0; wiersze oznaczone \* nie są jeszcze wydane.*
+
+HADA robi tyle, na ile pozwala dana droga. Jeśli czegoś nie da się nią przekazać, wynika to z Home Assistanta, a nie z ustawienia, którego trzeba szukać: tabela mówi, czego dotyczy, a strona **Encje** w HADA mówi to samo o połączeniach, które masz.
+
+| | **MQTT** | **Połączenie bezpośrednie** | **Połączenie bezpośrednie z integracją HADA** |
+|---|---|---|---|
+| Czujniki i czujniki binarne | Encje | Encje | Encje |
+| Przyciski, przełączniki, suwak głośności | Encje | Nie ma ich w Home Assistant; z automatyzacji, przez [odpalenie zdarzenia](websocket.md#commands), z tokenem administratora | Encje |
+| Odtwarzacz multimediów jako jedna encja \* | Nie: Home Assistant nie ma takiej encji w MQTT. Są przyciski multimediów, głośność i czujnik odtwarzania | Nie; jest czujnik odtwarzania | Tak |
+| Powiadomienie: tekst i tytuł | `notify.send_message` | `notify.mobile_app_…` | `notify.send_message` i `hada.notify` |
+| Powiadomienie: obrazek, przyciski, tag, adres, przypięte, ciche | Tak, zapisane jako JSON w treści | Tak | Tak, przez `hada.notify` |
+| Powiadomienie: obraz z kamery | Nie: wymaga zalogowania w Home Assistant | Tak | Tak |
+| Naciśnięty przycisk powiadomienia | Temat `…/event/notification_action` | Zdarzenia `mobile_app_notification_action` i `hada_event` | Zdarzenie `hada_event` |
+| Szybka akcja uruchamia automatyzację | Wyzwalacz urządzenia i temat | Zdarzenie `hada_event` | Encja `event` i zdarzenie `hada_event` |
+| Encje niedostępne, gdy komputer zniknie | Od razu, jakkolwiek zniknął | Tylko gdy HADA została zamknięta poprawnie | Od razu, jakkolwiek zniknął |
+| Usunięte lub wyłączone encje znikają | Tak | Zostają jako *niedostępne* | Tak |
+| Wystarczy token zwykłego użytkownika | Nie dotyczy: użytkownik brokera | Tak; \* także dla szybkich akcji | Tak |
+| Inny adres w sieci domowej \* | Nie dotyczy | Tak | Tak |
+| Kilka Home Assistantów naraz | Tak | Tak | Tak |
+
+Dotychczasowy sposób połączenia bezpośredniego, **Jako stany**, jest pominięty: robi to, co druga kolumna, z czujnikami, które Home Assistant zapomina po restarcie, i wymaga do wszystkiego tokenu administratora.
+
 ## Co wybrać
 
 **Mam już brokera MQTT.** Wybierz MQTT. Nie trzeba niczego instalować w Home Assistant, a dostajesz wszystko poza obrazem z kamery w powiadomieniu. Jeśli chcesz też powiadomień jak na telefonie, [dodaj połączenie bezpośrednie tylko dla nich](#mqtt-i-powiadomienia-jak-na-telefonie).

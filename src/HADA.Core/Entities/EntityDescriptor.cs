@@ -33,6 +33,14 @@ public enum EntityKind
     /// action. It has no state and takes no commands; a <see cref="Models.DeviceEvent"/> carrying its id says it happened.
     /// </summary>
     Trigger,
+
+    /// <summary>
+    /// What is playing and how loud, with play, pause, next, previous, stop, volume and mute, as one entity. Its
+    /// readings carry the playback status as their state; its commands are those of <see cref="MediaCommand"/>.
+    /// Home Assistant has such an entity only where an integration makes it, so only the engine that talks to the
+    /// HADA integration carries it; the others leave it out, and have the separate buttons and sensors instead.
+    /// </summary>
+    MediaPlayer,
 }
 
 /// <summary>The two states of an <see cref="EntityKind.BinarySensor"/>, as Home Assistant spells them.</summary>

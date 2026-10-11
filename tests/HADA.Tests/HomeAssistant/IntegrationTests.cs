@@ -195,6 +195,61 @@ public sealed class IntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_media_player_is_one_entity_that_says_what_plays_and_takes_what_to_do()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "media_player", Name = "Media player", Kind = EntityKind.MediaPlayer });
+        await using var commands = _bus.Subscribe<ActionCommand>();
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+
+        var player = _homeAssistant.IntegrationEntity("media_player")!;
+        Assert.Equal("media_player", player.Descriptor.GetProperty("kind").GetString());
+        Assert.Equal(
+            ["play", "pause", "play_pause", "next", "previous", "stop", "volume_set", "volume_mute"],
+            player.Descriptor.GetProperty("features").EnumerateArray().Select(feature => feature.GetString()));
+
+        await _bus.PublishAsync(new TelemetryEvent
+        {
+            SensorId = "media_player",
+            State = "playing",
+            Attributes = new Dictionary<string, object?> { ["title"] = "Song", ["artist"] = "Band", ["volume"] = 40, ["muted"] = false },
+        });
+        await WaitUntilAsync(() => _homeAssistant.IntegrationEntity("media_player")?.State == "\"playing\"");
+        var attributes = _homeAssistant.IntegrationEntity("media_player")!.Attributes!.Value;
+        Assert.Equal("Song", attributes.GetProperty("title").GetString());
+        Assert.Equal(40, attributes.GetProperty("volume").GetInt32());
+        Assert.False(attributes.GetProperty("muted").GetBoolean());
+
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c1", command = "media", entity = "media_player", action = "next" });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c2", command = "media", entity = "media_player", action = "volume_set", value = 30.4 });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c3", command = "media", entity = "media_player", action = "volume_mute", value = true });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c4", command = "media", entity = "media_player", action = "eject" });
+        await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c5", command = "media", entity = "media_player", action = "volume_set", value = 300 });
+
+        using var timeout = new CancellationTokenSource(Timeout);
+        var received = new List<ActionCommand>();
+        await foreach (var command in commands.ReadAllAsync(timeout.Token))
+        {
+            received.Add(command);
+            if (received.Count == 3)
+            {
+                break;
+            }
+        }
+
+        Assert.All(received, command => Assert.Equal("media_player", command.ActionId));
+        Assert.Equal(("next", null), (received[0].Value, received[0].GetParameter(MediaCommand.Value)));
+        Assert.Equal(("volume_set", "30"), (received[1].Value, received[1].GetParameter(MediaCommand.Value)));
+        Assert.Equal(("volume_mute", "on"), (received[2].Value, received[2].GetParameter(MediaCommand.Value)));
+
+        // What it cannot do, and a volume there is no such thing as, are refused, with the reason.
+        await WaitUntilAsync(() => Results().Count == 5);
+        Assert.Equal([true, true, true, false, false], Results().Select(result => result.GetProperty("success").GetBoolean()));
+        Assert.False(commands.TryRead(out _));
+    }
+
+    [Fact]
     public async Task A_command_that_cannot_be_taken_is_refused_with_the_reason()
     {
         await _registry.RegisterAsync(new EntityDescriptor { Id = "volume_level", Name = "Volume", Kind = EntityKind.Number, Min = 0, Max = 100 });

@@ -301,4 +301,7 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Reach_Nothing" xml:space="preserve"><value>przez to połączenie nic nie jest wysyłane: encje i powiadomienia są w nim wyłączone.</value></data>
   <data name="Reach_NoConnectionTitle" xml:space="preserve"><value>Brak połączenia</value></data>
   <data name="Reach_NoConnection" xml:space="preserve"><value>HADA nie jest jeszcze połączona z żadnym Home Assistantem. Ustaw połączenie na stronie Połączenia.</value></data>
+  <data name="Entity_MediaPlayer" xml:space="preserve"><value>Odtwarzacz multimediów</value></data>
+  <data name="EntityHint_media_player" xml:space="preserve"><value>Odtwarzanie, głośność i to, co gra, jako jedna encja, tak jak Home Assistant pokazuje głośnik. Tylko przez integrację HADA; osobne przyciski multimediów, suwak głośności i czujnik odtwarzania działają każdą drogą.</value></data>
+  <data name="Reach_MediaPlayer" xml:space="preserve"><value>pojawia się w Home Assistant tylko przez integrację HADA, której nie używa żadne z Twoich połączeń. Przyciski multimediów, suwak głośności i czujnik odtwarzania docierają jak dotąd.</value></data>
 </root>

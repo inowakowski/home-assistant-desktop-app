@@ -467,6 +467,21 @@ public sealed class MobileAppTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_media_player_is_left_out_where_only_the_integration_could_show_it()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "media_player", Name = "Media player", Kind = EntityKind.MediaPlayer });
+        await using var engine = CreateEngine(sensors: HomeAssistantSensorMode.Entities);
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "media_player", State = "playing" });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "1" });
+        await WaitUntilAsync(() => SensorState("cpu_load") == "1");
+
+        Assert.Null(_homeAssistant.SensorEntity("media_player"));
+    }
+
+    [Fact]
     public async Task Sensor_entities_reported_while_home_assistant_is_busy_are_updated_in_one_request()
     {
         await _registry.RegisterAsync(new EntityDescriptor { Id = "memory_used", Name = "Memory", Kind = EntityKind.Sensor });
