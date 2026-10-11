@@ -426,6 +426,7 @@ public sealed partial class ServiceControl(
         Name = homeAssistant.Name ?? string.Empty,
         Notifications = homeAssistant.Notifications,
         SensorMode = homeAssistant.SensorMode,
+        AllowUnencrypted = homeAssistant.AllowUnencrypted,
     };
 
     private Task<ConnectionTestResult> TestMqttAsync(MqttServerUpdate? server, CancellationToken cancellationToken)
@@ -494,6 +495,7 @@ public sealed partial class ServiceControl(
         Name = settings.Name,
         Notifications = settings.Notifications,
         SensorMode = settings.SensorMode,
+        AllowUnencrypted = settings.AllowUnencrypted,
         BaseUrl = settings.BaseUrl,
         AccessToken = accessToken,
         DeviceId = settings.DeviceId,

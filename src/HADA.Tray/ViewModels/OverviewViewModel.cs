@@ -162,6 +162,10 @@ public sealed class OverviewViewModel : ObservableObject
             case EngineConnectionState.Connecting:
                 card.Set(Loc.Get("State_Connecting"), StatusKind.Warning);
                 break;
+            case EngineConnectionState.Faulted when engine.Issue is { Length: > 0 } issue:
+                // Not connected, for a reason that can be named and put right in the settings.
+                card.Set(Loc.Get("State_Faulted"), StatusKind.Error, Loc.TryGet($"Issue_{issue}") ?? Loc.Format("Issue_other", issue));
+                break;
             case EngineConnectionState.Faulted:
                 card.Set(Loc.Get("State_Faulted"), StatusKind.Error, Loc.Get("State_FaultedDetail"));
                 break;

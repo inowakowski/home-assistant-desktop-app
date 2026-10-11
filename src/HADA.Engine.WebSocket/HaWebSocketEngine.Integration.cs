@@ -57,7 +57,7 @@ public sealed partial class HaWebSocketEngine
     private int _entitiesChanged;
 
     /// <inheritdoc/>
-    public string? Issue => _issue;
+    public string? Issue => _connectionIssue ?? _issue;
 
     private bool UsesIntegration => _options.SensorMode == HomeAssistantSensorMode.Integration;
 

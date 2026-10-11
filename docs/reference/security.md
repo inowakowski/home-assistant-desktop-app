@@ -14,11 +14,22 @@ What this does not protect against, and cannot:
 
 - **An administrator of the computer**, or a program running as one, can read the passwords: such a program can do whatever the service can, including decrypting them. That is true of every program that logs in somewhere on its own.
 - **Someone with the computer's disk in their hands** can find the key DPAPI uses on the disk too, unless the disk is encrypted. Turn on BitLocker (Device encryption) on a computer that leaves the house.
-- **The network:** without TLS, an MQTT password travels in plain text to the broker, as does a token to `http://` Home Assistant. Use TLS (port 8883) or `https://` where the network is not yours, or a VPN such as ZeroTier, which encrypts everything it carries.
+- **The network:** without TLS, an MQTT password travels in plain text to the broker, as does a token to `http://` Home Assistant. Use TLS (port 8883) or `https://` where the network is not yours, or a VPN such as ZeroTier, which encrypts everything it carries. For Home Assistant, HADA [refuses the worst case](#the-connection-to-home-assistant) by itself.
 
 What helps on the Home Assistant side: give HADA a broker user of its own, so its password opens nothing else and can be changed without touching anything else.
 
 A [portable copy](../getting-started/portable.md) encrypts its secrets for the user who runs it rather than for the computer, and keeps them in its own folder, which is as protected as the place it was unpacked to.
+
+## The connection to Home Assistant
+
+This is about a Home Assistant connected to directly, with or without the HADA integration. *The refusal described here is not released yet.*
+
+- **Encrypted or not.** With an `https://` address everything between HADA and Home Assistant is encrypted, and Windows checks the server's certificate. A certificate that does not check out ends the connection; there is no setting to accept it anyway. With an `http://` address nothing is encrypted: the token, the commands and the notifications can be read, and changed, by whoever is on the way.
+- **What HADA refuses.** An `http://` address is connected to only if it is the computer's own or one of a private network: `10.x`, `172.16` to `172.31`, `192.168.x`, `169.254.x`, `100.64` to `100.127` (which VPNs such as Tailscale use), and their IPv6 counterparts. A name is looked up first, and one public address among those it stands for is enough to refuse. The **Overview** page and the log then say why there is no connection. HADA keeps trying, as a laptop may be back on the network where the name is a local one.
+- **Lifting the refusal.** **Connect to this address without encryption**, on the Connections page under the address, lifts it for that one server. That is for a way that is encrypted by something else, a VPN with public addresses for instance. Over the open internet, use `https://`: Home Assistant Cloud, a reverse proxy with a certificate, or a tunnel all give one.
+- **Whose token.** The token says which Home Assistant user the computer is. For notifications as on a phone, and for the HADA integration, the token of an ordinary user is enough, so HADA need not hold an administrator's. Give it a user of its own: the token can then be withdrawn, in that user's profile, without touching anything else.
+- **The HADA integration.** A Device ID belongs to the Home Assistant user whose token connected it first. Another user's token is turned away; an administrator's is not. What is pressed or set in Home Assistant reaches the computer only over the connection the computer made itself, and only for the entities switched on in HADA.
+- **Notifications as on a phone.** Registering with `mobile_app` yields the ID of a webhook, which opens as much as it says: reporting sensors and pressed buttons as this computer. It is kept encrypted, next to the token, and travels the same way the token does.
 
 ## Everything else
 

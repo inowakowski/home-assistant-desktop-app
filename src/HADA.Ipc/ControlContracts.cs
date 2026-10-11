@@ -61,8 +61,8 @@ public sealed record UpdateSettings(bool CheckAutomatically = true, bool Include
 /// <param name="ServerId">Which of the servers of that kind this is: the id of its settings.</param>
 /// <param name="ServerName">What the user calls that server; empty when it has no name.</param>
 /// <param name="Issue">
-/// What keeps a connected engine from doing all it is set up to do, as a short code such as
-/// <c>integration_missing</c>; <see langword="null"/> when nothing does.
+/// What keeps an engine from connecting, or a connected one from doing all it is set up to do, as a short code
+/// such as <c>integration_missing</c>; <see langword="null"/> when nothing does.
 /// </param>
 public sealed record EngineStatus(
     string Name,
@@ -141,6 +141,12 @@ public sealed record HomeAssistantSettings(
 
     /// <summary>How sensors reach this Home Assistant. As states, for a server saved before there was a choice.</summary>
     public HomeAssistantSensorMode SensorMode { get; init; } = HomeAssistantSensorMode.States;
+
+    /// <summary>
+    /// Whether an <c>http</c> address out on the internet is connected to, although the access token can be read
+    /// on the way there. Off unless the user chose it.
+    /// </summary>
+    public bool AllowUnencrypted { get; init; }
 }
 
 /// <summary>A server as shown to clients: its access token is never sent back, only whether one is saved.</summary>
