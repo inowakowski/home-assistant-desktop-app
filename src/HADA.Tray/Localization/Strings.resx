@@ -281,4 +281,5 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Ha_UrlUnencryptedAllowed" xml:space="preserve"><value>Not encrypted, and allowed all the same: the access token can be read on the way to this address.</value></data>
   <data name="Ha_AllowUnencrypted" xml:space="preserve"><value>Connect to this address without encryption</value></data>
   <data name="Issue_unencrypted_public" xml:space="preserve"><value>HADA did not connect: the address is not encrypted (http) and is a public one, so the access token would travel in the open. Use an https:// address, or allow the unencrypted connection for this server on the Connections page.</value></data>
+  <data name="Issue_integration_outdated" xml:space="preserve"><value>The HADA integration in this Home Assistant is older than this version of HADA, and left some entities out. Update it in Home Assistant, with HACS, and restart Home Assistant.</value></data>
 </root>

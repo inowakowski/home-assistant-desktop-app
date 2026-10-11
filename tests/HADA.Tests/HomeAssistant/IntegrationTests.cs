@@ -1,3 +1,4 @@
+using System.Text.Json;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
@@ -102,6 +103,59 @@ public sealed class IntegrationTests : IAsyncLifetime
 
         await _bus.PublishAsync(new TelemetryEvent { SensorId = "display_on", State = BinaryState.Off });
         await WaitUntilAsync(() => _homeAssistant.IntegrationEntity("display_on")?.State == "false");
+    }
+
+    [Fact]
+    public async Task What_is_reported_while_home_assistant_is_busy_goes_out_in_one_message_newest_only()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "memory_used", Name = "Memory", Kind = EntityKind.Sensor, UnitOfMeasurement = "%" });
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+
+        JsonElement[] Updates() =>
+            [.. _homeAssistant.SocketMessages.Where(m => m.GetProperty("type").GetString() == "hada/update")];
+        JsonElement[] UpdatesOf(string state) =>
+            [.. Updates().Where(m => m.GetProperty("states").EnumerateArray().Any(s => s.TryGetProperty("state", out var value) && value.GetRawText() == state))];
+
+        // Home Assistant takes the first reading and is slow to answer; three more are reported meanwhile.
+        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _homeAssistant.UpdatesHeld = held.Task;
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "10" });
+        await WaitUntilAsync(() => UpdatesOf("10").Length == 1);
+        var before = Updates().Length;
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "20" });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "memory_used", State = "55" });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "30" });
+        held.SetResult();
+
+        await WaitUntilAsync(() => _homeAssistant.IntegrationEntity("cpu_load")?.State == "30"
+            && _homeAssistant.IntegrationEntity("memory_used")?.State == "55");
+
+        // One message for the three, with one state per sensor: the reading in between was overtaken.
+        var together = Assert.Single(Updates().Skip(before));
+        Assert.Equal(
+            ["cpu_load", "memory_used"],
+            together.GetProperty("states").EnumerateArray().Select(s => s.GetProperty("id").GetString()).Order());
+        Assert.Empty(UpdatesOf("20"));
+    }
+
+    [Fact]
+    public async Task An_integration_older_than_hada_is_used_and_said_to_want_updating()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "notification", Name = "Notification", Kind = EntityKind.Notify });
+        _homeAssistant.UnknownKinds = ["notify"];
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.Issue == HaWebSocketEngine.IssueIntegrationOutdated);
+
+        // What it does know is there all the same.
+        Assert.Equal(EngineConnectionState.Connected, engine.State);
+        Assert.Equal(["cpu_load", "display_on", "lock_screen"], _homeAssistant.IntegrationEntityIds);
+
+        // Without the entity it does not know, there is nothing to complain about.
+        await _registry.UnregisterAsync("notification");
+        await WaitUntilAsync(() => engine.Issue is null);
     }
 
     [Fact]

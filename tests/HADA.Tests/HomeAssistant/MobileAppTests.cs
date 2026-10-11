@@ -446,6 +446,38 @@ public sealed class MobileAppTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Sensor_entities_reported_while_home_assistant_is_busy_are_updated_in_one_request()
+    {
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "memory_used", Name = "Memory", Kind = EntityKind.Sensor });
+        await using var engine = CreateEngine(sensors: HomeAssistantSensorMode.Entities);
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected);
+
+        // Their first readings register them.
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "1" });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "memory_used", State = "50" });
+        await WaitUntilAsync(() => SensorState("cpu_load") == "1" && SensorState("memory_used") == "50");
+        var before = Calls("update_sensor_states").Count;
+
+        // Home Assistant takes the next reading and is slow to answer; three more are reported meanwhile.
+        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _homeAssistant.UpdatesHeld = held.Task;
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "2" });
+        await WaitUntilAsync(() => Calls("update_sensor_states").Count == before + 1);
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "3" });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "memory_used", State = "60" });
+        await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "4" });
+        held.SetResult();
+        await WaitUntilAsync(() => SensorState("cpu_load") == "4" && SensorState("memory_used") == "60");
+
+        // One request for the three, with one state per sensor.
+        var updates = Calls("update_sensor_states");
+        Assert.Equal(before + 2, updates.Count);
+        Assert.Equal(2, updates[^1].Body.GetProperty("data").GetArrayLength());
+        Assert.Equal(2, Calls("register_sensor").Count);
+    }
+
+    [Fact]
     public async Task A_sensor_entity_whose_source_is_away_or_that_is_switched_off_is_unavailable()
     {
         await _registry.RegisterAsync(new EntityDescriptor { Id = "gpu_load", Name = "GPU load", Kind = EntityKind.Sensor });

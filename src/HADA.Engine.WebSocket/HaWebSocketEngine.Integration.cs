@@ -43,6 +43,12 @@ public sealed partial class HaWebSocketEngine
     /// <summary>The integration refused for a reason this version does not know, or did not answer.</summary>
     public const string IssueIntegrationFailed = "integration_failed";
 
+    /// <summary>
+    /// The integration took the computer but left entities out, for being of a kind it does not know: it is
+    /// older than this version of HADA, and wants updating in Home Assistant.
+    /// </summary>
+    public const string IssueIntegrationOutdated = "integration_outdated";
+
     private static readonly TimeSpan IntegrationTimeout = TimeSpan.FromSeconds(10);
 
     // Several entities registered in a row, as when the tray app connects, are sent as one list.
@@ -272,12 +278,9 @@ public sealed partial class HaWebSocketEngine
         {
             _integrationSubscriptionId = connectId;
             _integrationConnected = true;
-            SetIssue(null);
-            if (_logger.IsEnabled(LogLevel.Information))
-            {
-                var ignored = IgnoredEntities(result);
-                LogIntegrationConnected(_logger, _deviceName, ignored);
-            }
+            var ignored = IgnoredEntities(result);
+            LogIntegrationConnected(_logger, _deviceName, ignored ?? "none");
+            SetIssue(ignored is null ? null : IssueIntegrationOutdated);
 
             // What was reported while the answer was on its way is not in the list that was sent.
             await SendAllStatesAsync(connection).ConfigureAwait(false);
@@ -303,6 +306,11 @@ public sealed partial class HaWebSocketEngine
                 IntegrationTimeout)
             .ConfigureAwait(false);
         CheckStillConnected(answer);
+        if (answer is { } result && IsSuccess(result))
+        {
+            // An entity of a kind the integration does not know may have come or gone.
+            SetIssue(IgnoredEntities(result) is null ? null : IssueIntegrationOutdated);
+        }
     }
 
     private Task SendAllStatesAsync(HaConnection connection)
@@ -311,23 +319,34 @@ public sealed partial class HaWebSocketEngine
         return states.Length == 0 ? Task.CompletedTask : SendStatesAsync(connection, states);
     }
 
-    /// <summary>Reports what one entity says now; nothing while the integration is not connected, as connecting sends it all.</summary>
-    private Task SetIntegrationStateAsync(EntityDescriptor entity, string state, IReadOnlyDictionary<string, object?>? attributes)
+    /// <summary>
+    /// Reports what entities say now, all in one message; nothing while the integration is not connected, as
+    /// connecting sends it all.
+    /// </summary>
+    private Task SetIntegrationStatesAsync(IReadOnlyList<SensorReading> readings)
     {
-        if (!_integrationConnected || _connection is not { } connection)
+        if (!_integrationConnected || _connection is not { } connection || readings.Count == 0)
         {
             return Task.CompletedTask;
         }
 
-        // "unavailable" is not a state here but a flag of its own; the entity keeps what it last reported.
-        var update = new Dictionary<string, object?> { ["id"] = entity.Id, ["available"] = state != Unavailable };
-        if (state != Unavailable)
+        var updates = new Dictionary<string, object?>[readings.Count];
+        for (var i = 0; i < updates.Length; i++)
         {
-            update["state"] = IntegrationValue(entity, state);
-            update["attributes"] = attributes ?? new Dictionary<string, object?>();
+            var (entity, state, attributes) = readings[i];
+
+            // "unavailable" is not a state here but a flag of its own; the entity keeps what it last reported.
+            var update = new Dictionary<string, object?> { ["id"] = entity.Id, ["available"] = state != Unavailable };
+            if (state != Unavailable)
+            {
+                update["state"] = IntegrationValue(entity, state);
+                update["attributes"] = attributes ?? new Dictionary<string, object?>();
+            }
+
+            updates[i] = update;
         }
 
-        return SendStatesAsync(connection, [update]);
+        return SendStatesAsync(connection, updates);
     }
 
     private async Task SendStatesAsync(HaConnection connection, Dictionary<string, object?>[] states)
@@ -407,7 +426,11 @@ public sealed partial class HaWebSocketEngine
         }
 
         _issue = issue;
-        if (issue is not null)
+        if (issue == IssueIntegrationOutdated)
+        {
+            LogIntegrationOutdated(_logger);
+        }
+        else if (issue is not null)
         {
             LogIntegrationIssue(_logger, issue, _options.IntegrationRetryInterval);
         }
@@ -422,14 +445,18 @@ public sealed partial class HaWebSocketEngine
             ? code.GetString()
             : null;
 
-    private static string IgnoredEntities(JsonElement result) =>
+    /// <summary>The entities the integration left out, as a list to read; <see langword="null"/> when it took them all.</summary>
+    private static string? IgnoredEntities(JsonElement result) =>
         result.TryGetProperty("result", out var body) && body.ValueKind == JsonValueKind.Object
         && body.TryGetProperty("ignored", out var ignored) && ignored.ValueKind == JsonValueKind.Array && ignored.GetArrayLength() > 0
             ? string.Join(", ", ignored.EnumerateArray().Select(id => id.GetString()))
-            : "none";
+            : null;
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to the HADA integration as '{DeviceName}'; entities it left out: {Ignored}.")]
     private static partial void LogIntegrationConnected(ILogger logger, string deviceName, string ignored);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The HADA integration in Home Assistant left out entities of a kind it does not know: it is older than this version of HADA. Update it in Home Assistant, with HACS, and restart Home Assistant.")]
+    private static partial void LogIntegrationOutdated(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The HADA integration cannot be used on this connection ({Issue}), so the computer's entities are not in Home Assistant; trying again every {RetryInterval}.")]
     private static partial void LogIntegrationIssue(ILogger logger, string issue, TimeSpan retryInterval);
