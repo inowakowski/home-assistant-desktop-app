@@ -252,12 +252,13 @@ public sealed partial class HaWebSocketEngine
     {
         // Whatever changes from here on is in the list that is about to be sent.
         Interlocked.Exchange(ref _entitiesChanged, 0);
-        var connectId = 0;
         var answer = await RequestAsync(
                 connection,
                 id => new
                 {
-                    id = connectId = id,
+                    // Known before the answer is: a command may come right behind the answer, and is read by
+                    // another thread than the one that takes the answer in.
+                    id = _integrationSubscriptionId = id,
                     type = "hada/connect",
                     protocol = IntegrationProtocol,
                     device = new
@@ -276,7 +277,6 @@ public sealed partial class HaWebSocketEngine
 
         if (answer is { } result && IsSuccess(result))
         {
-            _integrationSubscriptionId = connectId;
             _integrationConnected = true;
             var ignored = IgnoredEntities(result);
             LogIntegrationConnected(_logger, _deviceName, ignored ?? "none");
@@ -287,6 +287,7 @@ public sealed partial class HaWebSocketEngine
             return;
         }
 
+        _integrationSubscriptionId = 0;
         SetIssue(answer is { } refusal ? ErrorCode(refusal) switch
         {
             "unknown_command" => IssueIntegrationMissing,

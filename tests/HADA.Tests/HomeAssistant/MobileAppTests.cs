@@ -321,6 +321,27 @@ public sealed class MobileAppTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task What_happens_on_the_computer_reaches_home_assistant_with_an_ordinary_users_token_too()
+    {
+        _homeAssistant.IsAdministrator = false;
+        await _registry.RegisterAsync(new EntityDescriptor { Id = "toggle_lamp", Name = "Toggle lamp", Kind = EntityKind.Trigger });
+        await using var engine = CreateEngine();
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilAsync(() => engine.State == EngineConnectionState.Connected && _homeAssistant.HasPushChannel);
+
+        await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "toggle_lamp" });
+
+        // Through the registration, which takes events from anyone's; over the socket only an administrator may.
+        await WaitUntilAsync(() => Calls("fire_event").Count > 0);
+        var data = Assert.Single(Calls("fire_event")).Body.GetProperty("data");
+        Assert.Equal("hada_event", data.GetProperty("event_type").GetString());
+        Assert.Equal("testpc", data.GetProperty("event_data").GetProperty("device_id").GetString());
+        Assert.Equal("quick_action", data.GetProperty("event_data").GetProperty("name").GetString());
+        Assert.Equal("toggle_lamp", data.GetProperty("event_data").GetProperty("value").GetString());
+        Assert.DoesNotContain(_homeAssistant.SocketMessages, m => m.GetProperty("type").GetString() == "fire_event");
+    }
+
+    [Fact]
     public async Task A_token_that_is_no_administrators_still_gets_notifications()
     {
         _homeAssistant.IsAdministrator = false;

@@ -294,4 +294,11 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Ha_HomeNoNetworks" xml:space="preserve"><value>Podaj co najmniej jedną sieć domową: bez niej adres lokalny nie będzie używany.</value></data>
   <data name="Ha_HomeNoAddress" xml:space="preserve"><value>Podaj adres, pod którym Home Assistant jest dostępny w tych sieciach.</value></data>
   <data name="Validation_LocalUrl" xml:space="preserve"><value>Adres w sieci domowej musi być pełnym adresem http:// lub https://.</value></data>
+  <data name="Reach_Title" xml:space="preserve"><value>Nie wszystko z poniższej listy dociera do Home Assistant</value></data>
+  <data name="Reach_Entities" xml:space="preserve"><value>czujniki docierają jako encje urządzenia. Przycisków, przełączników i suwaków nie da się kliknąć w Home Assistant przez to połączenie; wybierz dla niego „Przez integrację HADA” na stronie Połączenia albo użyj MQTT.</value></data>
+  <data name="Reach_States" xml:space="preserve"><value>dotychczasowy sposób: same czujniki, jako stany, które Home Assistant zapomina po restarcie. Przycisków, przełączników i suwaków nie da się tam kliknąć; wybierz dla tego połączenia „Przez integrację HADA” na stronie Połączenia albo użyj MQTT.</value></data>
+  <data name="Reach_NotificationsOnly" xml:space="preserve"><value>tylko powiadomienia. Encje nie są wysyłane przez to połączenie, a innego nie ma.</value></data>
+  <data name="Reach_Nothing" xml:space="preserve"><value>przez to połączenie nic nie jest wysyłane: encje i powiadomienia są w nim wyłączone.</value></data>
+  <data name="Reach_NoConnectionTitle" xml:space="preserve"><value>Brak połączenia</value></data>
+  <data name="Reach_NoConnection" xml:space="preserve"><value>HADA nie jest jeszcze połączona z żadnym Home Assistantem. Ustaw połączenie na stronie Połączenia.</value></data>
 </root>
