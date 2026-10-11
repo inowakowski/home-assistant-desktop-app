@@ -308,7 +308,7 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="EntityHint_screen_brightness" xml:space="preserve"><value>The brightness of the built-in screen, which Home Assistant can also set. Only on computers with a screen Windows can dim.</value></data>
   <data name="SignIn_Button" xml:space="preserve"><value>Sign in through Home Assistant</value></data>
   <data name="SignIn_Hint" xml:space="preserve"><value>Instead of a token: opens Home Assistant in your browser, where you sign in and allow the access.</value></data>
-  <data name="SignIn_Waiting" xml:space="preserve"><value>Waiting for you to sign in in the browser…</value></data>
+  <data name="SignIn_Waiting" xml:space="preserve"><value>Waiting for you to sign in in the browser. If no browser opened, open this address in one yourself: {0}</value></data>
   <data name="SignIn_Done" xml:space="preserve"><value>Signed in. Save to start using it.</value></data>
   <data name="SignIn_NeedsAddress" xml:space="preserve"><value>Enter the address of Home Assistant first.</value></data>
   <data name="SignIn_Unencrypted" xml:space="preserve"><value>Signing in needs an encrypted address (https://), or your leave for this one under the address.</value></data>

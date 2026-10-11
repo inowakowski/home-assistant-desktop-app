@@ -36,6 +36,16 @@ public static class HomeAssistantAuth
 
     public static string ClientId(int port) => $"http://127.0.0.1:{port}/";
 
+    /// <summary>
+    /// The address the browser is opened at: one on this computer and without a query string, from which it is
+    /// sent on to <see cref="AuthorizeUrl"/>. What opens the browser may not cope with the query string of that.
+    /// </summary>
+    public static Uri StartUri(int port) => new($"http://127.0.0.1:{port}/start");
+
+    /// <summary>Whether the request is the browser arriving at <see cref="StartUri"/>, e.g. <c>GET /start HTTP/1.1</c>.</summary>
+    public static bool IsStart(string? requestLine) =>
+        requestLine?.Split(' ') is { Length: >= 2 } parts && parts[0] == "GET" && parts[1] == "/start";
+
     /// <summary>The page of Home Assistant on which the user signs in and allows the access.</summary>
     /// <param name="state">Something unguessable that must come back unchanged, so that nobody else can finish the sign-in.</param>
     public static Uri AuthorizeUrl(Uri baseUrl, int port, string state)

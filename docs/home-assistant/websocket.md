@@ -89,7 +89,7 @@ Commands are sent by firing the command event, for example from a script. `actio
 A long-lived access token has to be made in Home Assistant, copied and pasted. The other way is to sign in, as Home Assistant's own apps do:
 
 1. On the **Connections** page, enter the address of Home Assistant and choose **Sign in through Home Assistant**.
-2. Your browser opens Home Assistant's own sign-in page. Sign in, if you are not signed in there already, and allow the access.
+2. Your browser opens Home Assistant's own sign-in page. Sign in, if you are not signed in there already, and allow the access. Should no browser open, HADA shows an address to open in one yourself.
 3. The browser says *Signed in*; close the tab, go back to HADA and **Save**.
 
 What HADA keeps is not your password, which it never sees, but a *refresh token*: Home Assistant exchanges it for access tokens that last half an hour each, and HADA asks for the next one in time. It is saved encrypted, as a pasted token is.

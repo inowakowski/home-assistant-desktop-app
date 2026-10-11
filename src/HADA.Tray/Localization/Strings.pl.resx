@@ -308,7 +308,7 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="EntityHint_screen_brightness" xml:space="preserve"><value>Jasność wbudowanego ekranu, którą Home Assistant może też ustawić. Tylko na komputerach z ekranem, który Windows potrafi przyciemnić.</value></data>
   <data name="SignIn_Button" xml:space="preserve"><value>Zaloguj przez Home Assistant</value></data>
   <data name="SignIn_Hint" xml:space="preserve"><value>Zamiast tokenu: otwiera Home Assistant w przeglądarce, gdzie się logujesz i zezwalasz na dostęp.</value></data>
-  <data name="SignIn_Waiting" xml:space="preserve"><value>Czekam, aż zalogujesz się w przeglądarce…</value></data>
+  <data name="SignIn_Waiting" xml:space="preserve"><value>Czekam, aż zalogujesz się w przeglądarce. Jeśli przeglądarka się nie otworzyła, otwórz w niej ten adres: {0}</value></data>
   <data name="SignIn_Done" xml:space="preserve"><value>Zalogowano. Zapisz, aby zacząć z tego korzystać.</value></data>
   <data name="SignIn_NeedsAddress" xml:space="preserve"><value>Najpierw podaj adres Home Assistant.</value></data>
   <data name="SignIn_Unencrypted" xml:space="preserve"><value>Logowanie wymaga adresu szyfrowanego (https://) albo zezwolenia na ten adres, pod polem adresu.</value></data>

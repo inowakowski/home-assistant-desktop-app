@@ -2,6 +2,11 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.5.1
+
+- Fixed: **Sign in through Home Assistant** opened a window of files instead of the browser when it was chosen in the window unlocked for editing, which is where it is chosen in an installed HADA. The browser is now sent to Home Assistant by way of an address on the computer itself, which works however the browser is opened.
+- While waiting for the sign-in, the window shows that address, to open by hand should no browser come up.
+
 ## 1.5.0
 
 More for a Home Assistant connected to directly: the computer as a media player, signing in instead of pasting a token, a local address for the networks you call home, and a refusal to send the token unencrypted over the internet. The app now says which of your connections carries what. A stable version, which also brings everything new in 1.3.0 and 1.4.0 to those who use stable versions. The media player needs version 0.4.0 of the HADA integration.
