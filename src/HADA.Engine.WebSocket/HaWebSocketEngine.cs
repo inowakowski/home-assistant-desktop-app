@@ -32,6 +32,9 @@ namespace HADA.Engine.WebSocket;
 public sealed partial class HaWebSocketEngine : ICommunicationEngine
 {
     private const int MaxStateLength = 255;
+
+    // How many readings go out in one message at most; more than a computer has sensors, as a rule.
+    private const int MaxBatch = 100;
     private const string Unavailable = "unavailable";
 
     private static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(10);
@@ -519,18 +522,32 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
     {
         try
         {
-            await foreach (var reading in readings.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            var batch = new Dictionary<string, SensorReading>(StringComparer.Ordinal);
+            await foreach (var first in readings.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                if (!TryGetExposedSensor(reading.SensorId, out var entity))
+                // Sending waits for Home Assistant, and sensors report in bursts. What gathered meanwhile goes out
+                // together, the newest of each sensor only: one message instead of one per reading.
+                batch.Clear();
+                var reading = first;
+                do
                 {
-                    continue;
-                }
+                    if (!TryGetExposedSensor(reading.SensorId, out var entity))
+                    {
+                        continue;
+                    }
 
-                // A replayed reading must not bring an unavailable sensor back to its stale value.
-                _lastReadings[entity.Id] = reading;
-                if (_state == EngineConnectionState.Connected && _registry.IsAvailable(entity.Id))
+                    // A replayed reading must not bring an unavailable sensor back to its stale value.
+                    _lastReadings[entity.Id] = reading;
+                    if (_state == EngineConnectionState.Connected && _registry.IsAvailable(entity.Id))
+                    {
+                        batch[entity.Id] = new SensorReading(entity, reading.State, reading.Attributes);
+                    }
+                }
+                while (batch.Count < MaxBatch && readings.TryRead(out reading));
+
+                if (batch.Count > 0)
                 {
-                    await TrySetStateAsync(entity, reading.State, reading.Attributes, cancellationToken).ConfigureAwait(false);
+                    await TrySetStatesAsync([.. batch.Values], cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -681,26 +698,60 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
     private async Task PublishCachedReadingsAsync(CancellationToken cancellationToken)
     {
+        var cached = new List<SensorReading>();
         foreach (var reading in _lastReadings.Values)
         {
             if (TryGetExposedSensor(reading.SensorId, out var entity))
             {
                 var isAvailable = _registry.IsAvailable(entity.Id);
-                await TrySetStateAsync(
-                        entity, isAvailable ? reading.State : Unavailable, isAvailable ? reading.Attributes : null, cancellationToken)
-                    .ConfigureAwait(false);
+                cached.Add(new SensorReading(entity, isAvailable ? reading.State : Unavailable, isAvailable ? reading.Attributes : null));
             }
+        }
+
+        foreach (var chunk in cached.Chunk(MaxBatch))
+        {
+            await TrySetStatesAsync(chunk, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async Task MarkSensorsUnavailableAsync(CancellationToken cancellationToken)
     {
+        var sensors = new List<SensorReading>();
         foreach (var sensorId in _lastReadings.Keys)
         {
             if (TryGetExposedSensor(sensorId, out var entity))
             {
-                await TrySetStateAsync(entity, Unavailable, attributes: null, cancellationToken).ConfigureAwait(false);
+                sensors.Add(new SensorReading(entity, Unavailable, Attributes: null));
             }
+        }
+
+        foreach (var chunk in sensors.Chunk(MaxBatch))
+        {
+            await TrySetStatesAsync(chunk, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Reports what several sensors say, in one message where the way they are sent allows it: as entities of
+    /// the mobile_app device, and through the HADA integration. States are written one request each.
+    /// </summary>
+    private async Task TrySetStatesAsync(IReadOnlyList<SensorReading> readings, CancellationToken cancellationToken)
+    {
+        switch (_options.SensorMode)
+        {
+            case HomeAssistantSensorMode.Entities:
+                await SetSensorEntitiesAsync(readings, cancellationToken).ConfigureAwait(false);
+                break;
+            case HomeAssistantSensorMode.Integration:
+                await SetIntegrationStatesAsync(readings).ConfigureAwait(false);
+                break;
+            case HomeAssistantSensorMode.States:
+                foreach (var reading in readings)
+                {
+                    await TrySetStateAsync(reading.Entity, reading.State, reading.Attributes, cancellationToken).ConfigureAwait(false);
+                }
+
+                break;
         }
     }
 
@@ -710,9 +761,9 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         switch (_options.SensorMode)
         {
             case HomeAssistantSensorMode.Entities:
-                return SetSensorEntityAsync(entity, state, attributes, cancellationToken);
+                return SetSensorEntitiesAsync([new SensorReading(entity, state, attributes)], cancellationToken);
             case HomeAssistantSensorMode.Integration:
-                return SetIntegrationStateAsync(entity, state, attributes);
+                return SetIntegrationStatesAsync([new SensorReading(entity, state, attributes)]);
             case HomeAssistantSensorMode.Off:
                 return Task.CompletedTask;
         }
@@ -858,3 +909,6 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 }
 
 internal sealed class HaAuthenticationException(string? reason) : Exception(reason ?? "Invalid access token");
+
+/// <summary>What a sensor says at one moment, on its way to Home Assistant.</summary>
+internal sealed record SensorReading(EntityDescriptor Entity, string State, IReadOnlyDictionary<string, object?>? Attributes);

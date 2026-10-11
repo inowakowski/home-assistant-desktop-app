@@ -281,4 +281,5 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Ha_UrlUnencryptedAllowed" xml:space="preserve"><value>Nieszyfrowane, a mimo to dozwolone: token dostępu da się odczytać po drodze do tego adresu.</value></data>
   <data name="Ha_AllowUnencrypted" xml:space="preserve"><value>Łącz z tym adresem bez szyfrowania</value></data>
   <data name="Issue_unencrypted_public" xml:space="preserve"><value>HADA nie połączyła się: adres nie jest szyfrowany (http) i jest publiczny, więc token dostępu szedłby otwartym tekstem. Użyj adresu https:// albo zezwól na nieszyfrowane połączenie z tym serwerem na stronie Połączenia.</value></data>
+  <data name="Issue_integration_outdated" xml:space="preserve"><value>Integracja HADA w tym Home Assistant jest starsza niż ta wersja HADA i pominęła część encji. Zaktualizuj ją w Home Assistant, przez HACS, i zrestartuj Home Assistant.</value></data>
 </root>

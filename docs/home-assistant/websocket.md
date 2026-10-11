@@ -50,7 +50,7 @@ Compared with entities of the `mobile_app` device:
 - **Quick actions** are `event` entities of the device. What happens on the computer fires `hada_event` as [below](#events-from-the-computer), with the token of any user: it is the integration that fires it.
 - The computer is a device of its own, apart from the one **Notifications** makes under Mobile App.
 
-While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected.
+While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected. An integration older than HADA is used for what it knows, and the card says that it wants updating, in Home Assistant with HACS (*not released yet*).
 
 ## Commands
 

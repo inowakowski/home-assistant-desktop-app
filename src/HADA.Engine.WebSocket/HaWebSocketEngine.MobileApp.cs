@@ -418,46 +418,53 @@ public sealed partial class HaWebSocketEngine
     }
 
     /// <summary>
-    /// Writes a sensor as an entity of the mobile_app device. The first time since the connection was made it is
-    /// registered, which also brings its name, icon and unit up to date; after that only its state is sent.
+    /// Writes sensors as entities of the mobile_app device. The first time since the connection was made each is
+    /// registered, which also brings its name, icon and unit up to date; after that only states are sent, those
+    /// of all the sensors in one request.
     /// </summary>
-    private async Task SetSensorEntityAsync(
-        EntityDescriptor entity, string state, IReadOnlyDictionary<string, object?>? attributes, CancellationToken cancellationToken)
+    private async Task SetSensorEntitiesAsync(IReadOnlyList<SensorReading> readings, CancellationToken cancellationToken)
     {
-        if (_registration is not { } registration)
+        if (_registration is not { } registration || readings.Count == 0)
         {
             return;
         }
 
         try
         {
-            if (_sensorEntities.ContainsKey(entity.Id))
+            var toRegister = readings.Where(reading => !_sensorEntities.ContainsKey(reading.Entity.Id)).ToList();
+            if (toRegister.Count < readings.Count)
             {
+                var known = readings.Where(reading => _sensorEntities.ContainsKey(reading.Entity.Id)).ToList();
                 using var response = await PostToWebhookAsync(
                         registration.WebhookId,
-                        new { type = "update_sensor_states", data = new[] { SensorState(entity, state, attributes) } },
+                        new
+                        {
+                            type = "update_sensor_states",
+                            data = known.Select(reading => SensorState(reading.Entity, reading.State, reading.Attributes)).ToArray(),
+                        },
                         cancellationToken)
                     .ConfigureAwait(false);
-                if ((await ReadUpdatedSensorsAsync(response, cancellationToken).ConfigureAwait(false)).Contains(entity.Id))
-                {
-                    return;
-                }
 
-                // Home Assistant does not know the sensor any more: it was deleted there. Register it again.
+                // A sensor Home Assistant does not know any more was deleted there. Register it again.
+                var updated = await ReadUpdatedSensorsAsync(response, cancellationToken).ConfigureAwait(false);
+                toRegister.AddRange(known.Where(reading => !updated.Contains(reading.Entity.Id)));
             }
 
-            var sensor = SensorState(entity, state, attributes);
-            sensor["name"] = entity.Name;
-            sensor["unit_of_measurement"] = entity.UnitOfMeasurement;
-            if (!await RegisterSensorAsync(registration, sensor, entity, withClasses: true, cancellationToken).ConfigureAwait(false))
+            foreach (var (entity, state, attributes) in toRegister)
             {
-                // A device class Home Assistant does not know for this kind of entity makes it refuse all of it.
-                await RegisterSensorAsync(registration, sensor, entity, withClasses: false, cancellationToken).ConfigureAwait(false);
+                var sensor = SensorState(entity, state, attributes);
+                sensor["name"] = entity.Name;
+                sensor["unit_of_measurement"] = entity.UnitOfMeasurement;
+                if (!await RegisterSensorAsync(registration, sensor, entity, withClasses: true, cancellationToken).ConfigureAwait(false))
+                {
+                    // A device class Home Assistant does not know for this kind of entity makes it refuse all of it.
+                    await RegisterSensorAsync(registration, sensor, entity, withClasses: false, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
         catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {
-            LogStateRequestFailed(_logger, ex, "POST", entity.Id);
+            LogStateRequestFailed(_logger, ex, "POST", readings[0].Entity.Id);
         }
     }
 

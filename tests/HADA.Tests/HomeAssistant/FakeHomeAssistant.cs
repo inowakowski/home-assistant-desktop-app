@@ -51,6 +51,15 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     private volatile WebSocket? _socket;
     private int _connectionAttempts;
 
+    /// <summary>
+    /// While set and not completed, updates of sensors are taken but not answered: what the engine reports
+    /// meanwhile has to wait, as it does with a Home Assistant that is slow or far away.
+    /// </summary>
+    public Task? UpdatesHeld { get; set; }
+
+    /// <summary>The kinds of entity this integration is too old to know; it leaves entities of those out and says which.</summary>
+    public string[] UnknownKinds { get; set; } = [];
+
     public FakeHomeAssistant()
     {
         BaseUrl = new Uri($"http://localhost:{GetFreePort()}/");
@@ -351,6 +360,11 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                         answer = new { success = true };
                         break;
                     case "update_sensor_states":
+                        if (UpdatesHeld is { } heldRequest)
+                        {
+                            await heldRequest;
+                        }
+
                         var results = new Dictionary<string, object>();
                         lock (_sensors)
                         {
@@ -455,16 +469,21 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                         Volatile.Write(ref _integrationSubscriptionId, id);
                         IntegrationDevice = message.GetProperty("device").Clone();
                         SetIntegrationEntities(message.GetProperty("entities"), connect: true);
-                        await SendAsync(socket, new { id, type = "result", success = true, result = new { protocol = 1, integration_version = "0.1.0", ignored = Array.Empty<string>() } });
+                        await SendAsync(socket, new { id, type = "result", success = true, result = new { protocol = 1, integration_version = "0.1.0", ignored = Ignored(message.GetProperty("entities")) } });
                         break;
                     case "hada/entities" or "hada/update" when !IsIntegrationConnected:
                         await SendAsync(socket, new { id, type = "result", success = false, error = new { code = "not_found", message = "This connection is not connected as that device" } });
                         break;
                     case "hada/entities":
                         SetIntegrationEntities(message.GetProperty("entities"), connect: false);
-                        await SendAsync(socket, new { id, type = "result", success = true, result = new { ignored = Array.Empty<string>() } });
+                        await SendAsync(socket, new { id, type = "result", success = true, result = new { ignored = Ignored(message.GetProperty("entities")) } });
                         break;
                     case "hada/update":
+                        if (UpdatesHeld is { } heldMessage)
+                        {
+                            await heldMessage;
+                        }
+
                         lock (_integrationEntities)
                         {
                             foreach (var update in message.GetProperty("states").EnumerateArray())
@@ -514,6 +533,13 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     }
 
     /// <summary>The list is complete: what is not in it is gone, as the protocol has it.</summary>
+    private string[] Ignored(JsonElement entities) =>
+    [
+        .. entities.EnumerateArray()
+            .Where(entity => UnknownKinds.Contains(entity.GetProperty("kind").GetString()))
+            .Select(entity => entity.GetProperty("id").GetString()!),
+    ];
+
     private void SetIntegrationEntities(JsonElement entities, bool connect)
     {
         lock (_integrationEntities)
@@ -521,6 +547,11 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
             _integrationEntities.Clear();
             foreach (var entity in entities.EnumerateArray())
             {
+                if (UnknownKinds.Contains(entity.GetProperty("kind").GetString()))
+                {
+                    continue;
+                }
+
                 var described = new IntegrationEntity(entity.Clone(), State: null, Attributes: null, Available: true);
                 _integrationEntities[entity.GetProperty("id").GetString()!] = Apply(described, entity);
             }
