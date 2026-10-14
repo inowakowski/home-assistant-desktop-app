@@ -4,50 +4,289 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:fi="using:FluentIcons.Avalonia"
     xmlns:views="using:HADA.App.Views"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
     Width="1100"
     Height="760"
     MinWidth="760"
     MinHeight="500"
+    x:DataType="vm:MainViewModel"
+    Background="{DynamicResource HadaWindowBrush}"
     Icon="avares://HADA.App/Assets/hada.ico"
     WindowStartupLocation="CenterScreen">
 
-    <Grid ColumnDefinitions="230,*">
-        <!--  The pages, with the less used ones at the bottom.  -->
-        <DockPanel Background="{DynamicResource HadaPaneBrush}">
-            <ListBox
-                x:Name="FooterPages"
-                Classes="navigation"
-                Margin="0,0,0,8"
-                DockPanel.Dock="Bottom"
-                SelectionChanged="OnPageChosen">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="views:NavigationItem">
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <fi:FluentIcon FontSize="18" Icon="{Binding Icon}" />
-                            <TextBlock VerticalAlignment="Center" Text="{Binding Title}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-            <ListBox
-                x:Name="MainPages"
-                Classes="navigation"
-                Margin="0,12,0,0"
-                SelectionChanged="OnPageChosen">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="views:NavigationItem">
-                        <StackPanel Orientation="Horizontal" Spacing="14">
-                            <fi:FluentIcon FontSize="18" Icon="{Binding Icon}" />
-                            <TextBlock VerticalAlignment="Center" Text="{Binding Title}" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
+    <Window.Resources>
+        <DataTemplate x:Key="NavigationItemTemplate" x:DataType="views:NavigationItem">
+            <StackPanel Orientation="Horizontal">
+                <Border Classes="indicator" />
+                <Panel
+                    Width="22"
+                    Height="22"
+                    Margin="0,0,12,0">
+                    <Border Classes="navTile" Background="{Binding Tint}" />
+                    <fi:FluentIcon
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Classes="navIcon"
+                        Icon="{Binding Icon}" />
+                </Panel>
+                <TextBlock VerticalAlignment="Center" Text="{Binding Title}" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
 
-        <ContentControl
-            x:Name="PageHost"
-            Grid.Column="1"
-            Background="{DynamicResource HadaPageBrush}" />
-    </Grid>
+    <!--  Rounded and see-through at its corners where HADA draws the window's frame itself, as on GNOME.  -->
+    <Border x:Name="Frame" Background="{DynamicResource HadaWindowBrush}">
+        <Grid RowDefinitions="Auto,*">
+
+            <!--  A title bar across the window: Windows' own, or Breeze's when HADA draws it.  -->
+            <Grid
+                x:Name="TitleRow"
+                Height="48"
+                WindowDecorationProperties.ElementRole="TitleBar"
+                Background="Transparent"
+                ColumnDefinitions="*,Auto"
+                DoubleTapped="OnToggleMaximize"
+                IsVisible="False"
+                PointerPressed="OnDragWindow">
+                <StackPanel
+                    x:Name="TitleIdentity"
+                    Margin="16,0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="12">
+                    <Image
+                        Width="16"
+                        Height="16"
+                        Source="avares://HADA.App/Assets/hada.ico" />
+                    <TextBlock
+                        x:Name="TitleText"
+                        VerticalAlignment="Center"
+                        FontSize="12" />
+                </StackPanel>
+                <StackPanel
+                    x:Name="WindowsButtons"
+                    Grid.Column="1"
+                    VerticalAlignment="Top"
+                    IsVisible="False"
+                    Orientation="Horizontal">
+                    <Button Classes="chrome windows" Click="OnMinimize">
+                        <fi:FluentIcon FontSize="12" Icon="Subtract" />
+                    </Button>
+                    <Button Classes="chrome windows" Click="OnToggleMaximize">
+                        <fi:FluentIcon FontSize="12" Icon="Square" />
+                    </Button>
+                    <Button Classes="chrome windows close" Click="OnClose">
+                        <fi:FluentIcon FontSize="12" Icon="Dismiss" />
+                    </Button>
+                </StackPanel>
+                <StackPanel
+                    x:Name="KdeButtons"
+                    Grid.Column="1"
+                    Margin="0,0,10,0"
+                    VerticalAlignment="Center"
+                    IsVisible="False"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button Classes="chrome kde" Click="OnMinimize">
+                        <fi:FluentIcon FontSize="14" Icon="ChevronDown" />
+                    </Button>
+                    <Button Classes="chrome kde" Click="OnToggleMaximize">
+                        <fi:FluentIcon FontSize="14" Icon="ChevronUp" />
+                    </Button>
+                    <Button Classes="chrome kde close" Click="OnClose">
+                        <fi:FluentIcon FontSize="14" Icon="Dismiss" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+
+                <!--  The sidebar: this computer, then the pages, the less used ones at the bottom.  -->
+                <Border
+                    x:Name="Sidebar"
+                    Width="{DynamicResource HadaSidebarWidth}"
+                    Background="{DynamicResource HadaSidebarBrush}">
+                    <DockPanel>
+                        <Border
+                            x:Name="SidebarHeader"
+                            Height="{DynamicResource HadaHeaderHeight}"
+                            WindowDecorationProperties.ElementRole="TitleBar"
+                            Background="Transparent"
+                            DockPanel.Dock="Top"
+                            DoubleTapped="OnToggleMaximize"
+                            PointerPressed="OnDragWindow">
+                            <Panel>
+                                <!--  The traffic lights, drawn where macOS does not draw them itself.  -->
+                                <StackPanel
+                                    x:Name="MacLights"
+                                    Margin="20,0"
+                                    VerticalAlignment="Center"
+                                    IsVisible="False"
+                                    Orientation="Horizontal"
+                                    Spacing="8">
+                                    <Ellipse
+                                        Width="12"
+                                        Height="12"
+                                        Fill="#FF5F57"
+                                        PointerPressed="OnCloseLight" />
+                                    <Ellipse
+                                        Width="12"
+                                        Height="12"
+                                        Fill="#FEBC2E"
+                                        PointerPressed="OnMinimizeLight" />
+                                    <Ellipse
+                                        Width="12"
+                                        Height="12"
+                                        Fill="#28C840"
+                                        PointerPressed="OnMaximizeLight" />
+                                </StackPanel>
+                                <TextBlock
+                                    x:Name="SidebarTitle"
+                                    Classes="headerTitle"
+                                    IsVisible="False"
+                                    Text="HADA" />
+                            </Panel>
+                        </Border>
+
+                        <Border
+                            x:Name="DeviceCard"
+                            Margin="16,8,16,14"
+                            DockPanel.Dock="Top">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <Border Classes="avatar">
+                                    <fi:FluentIcon
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="20"
+                                        Foreground="{DynamicResource HadaAvatarIconBrush}"
+                                        Icon="Laptop" />
+                                </Border>
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="12,0,0,0"
+                                    VerticalAlignment="Center">
+                                    <TextBlock
+                                        Classes="strong"
+                                        Text="{Binding Overview.ComputerName}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <StackPanel
+                                        Margin="0,2,0,0"
+                                        Orientation="Horizontal"
+                                        Spacing="6">
+                                        <Ellipse
+                                            Width="8"
+                                            Height="8"
+                                            VerticalAlignment="Center"
+                                            Fill="{Binding Overview.Service.Kind, Converter={StaticResource StatusBrush}}" />
+                                        <TextBlock Classes="caption secondary" Text="{Binding Overview.Service.Text}" />
+                                        <TextBlock
+                                            Classes="caption tertiary"
+                                            IsVisible="{Binding Overview.ServiceVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                            Text="{Binding Overview.ServiceVersion, StringFormat='· HADA {0}'}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <ListBox
+                            x:Name="FooterPages"
+                            Margin="0,0,0,10"
+                            Classes="navigation"
+                            DockPanel.Dock="Bottom"
+                            ItemTemplate="{StaticResource NavigationItemTemplate}"
+                            SelectionChanged="OnPageChosen" />
+                        <ListBox
+                            x:Name="MainPages"
+                            Classes="navigation"
+                            ItemTemplate="{StaticResource NavigationItemTemplate}"
+                            SelectionChanged="OnPageChosen" />
+                    </DockPanel>
+                </Border>
+
+                <!--  The open page, under a header with its title where the system puts it there.  -->
+                <Border
+                    x:Name="ContentLayer"
+                    Grid.Column="1"
+                    Background="{DynamicResource HadaContentBrush}"
+                    BorderBrush="{DynamicResource HadaContentStrokeBrush}"
+                    BorderThickness="{DynamicResource HadaContentBorder}"
+                    ClipToBounds="True"
+                    CornerRadius="{DynamicResource HadaContentCorner}">
+                    <DockPanel>
+                        <Border
+                            x:Name="ContentHeader"
+                            Height="{DynamicResource HadaHeaderHeight}"
+                            WindowDecorationProperties.ElementRole="TitleBar"
+                            Background="{DynamicResource HadaHeaderBrush}"
+                            DockPanel.Dock="Top"
+                            DoubleTapped="OnToggleMaximize"
+                            PointerPressed="OnDragWindow">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock
+                                    x:Name="HeaderTitle"
+                                    Margin="20,0"
+                                    Classes="headerTitle" />
+                                <!--  GNOME shows a close button only, unless told otherwise.  -->
+                                <Button
+                                    x:Name="GnomeClose"
+                                    Grid.Column="1"
+                                    Margin="0,0,12,0"
+                                    VerticalAlignment="Center"
+                                    Classes="chrome gnome"
+                                    Click="OnClose"
+                                    IsVisible="False">
+                                    <fi:FluentIcon FontSize="12" Icon="Dismiss" />
+                                </Button>
+                            </Grid>
+                        </Border>
+                        <ContentControl x:Name="PageHost" />
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!--  Edges to drag where HADA draws the frame: the system's own frame is not there to resize with.  -->
+            <Panel
+                x:Name="ResizeEdges"
+                Grid.RowSpan="2"
+                IsVisible="False">
+                <Border
+                    Height="5"
+                    VerticalAlignment="Top"
+                    Background="Transparent"
+                    Cursor="TopSide"
+                    PointerPressed="OnResize"
+                    Tag="North" />
+                <Border
+                    Height="5"
+                    VerticalAlignment="Bottom"
+                    Background="Transparent"
+                    Cursor="BottomSide"
+                    PointerPressed="OnResize"
+                    Tag="South" />
+                <Border
+                    Width="5"
+                    HorizontalAlignment="Left"
+                    Background="Transparent"
+                    Cursor="LeftSide"
+                    PointerPressed="OnResize"
+                    Tag="West" />
+                <Border
+                    Width="5"
+                    HorizontalAlignment="Right"
+                    Background="Transparent"
+                    Cursor="RightSide"
+                    PointerPressed="OnResize"
+                    Tag="East" />
+                <Border
+                    Width="10"
+                    Height="10"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Background="Transparent"
+                    Cursor="BottomRightCorner"
+                    PointerPressed="OnResize"
+                    Tag="SouthEast" />
+            </Panel>
+        </Grid>
+    </Border>
 </Window>

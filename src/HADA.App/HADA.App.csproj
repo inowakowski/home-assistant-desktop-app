@@ -17,6 +17,8 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.4" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <!-- Stands in for the system font of a style shown on another system, and for GNOME's, which is made from it. -->
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
     <PackageReference Include="FluentIcons.Avalonia" Version="2.1.344" />
   </ItemGroup>

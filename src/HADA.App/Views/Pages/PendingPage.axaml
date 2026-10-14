@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:l="using:HADA.App.Localization">
     <!--  For the pages this window does not have yet; the WPF window has them all.  -->
-    <StackPanel MaxWidth="1000" Margin="28,20,28,28">
+    <StackPanel MaxWidth="1000" Margin="{DynamicResource HadaPageMargin}">
         <TextBlock Classes="title" Text="{l:Tr Pending_Title}" />
         <TextBlock
             Margin="0,4,0,0"

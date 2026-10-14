@@ -7,8 +7,8 @@
     xmlns:vm="using:HADA.Presentation.ViewModels"
     x:DataType="vm:MainViewModel">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="1000" Margin="28,20,28,28">
-            <TextBlock Classes="title" Text="{l:Tr Overview_Title}" />
+        <StackPanel MaxWidth="1000" Margin="{DynamicResource HadaPageMargin}">
+            <TextBlock Classes="title pageTitle" Text="{l:Tr Overview_Title}" />
             <TextBlock
                 Margin="0,4,0,20"
                 Classes="secondary"

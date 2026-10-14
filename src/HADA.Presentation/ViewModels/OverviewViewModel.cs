@@ -21,6 +21,7 @@ public sealed class OverviewViewModel : ObservableObject
     private readonly StatusCardViewModel _tray;
     private string? _servers;
     private bool _hasNoEntities = true;
+    private string _serviceVersion = string.Empty;
 
     /// <param name="navigate">
     /// Opens the page a status card is about: <c>logs</c>, <c>connections</c>, <c>connections#mqtt=</c> and a
@@ -45,6 +46,19 @@ public sealed class OverviewViewModel : ObservableObject
 
     public ObservableCollection<EntityRowViewModel> Entities { get; } = [];
 
+    /// <summary>The computer HADA runs on, as the window names it at its top.</summary>
+    public string ComputerName { get; } = Environment.MachineName;
+
+    /// <summary>The service's card, whose state the window also shows next to <see cref="ComputerName"/>.</summary>
+    public StatusCardViewModel Service => _service;
+
+    /// <summary>The service's version, e.g. <c>1.6.0</c>; empty while the service cannot be reached.</summary>
+    public string ServiceVersion
+    {
+        get => _serviceVersion;
+        private set => SetProperty(ref _serviceVersion, value);
+    }
+
     public bool HasNoEntities
     {
         get => _hasNoEntities;
@@ -53,6 +67,7 @@ public sealed class OverviewViewModel : ObservableObject
 
     public void Update(ServiceStatus status)
     {
+        ServiceVersion = status.Version.Split('+')[0];
         _service.Set(
             Loc.Get("Status_Running"),
             StatusKind.Success,
@@ -88,6 +103,7 @@ public sealed class OverviewViewModel : ObservableObject
 
     public void SetUnavailable()
     {
+        ServiceVersion = string.Empty;
         _service.Set(Loc.Get("Status_NotRunning"), StatusKind.Error, Loc.Get("Status_NotRunningDetail"));
         foreach (var card in Cards.Where(card => card != _service))
         {

@@ -1,0 +1,77 @@
+<!--
+    Windows 11, as its own Settings app: Mica behind the window, the navigation straight on it, the page on a
+    layer with a rounded corner, and a short bar in the accent colour beside the page that is open.
+-->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="HadaWindowBrush" Color="#202020" />
+                    <SolidColorBrush x:Key="HadaSidebarBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaContentBrush" Color="#4C3A3A3A" />
+                    <SolidColorBrush x:Key="HadaContentStrokeBrush" Color="#19000000" />
+                    <SolidColorBrush x:Key="HadaHeaderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaCardBrush" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#15FFFFFF" />
+                    <SolidColorBrush x:Key="HadaStrokeBrush" Color="#19000000" />
+                    <SolidColorBrush x:Key="HadaSeparatorBrush" Color="#15FFFFFF" />
+                    <SolidColorBrush x:Key="HadaTileBrush" Color="#0FFFFFFF" />
+                    <SolidColorBrush x:Key="HadaPrimaryTextBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="HadaSecondaryTextBrush" Color="#C5FFFFFF" />
+                    <SolidColorBrush x:Key="HadaTertiaryTextBrush" Color="#87FFFFFF" />
+                    <SolidColorBrush x:Key="HadaAttentionBrush" Color="{DynamicResource SystemAccentColorLight2}" />
+                    <SolidColorBrush x:Key="HadaNavHoverBrush" Color="#0FFFFFFF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBrush" Color="#0FFFFFFF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedTextBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaIndicatorBrush" Color="{DynamicResource SystemAccentColorLight2}" />
+                    <SolidColorBrush x:Key="HadaAvatarBrush" Color="{DynamicResource SystemAccentColorDark1}" />
+                    <SolidColorBrush x:Key="HadaAvatarIconBrush" Color="#FFFFFF" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="HadaWindowBrush" Color="#F3F3F3" />
+                    <SolidColorBrush x:Key="HadaSidebarBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaContentBrush" Color="#80FFFFFF" />
+                    <SolidColorBrush x:Key="HadaContentStrokeBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HadaHeaderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaCardBrush" Color="#B3FFFFFF" />
+                    <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#80F9F9F9" />
+                    <SolidColorBrush x:Key="HadaStrokeBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HadaSeparatorBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HadaTileBrush" Color="#09000000" />
+                    <SolidColorBrush x:Key="HadaPrimaryTextBrush" Color="#E4000000" />
+                    <SolidColorBrush x:Key="HadaSecondaryTextBrush" Color="#9E000000" />
+                    <SolidColorBrush x:Key="HadaTertiaryTextBrush" Color="#72000000" />
+                    <SolidColorBrush x:Key="HadaAttentionBrush" Color="{DynamicResource SystemAccentColorDark1}" />
+                    <SolidColorBrush x:Key="HadaNavHoverBrush" Color="#09000000" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBrush" Color="#09000000" />
+                    <SolidColorBrush x:Key="HadaNavSelectedTextBrush" Color="#E4000000" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaIndicatorBrush" Color="{DynamicResource SystemAccentColorDark1}" />
+                    <SolidColorBrush x:Key="HadaAvatarBrush" Color="{DynamicResource SystemAccentColorLight2}" />
+                    <SolidColorBrush x:Key="HadaAvatarIconBrush" Color="#E4000000" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <FontFamily x:Key="HadaFontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
+            <x:Double x:Key="HadaBodySize">14</x:Double>
+            <x:Double x:Key="HadaTitleSize">28</x:Double>
+            <x:Double x:Key="HadaSubtitleSize">20</x:Double>
+            <x:Double x:Key="HadaCaptionSize">12</x:Double>
+            <x:Double x:Key="HadaSidebarWidth">300</x:Double>
+            <x:Double x:Key="HadaHeaderHeight">0</x:Double>
+            <CornerRadius x:Key="HadaCardCorner">8</CornerRadius>
+            <CornerRadius x:Key="HadaNavCorner">4</CornerRadius>
+            <CornerRadius x:Key="HadaContentCorner">8,0,0,0</CornerRadius>
+            <Thickness x:Key="HadaContentBorder">1,1,0,0</Thickness>
+            <Thickness x:Key="HadaPageMargin">36,28,36,36</Thickness>
+            <Thickness x:Key="HadaNavItemPadding">12,9</Thickness>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!--  A short bar in the accent colour beside the page that is open.  -->
+    <Style Selector="ListBox.navigation ListBoxItem:selected Border.indicator">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+</Styles>
