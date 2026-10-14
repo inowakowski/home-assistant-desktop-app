@@ -2,9 +2,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Security.Principal;
 
-namespace HADA.Tray;
+namespace HADA.Platform.Windows.Desktop;
 
-internal static class Elevation
+public static class Elevation
 {
     private const int ErrorCancelled = 1223;
 

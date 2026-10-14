@@ -14,6 +14,7 @@ using HADA.Core;
 using HADA.Core.Abstractions;
 using HADA.Core.Models;
 using HADA.Ipc;
+using HADA.Platform.Windows.Desktop;
 using HADA.Presentation;
 using HADA.Presentation.Localization;
 using HADA.Tray.Localization;

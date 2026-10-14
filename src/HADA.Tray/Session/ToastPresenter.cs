@@ -3,6 +3,7 @@ using System.Net.Http;
 using HADA.Core;
 using HADA.Core.Entities;
 using System.Security;
+using HADA.Platform.Windows.Desktop;
 using HADA.Presentation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;

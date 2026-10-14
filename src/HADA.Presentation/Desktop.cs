@@ -1,10 +1,7 @@
+using HADA.Core;
 using HADA.Presentation.ViewModels;
 
 namespace HADA.Presentation;
-
-/// <param name="Name">As the browser calls itself, e.g. "Firefox".</param>
-/// <param name="Path">Its program file.</param>
-public sealed record InstalledBrowser(string Name, string Path);
 
 /// <summary>
 /// What the window's view models need from the system and from the toolkit that shows them. The Windows tray app
