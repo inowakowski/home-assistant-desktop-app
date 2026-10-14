@@ -5,7 +5,7 @@ using HADA.Core.Hosting;
 namespace HADA.Service;
 
 /// <summary>
-/// Ends the service of a portable copy when its tray app says so, or goes away. Installed, Windows starts and stops
+/// Ends the service of a portable copy when its tray app says so, or goes away. Installed, the system starts and stops
 /// the service; a portable copy's service is a process the tray app started, and it must not outlive it.
 /// </summary>
 public sealed partial class PortableLifetime(
@@ -16,24 +16,15 @@ public sealed partial class PortableLifetime(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var stop = new EventWaitHandle(initialState: false, EventResetMode.ManualReset, AppInstance.ServiceStopEventName);
         var asked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var registration = ThreadPool.RegisterWaitForSingleObject(
-            stop, (_, _) => asked.TrySetResult(), state: null, Timeout.Infinite, executeOnlyOnce: true);
-        try
+        using var stop = AppSignal.Listen(AppInstance.ServiceStopSignalName, () => asked.TrySetResult(), once: true);
+        var reason = await Task.WhenAny(asked.Task, ParentExitedAsync(stoppingToken)) == asked.Task
+            ? "the tray app asked for it"
+            : "the tray app is gone";
+        if (!stoppingToken.IsCancellationRequested)
         {
-            var reason = await Task.WhenAny(asked.Task, ParentExitedAsync(stoppingToken)) == asked.Task
-                ? "the tray app asked for it"
-                : "the tray app is gone";
-            if (!stoppingToken.IsCancellationRequested)
-            {
-                LogStopping(logger, reason);
-                lifetime.StopApplication();
-            }
-        }
-        finally
-        {
-            registration.Unregister(null);
+            LogStopping(logger, reason);
+            lifetime.StopApplication();
         }
     }
 
