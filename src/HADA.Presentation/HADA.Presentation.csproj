@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- What the window shows, without the toolkit that shows it: view models, strings, the user's preferences. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HADA.Core\HADA.Core.csproj" />
+    <ProjectReference Include="..\HADA.Ipc\HADA.Ipc.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HADA.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -112,7 +112,7 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <Border VerticalAlignment="Center" Style="{StaticResource IconTile}">
-                                            <ui:SymbolIcon FontSize="20" Symbol="{Binding Symbol}" />
+                                            <ui:SymbolIcon FontSize="20" Symbol="{Binding Symbol, Converter={StaticResource Glyph}}" />
                                         </Border>
                                         <StackPanel
                                             Grid.Column="1"

@@ -3,11 +3,10 @@ using System.Windows.Input;
 using HADA.Core;
 using HADA.Core.Entities;
 using HADA.Ipc;
-using HADA.Platform.Windows.Network;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 public sealed record SensorModeOption(HomeAssistantSensorMode Mode, string Label);
 
@@ -38,11 +37,13 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
     private readonly string _savedClientId;
     private HomeAssistantSignInResult? _signIn;
     private string _signInStatus = string.Empty;
+    private readonly IDesktop _desktop;
 
     /// <param name="changed">Called after anything was typed, to find out whether there is something to save.</param>
-    public HomeAssistantServerViewModel(HomeAssistantSettings settings, bool hasAccessToken, Action changed)
+    public HomeAssistantServerViewModel(HomeAssistantSettings settings, bool hasAccessToken, Action changed, IDesktop desktop)
     {
         _changed = changed;
+        _desktop = desktop;
         Id = settings.Id;
         HasAccessToken = hasAccessToken;
         _name = settings.Name;
@@ -62,13 +63,13 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
         _localNetworks = string.Join(Environment.NewLine, NetworkNames(settings.LocalNetworks));
         ConnectedNetworks =
         [
-            .. WindowsNetworkLocation.Read().Select(name => new NetworkChoice(name, new RelayCommand(() => AddHomeNetwork(name)))),
+            .. desktop.ConnectedNetworks().Select(name => new NetworkChoice(name, new RelayCommand(() => AddHomeNetwork(name)))),
         ];
     }
 
     /// <summary>A server that was just added: nothing typed yet, and an id of its own.</summary>
     /// <param name="sensors">False when Home Assistant gets the sensors through MQTT already, so that it does not get them twice.</param>
-    public static HomeAssistantServerViewModel New(Action changed, bool sensors) =>
+    public static HomeAssistantServerViewModel New(Action changed, IDesktop desktop, bool sensors) =>
         new(new HomeAssistantSettings(string.Empty, string.Empty, string.Empty, DefaultCommandEventType)
         {
             Id = MqttSettings.NewId(),
@@ -76,7 +77,8 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
             SensorMode = sensors ? HomeAssistantSensorMode.Entities : HomeAssistantSensorMode.Off,
         },
         hasAccessToken: false,
-        changed);
+        changed,
+        desktop);
 
     public string Id { get; }
 
@@ -132,7 +134,7 @@ public sealed class HomeAssistantServerViewModel : ObservableObject
                 {
                     // Said before the browser is opened, with the address to open by hand should none come up.
                     SignInStatus = Loc.Format("SignIn_Waiting", start.AbsoluteUri);
-                    HomeAssistantSignIn.OpenInBrowser(start);
+                    _desktop.OpenInBrowser(start);
                 },
                 CancellationToken.None);
 

@@ -1,6 +1,8 @@
 using System.Drawing;
 using System.Windows.Forms;
 using System.Windows.Threading;
+using HADA.Presentation;
+using HADA.Presentation.Localization;
 using HADA.Tray.Localization;
 using Microsoft.Win32;
 

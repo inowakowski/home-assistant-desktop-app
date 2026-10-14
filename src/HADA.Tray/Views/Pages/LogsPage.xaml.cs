@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
-using HADA.Tray.ViewModels;
+using HADA.Presentation.ViewModels;
 
 namespace HADA.Tray.Views.Pages;
 

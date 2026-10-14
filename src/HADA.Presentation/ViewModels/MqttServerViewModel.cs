@@ -1,9 +1,9 @@
 using System.Runtime.CompilerServices;
 using HADA.Ipc;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 /// <summary>
 /// One MQTT server on the Connections page, which is one Home Assistant. Its password is never shown: an empty

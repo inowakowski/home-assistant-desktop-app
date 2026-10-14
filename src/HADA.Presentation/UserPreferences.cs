@@ -1,31 +1,24 @@
 using System.IO;
+using System.Runtime.Versioning;
 using System.Security;
 using System.Text.Json;
 using HADA.Core;
 using Microsoft.Win32;
 
-namespace HADA.Tray;
+namespace HADA.Presentation;
 
 /// <summary>Where this copy of HADA keeps what it writes for the signed-in user.</summary>
-internal static class TrayPaths
-{
-    /// <summary>
-    /// The dashboard window's browser profile, downloaded updates and notification pictures:
-    /// <c>%LocalAppData%\HADA</c> for the installed app, the copy's own <c>data</c> folder for a portable one.
-    /// </summary>
-    public static string DataFolder { get; } = AppFolders.UserData;
-}
-
 /// <summary>
 /// Choices that belong to one user and need no administrator rights. Read by both the tray app and the window,
 /// which are separate processes.
 /// </summary>
 /// <remarks>
-/// The installed app keeps them under <c>HKCU\Software\HADA</c>, next to <see cref="Autostart"/>. A portable copy
-/// keeps them in <c>preferences.json</c> in its data folder, so that it leaves nothing behind in the registry and
-/// takes its preferences along when the folder is moved.
+/// The installed app on Windows keeps them under <c>HKCU\Software\HADA</c>, next to whether it starts with Windows.
+/// A portable copy keeps them in <c>preferences.json</c> in its data folder, so that it leaves nothing behind in the
+/// registry and takes its preferences along when the folder is moved; on other systems they are in that file in
+/// <see cref="AppFolders.UserData"/>.
 /// </remarks>
-internal static class UserPreferences
+public static class UserPreferences
 {
     public const int DefaultIdleSeconds = 60;
     public const int MinIdleSeconds = 10;
@@ -38,11 +31,11 @@ internal static class UserPreferences
     private const string DashboardSelectedValue = "DashboardSelected";
     private const string BrowserValue = "NotificationBrowser";
 
-    private static readonly IPreferenceStore Store = AppInstance.PortableDataFolder is { } folder
-        ? new JsonPreferenceStore(Path.Combine(folder, "preferences.json"))
-        : new RegistryPreferenceStore();
+    private static readonly IPreferenceStore Store = OperatingSystem.IsWindows() && !AppInstance.IsPortable
+        ? new RegistryPreferenceStore()
+        : new JsonPreferenceStore(Path.Combine(AppFolders.UserData, "preferences.json"));
 
-    /// <summary><c>pl</c>, <c>en</c>, or empty to follow Windows' display language.</summary>
+    /// <summary><c>pl</c>, <c>en</c>, or empty to follow the system's display language.</summary>
     public static string Language
     {
         get => Store.ReadText(LanguageValue) is "pl" or "en" ? Store.ReadText(LanguageValue)! : string.Empty;
@@ -102,7 +95,7 @@ internal static class UserPreferences
 
     /// <summary>
     /// The program file of the browser that addresses of notifications are opened in; empty for the default
-    /// browser. See <see cref="Browsers"/>.
+    /// browser. See <see cref="IDesktop.InstalledBrowsers"/>.
     /// </summary>
     public static string NotificationBrowser
     {
@@ -122,6 +115,7 @@ internal interface IPreferenceStore
     void Write(string name, object? value);
 }
 
+[SupportedOSPlatform("windows")]
 internal sealed class RegistryPreferenceStore : IPreferenceStore
 {
     private const string KeyPath = @"Software\HADA";
@@ -189,7 +183,7 @@ internal sealed class JsonPreferenceStore(string path) : IPreferenceStore
                 values[name] = JsonSerializer.SerializeToElement(value);
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            AppFolders.CreatePrivate(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, JsonSerializer.Serialize(values, JsonOptions));
             _values = values;
             _loadedVersion = File.GetLastWriteTimeUtc(path);

@@ -75,7 +75,7 @@
             <Grid DataContext="{Binding Logs}">
                 <ItemsControl
                     x:Name="LogList"
-                    ItemsSource="{Binding View}"
+                    ItemsSource="{Binding Shown}"
                     VirtualizingPanel.IsVirtualizing="True"
                     VirtualizingPanel.ScrollUnit="Pixel"
                     VirtualizingPanel.VirtualizationMode="Recycling">

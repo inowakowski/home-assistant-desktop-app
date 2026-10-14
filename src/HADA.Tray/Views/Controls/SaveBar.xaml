@@ -19,7 +19,7 @@
                 Margin="0,0,0,12"
                 IsOpen="{Binding Feedback.IsOpen, Mode=TwoWay}"
                 Message="{Binding Feedback.Message}"
-                Severity="{Binding Feedback.Severity}"
+                Severity="{Binding Feedback.Severity, Converter={StaticResource Severity}}"
                 Visibility="{Binding Feedback.IsOpen, Converter={StaticResource BooleanToVisibility}}" />
             <StackPanel Orientation="Horizontal">
                 <ui:Button

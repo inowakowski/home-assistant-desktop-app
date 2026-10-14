@@ -94,7 +94,7 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Border Style="{StaticResource IconTile}">
-                                    <ui:SymbolIcon FontSize="22" Symbol="{Binding Symbol}" />
+                                    <ui:SymbolIcon FontSize="22" Symbol="{Binding Symbol, Converter={StaticResource Glyph}}" />
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="14,0,0,0">
                                     <ui:TextBlock FontTypography="BodyStrong" Text="{Binding Title}" />
@@ -163,7 +163,7 @@
                                             <ui:SymbolIcon
                                                 VerticalAlignment="Center"
                                                 FontSize="20"
-                                                Symbol="{Binding Symbol}" />
+                                                Symbol="{Binding Symbol, Converter={StaticResource Glyph}}" />
                                             <StackPanel Margin="12,0,0,0">
                                                 <ui:TextBlock Text="{Binding Name}" />
                                                 <ui:TextBlock

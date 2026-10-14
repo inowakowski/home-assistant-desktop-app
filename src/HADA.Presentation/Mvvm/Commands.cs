@@ -1,6 +1,6 @@
 using System.Windows.Input;
 
-namespace HADA.Tray.Mvvm;
+namespace HADA.Presentation.Mvvm;
 
 public sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
 {

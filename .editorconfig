@@ -13,7 +13,7 @@ dotnet_diagnostic.CA1711.severity = none
 # Returning Task instead of the concrete Task<T> keeps private helpers' signatures simple.
 dotnet_diagnostic.CA1859.severity = none
 
-[src/HADA.Tray/**.cs]
+[{src/HADA.Tray/**.cs,src/HADA.Presentation/**.cs}]
 # View model members are read through data binding, which needs instance properties.
 dotnet_diagnostic.CA1822.severity = none
 

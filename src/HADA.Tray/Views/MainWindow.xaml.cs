@@ -1,5 +1,5 @@
 using System.Windows;
-using HADA.Tray.ViewModels;
+using HADA.Presentation.ViewModels;
 using HADA.Tray.Views.Pages;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;

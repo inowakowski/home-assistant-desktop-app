@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace HADA.Tray.Mvvm;
+namespace HADA.Presentation.Mvvm;
 
 public abstract class ObservableObject : INotifyPropertyChanged
 {
