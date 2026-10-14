@@ -64,6 +64,9 @@ public sealed class PortableTests : IDisposable
         Assert.Equal(["active_window"], store.Load().DisabledEntities);
 
         // Left as the user's folder: permissions still come from the folder above, not from a list of its own.
-        Assert.False(new DirectoryInfo(data).GetAccessControl().AreAccessRulesProtected);
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.False(new DirectoryInfo(data).GetAccessControl().AreAccessRulesProtected);
+        }
     }
 }

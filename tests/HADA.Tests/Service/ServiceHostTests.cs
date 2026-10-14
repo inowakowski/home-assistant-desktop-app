@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using HADA.Ipc;
 using HADA.Platform.Windows.Actions;
 using HADA.Platform.Windows.Sensors;
@@ -14,6 +15,8 @@ namespace HADA.Tests.Service;
 /// Builds the service as <c>Program</c> does, without starting it: a constructor parameter nothing can supply
 /// would otherwise only show when the real service starts.
 /// </summary>
+// Tests of the service as Windows puts it together.
+[SupportedOSPlatform("windows")]
 public sealed class ServiceHostTests : IDisposable
 {
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "HADA.Tests." + Guid.NewGuid().ToString("N"));
@@ -30,7 +33,7 @@ public sealed class ServiceHostTests : IDisposable
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void Every_part_of_the_service_can_be_created()
     {
         using var host = ServiceHost.CreateBuilder([], new SettingsStore(_folder)).Build();
@@ -49,7 +52,7 @@ public sealed class ServiceHostTests : IDisposable
         Assert.NotNull(host.Services.GetRequiredService<IServiceControl>());
     }
 
-    [Fact]
+    [WindowsFact]
     public void A_test_run_is_not_mistaken_for_a_second_copy_of_the_service()
     {
         // True only for a console copy of the service next to another one, which a test host never is, unless a

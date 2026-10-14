@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using HADA.Ipc;
 using HADA.Service.Settings;
 
@@ -82,7 +83,8 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal("old-password", SettingsStore.TryUnprotect(Assert.Single(store.Load().GetMqttServers()!).Password));
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public void A_folder_made_by_someone_untrusted_is_set_aside_before_anything_in_it_is_read()
     {
         // As if someone had made the folder before HADA was installed, and put settings of their own in it.
@@ -112,7 +114,8 @@ public sealed class SettingsStoreTests : IDisposable
         }
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public void A_folder_of_a_trusted_owner_is_kept_as_it_is()
     {
         Directory.CreateDirectory(_folder);
@@ -125,7 +128,8 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(["cpu_load"], store.Load().DisabledEntities!);
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public void A_missing_folder_is_simply_made()
     {
         var store = new SettingsStore(_folder);
@@ -136,7 +140,8 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.True(Directory.Exists(_folder));
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public void The_system_and_the_administrators_may_own_the_folder_and_nobody_else()
     {
         Assert.True(HADA.Service.ServiceHost.IsTrustedOwner(new(System.Security.Principal.WellKnownSidType.LocalSystemSid, null)));

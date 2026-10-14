@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using System.Threading.Channels;
 using HADA.Platform.Windows.Interop;
 using HADA.Platform.Windows.Sensors;
@@ -9,15 +10,17 @@ namespace HADA.Tests.Platform;
 /// Smoke tests against the real Windows APIs behind the built-in sensors. Values depend on the machine, so they check
 /// the contract; a wrong struct layout or offset would fail or return out-of-range values.
 /// </summary>
+// Tests of sensors and actions of Windows.
+[SupportedOSPlatform("windows")]
 public class SystemReaderTests
 {
-    [Fact]
+    [WindowsFact]
     public void Memory_load_is_a_percentage()
     {
         Assert.InRange(Assert.NotNull(SystemMemory.TryReadLoadPercent()), 1, 100);
     }
 
-    [Fact]
+    [WindowsFact]
     public void Power_status_is_consistent()
     {
         var power = Assert.NotNull(SystemPower.TryRead());
@@ -34,7 +37,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void Session_information_is_read_at_the_right_offsets()
     {
         using var process = Process.GetCurrentProcess();
@@ -46,7 +49,7 @@ public class SystemReaderTests
         Assert.Equal(sessionId, session.SessionId);
     }
 
-    [Fact]
+    [WindowsFact]
     public void Idle_time_is_never_negative()
     {
         if (UserInput.TryReadIdleTime() is { } idle)
@@ -55,7 +58,7 @@ public class SystemReaderTests
         }
     }
 
-    [Theory]
+    [WindowsTheory]
     [InlineData(@"C:#Program Files#Zoom#bin#Zoom.exe", "Zoom.exe")]
     [InlineData("Microsoft.WindowsCamera_8wekyb3d8bbwe", "Microsoft.WindowsCamera")]
     [InlineData("plain", "plain")]
@@ -64,7 +67,7 @@ public class SystemReaderTests
         Assert.Equal(expected, MediaCapture.AppName(registryKey));
     }
 
-    [Theory]
+    [WindowsTheory]
     [InlineData(200, 0, 100, true)]
     [InlineData(200, 300, 100, false)]
     [InlineData(0, 0, 100, false)]
@@ -74,14 +77,14 @@ public class SystemReaderTests
         Assert.Equal(expected, MediaCapture.IsInUse(started, stopped, bootTime));
     }
 
-    [Fact]
+    [WindowsFact]
     public void Capture_usage_can_be_read()
     {
         Assert.NotNull(MediaCapture.AppsUsing(MediaCapture.Microphone));
         Assert.NotNull(MediaCapture.AppsUsing(MediaCapture.Camera));
     }
 
-    [Fact]
+    [WindowsFact]
     public void Connected_devices_are_listed_and_found_by_a_part_of_their_id_in_any_case()
     {
         var present = PnpDevices.PresentInstanceIds();
@@ -92,7 +95,7 @@ public class SystemReaderTests
         Assert.False(PnpDevices.IsPresent(string.Empty));
     }
 
-    [Fact]
+    [WindowsFact]
     public void Usb_devices_are_offered_once_per_model_with_a_name_and_a_vendor_and_product_id()
     {
         var devices = PnpDevices.ConnectedUsbDevices();
@@ -106,7 +109,7 @@ public class SystemReaderTests
         Assert.Equal(devices.Count, devices.Select(device => device.MatchId).Distinct().Count());
     }
 
-    [Fact]
+    [WindowsFact]
     public void Connected_displays_are_counted_consistently()
     {
         // Not available in a session without a desktop, such as a service or some CI agents.
@@ -116,7 +119,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void The_console_user_can_be_read()
     {
         // Empty on the sign-in screen and on build agents without a console user; never null while there is a console.
@@ -126,7 +129,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void The_address_windows_routes_through_is_a_real_one()
     {
         if (NetworkAddress.TryRead() is { } network)
@@ -138,7 +141,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void Wifi_is_read_without_misreading_the_structures()
     {
         var wifi = WifiNetwork.TryRead();
@@ -152,7 +155,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void Built_in_drives_are_listed_with_plausible_numbers()
     {
         var disks = Disks.Read();
@@ -168,7 +171,7 @@ public class SystemReaderTests
         Assert.False(DiskUsageSensor.IsEntityId("disk_1_usage"));
     }
 
-    [Fact]
+    [WindowsFact]
     public void Gpu_load_is_a_percentage_where_windows_reports_it()
     {
         // Not reported on a computer without a graphics driver that has these counters, such as some build agents.
@@ -185,7 +188,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void Do_not_disturb_is_one_of_the_known_modes_or_not_told_at_all()
     {
         if (QuietHours.TryRead() is { } mode)
@@ -194,7 +197,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void A_pending_restart_can_be_told_and_names_what_waits()
     {
         var reasons = PendingRestart.TryRead();
@@ -203,7 +206,7 @@ public class SystemReaderTests
         Assert.All(reasons.Split(',', StringSplitOptions.RemoveEmptyEntries), reason => Assert.Contains(reason, new[] { "windows_update", "servicing" }));
     }
 
-    [Fact]
+    [WindowsFact]
     public void Screen_brightness_is_a_percentage_or_not_there_at_all()
     {
         // A desktop, and the machines that build this, have no screen Windows can dim.
@@ -213,7 +216,7 @@ public class SystemReaderTests
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public void The_connected_networks_have_names_and_none_twice()
     {
         var networks = HADA.Platform.Windows.Network.WindowsNetworkLocation.Read();
@@ -222,7 +225,7 @@ public class SystemReaderTests
         Assert.Equal(networks.Count, networks.Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Display_state_is_reported_as_soon_as_it_is_watched()
     {
         var changes = Channel.CreateUnbounded<(Guid Setting, int Value)>();
