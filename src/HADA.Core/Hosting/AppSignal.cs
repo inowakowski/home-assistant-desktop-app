@@ -1,5 +1,7 @@
 using System.Net.Sockets;
 using System.Runtime.Versioning;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace HADA.Core.Hosting;
 
@@ -10,6 +12,9 @@ namespace HADA.Core.Hosting;
 /// </summary>
 public sealed class AppSignal : IDisposable
 {
+    // The longest path of a Unix socket is 104 bytes on macOS and 108 on Linux.
+    private const int MaxSocketPath = 100;
+
     private readonly IDisposable _listener;
 
     private AppSignal(IDisposable listener) => _listener = listener;
@@ -56,7 +61,14 @@ public sealed class AppSignal : IDisposable
     internal static string SocketPath(string folder, string name)
     {
         var fileName = name.StartsWith(@"Local\", StringComparison.Ordinal) ? name[@"Local\".Length..] : name;
-        return Path.Combine(folder, fileName + ".sock");
+        var path = Path.Combine(folder, fileName + ".sock");
+        if (Encoding.UTF8.GetByteCount(path) <= MaxSocketPath)
+        {
+            return path;
+        }
+
+        // Too long for a socket, as it soon is under the long temporary folder of macOS: a short name made from the whole one.
+        return Path.Combine(folder, $"s{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fileName)), 0, 8)}.sock");
     }
 
     [SupportedOSPlatform("windows")]
