@@ -45,7 +45,8 @@ public sealed class UpdateDownloaderTests : IAsyncLifetime
         }
     }
 
-    [Fact]
+    // Only Windows refuses to replace a file another program holds open; elsewhere the installer is kept safe another way.
+    [WindowsFact]
     public async Task An_installer_that_matches_its_checksum_is_kept_and_cannot_be_swapped_while_held()
     {
         Publish(_installer, checksumOf: _installer);
