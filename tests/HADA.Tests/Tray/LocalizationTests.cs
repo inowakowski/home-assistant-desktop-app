@@ -25,7 +25,7 @@ public partial class LocalizationTests
         foreach (var file in SourceFiles())
         {
             var text = File.ReadAllText(file);
-            var pattern = file.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase) ? XamlKey() : CodeKey();
+            var pattern = IsXaml(file) ? XamlKey() : CodeKey();
             foreach (Match match in pattern.Matches(text))
             {
                 used.Add(match.Groups["key"].Value);
@@ -45,11 +45,14 @@ public partial class LocalizationTests
     private static IEnumerable<string> SourceFiles()
     {
         var excluded = new[] { $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}" };
-        return ((string[])["HADA.Tray", "HADA.Presentation"])
+        return ((string[])["HADA.Tray", "HADA.Presentation", "HADA.App"])
             .SelectMany(project => Directory.EnumerateFiles(SourceFolder(project), "*.*", SearchOption.AllDirectories))
-            .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || IsXaml(file))
             .Where(file => !excluded.Any(file.Contains));
     }
+
+    private static bool IsXaml(string file) =>
+        file.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase);
 
     private static string SourceFolder(string project, [CallerFilePath] string testFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(testFile)!, "..", "..", "..", "src", project));

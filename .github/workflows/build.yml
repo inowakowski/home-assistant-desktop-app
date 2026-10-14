@@ -35,8 +35,8 @@ jobs:
             artifacts/installer/**/*.zip
           if-no-files-found: error
 
-  # Everything but the Windows app is meant to run on Linux and macOS too. Their tests run there; those of
-  # Windows' own sensors and actions are skipped.
+  # Everything but the WPF tray app is meant to run on Linux and macOS too. The tests run there, those of
+  # Windows' own sensors and actions skipped, and the Avalonia window is built there.
   portable:
     strategy:
       fail-fast: false
@@ -52,3 +52,7 @@ jobs:
 
       - name: Test
         run: dotnet test tests/HADA.Tests -c Release
+
+      # The window drawn with Avalonia, which is to run on these systems too.
+      - name: Build the window
+        run: dotnet build src/HADA.App -c Release

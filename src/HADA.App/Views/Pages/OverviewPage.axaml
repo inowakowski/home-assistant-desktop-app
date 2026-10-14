@@ -1,0 +1,188 @@
+<UserControl
+    x:Class="HADA.App.Views.Pages.OverviewPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:MainViewModel">
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="1000" Margin="28,20,28,28">
+            <TextBlock Classes="title" Text="{l:Tr Overview_Title}" />
+            <TextBlock
+                Margin="0,4,0,20"
+                Classes="secondary"
+                Text="{l:Tr Overview_Subtitle}"
+                TextWrapping="Wrap" />
+
+            <!--  A newer version, when there is one.  -->
+            <Border
+                Margin="0,0,0,12"
+                Padding="18,14"
+                Classes="card"
+                IsVisible="{Binding Updates.IsAvailable}">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <fi:FluentIcon
+                        VerticalAlignment="Center"
+                        FontSize="24"
+                        Foreground="{DynamicResource HadaAttentionBrush}"
+                        Icon="ArrowDownload" />
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="14,0,16,0"
+                        VerticalAlignment="Center">
+                        <TextBlock Classes="strong" Text="{Binding Updates.Title}" />
+                        <TextBlock
+                            Classes="caption secondary"
+                            Text="{Binding Updates.Detail}"
+                            TextWrapping="Wrap" />
+                        <ProgressBar
+                            Height="4"
+                            Margin="0,8,0,0"
+                            IsVisible="{Binding Updates.IsDownloading}"
+                            Maximum="1"
+                            Value="{Binding Updates.Progress, Mode=OneWay}" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Command="{Binding Updates.OpenReleasePageCommand}"
+                        Content="{l:Tr Update_Open}" />
+                    <Button
+                        Grid.Column="3"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center"
+                        Classes="accent"
+                        Command="{Binding Updates.InstallCommand}"
+                        Content="{l:Tr Update_Install}"
+                        IsVisible="{Binding Updates.CanInstall}" />
+                </Grid>
+            </Border>
+
+            <!--  Each card leads to where what it shows is set up or explained.  -->
+            <ItemsControl Margin="0,0,-12,0" ItemsSource="{Binding Overview.Cards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="2" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:StatusCardViewModel">
+                        <Button
+                            Margin="0,0,12,12"
+                            Padding="18"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Top"
+                            Classes="card"
+                            Command="{Binding OpenCommand}"
+                            ToolTip.Tip="{Binding ActionText}">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Border Classes="iconTile">
+                                    <fi:FluentIcon
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="22"
+                                        Icon="{Binding Symbol, Converter={StaticResource Glyph}}" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="14,0,8,0">
+                                    <TextBlock Classes="strong" Text="{Binding Title}" />
+                                    <StackPanel
+                                        Margin="0,6,0,0"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                        <Ellipse
+                                            Width="10"
+                                            Height="10"
+                                            VerticalAlignment="Center"
+                                            Fill="{Binding Kind, Converter={StaticResource StatusBrush}}" />
+                                        <TextBlock Text="{Binding Text}" />
+                                    </StackPanel>
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        Classes="caption secondary"
+                                        Text="{Binding Detail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <fi:FluentIcon
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Icon="ChevronRight" />
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock
+                Margin="0,12,0,10"
+                Classes="subtitle"
+                Text="{l:Tr Overview_Entities}" />
+            <Border Classes="card">
+                <StackPanel>
+                    <Grid Margin="18,12" ColumnDefinitions="3*,3*,2*,110">
+                        <TextBlock Classes="caption secondary" Text="{l:Tr Column_Entity}" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Classes="caption secondary"
+                            Text="{l:Tr Column_Value}" />
+                        <TextBlock
+                            Grid.Column="2"
+                            Classes="caption secondary"
+                            Text="{l:Tr Column_Source}" />
+                        <TextBlock
+                            Grid.Column="3"
+                            Classes="caption secondary"
+                            Text="{l:Tr Column_Updated}" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Overview.Entities}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:EntityRowViewModel">
+                                <!--  Rows of entities that are switched off are dimmed.  -->
+                                <Border Classes="tableRow" Classes.disabled="{Binding !IsEnabled}">
+                                    <Grid ColumnDefinitions="3*,3*,2*,110">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <fi:FluentIcon
+                                                VerticalAlignment="Center"
+                                                FontSize="20"
+                                                Icon="{Binding Symbol, Converter={StaticResource Glyph}}" />
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" />
+                                                <TextBlock Classes="caption tertiary" Text="{Binding Caption}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Margin="0,0,12,0"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding ValueText}"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTip.Tip="{Binding ValueText}" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            VerticalAlignment="Center"
+                                            Classes="secondary"
+                                            Text="{Binding SourceText}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            VerticalAlignment="Center"
+                                            Classes="secondary"
+                                            Text="{Binding UpdatedText}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock
+                        Margin="18,4,18,16"
+                        Classes="secondary"
+                        IsVisible="{Binding Overview.HasNoEntities}"
+                        Text="{l:Tr Overview_NoEntities}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

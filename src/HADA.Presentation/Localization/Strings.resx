@@ -318,4 +318,10 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="SignIn_BrowserClose" xml:space="preserve"><value>You can close this tab and go back to HADA.</value></data>
   <data name="Placeholder_SignedIn" xml:space="preserve"><value>Signed in through Home Assistant – leave empty to keep</value></data>
   <data name="Issue_sign_in_expired" xml:space="preserve"><value>Home Assistant no longer accepts this sign-in: it was removed there, or it expired. Sign in again on the Connections page.</value></data>
+  <data name="Pending_Title" xml:space="preserve">
+    <value>Not here yet</value>
+  </data>
+  <data name="Pending_Detail" xml:space="preserve">
+    <value>This page is not in the new window yet. Until it is, open the settings from the tray icon.</value>
+  </data>
 </root>
