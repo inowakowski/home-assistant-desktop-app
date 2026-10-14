@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using HADA.Core;
+using HADA.Core.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace HADA.Tray;
@@ -55,13 +56,7 @@ internal sealed partial class PortableService : IDisposable
             {
                 if (!process.HasExited)
                 {
-                    if (EventWaitHandle.TryOpenExisting(AppInstance.ServiceStopEventName, out var stop))
-                    {
-                        using (stop)
-                        {
-                            stop.Set();
-                        }
-                    }
+                    AppSignal.TrySet(AppInstance.ServiceStopSignalName);
 
                     // It also stops by itself when this process is gone; this only gives it the time to do so tidily.
                     if (!process.WaitForExit(StopTimeout))

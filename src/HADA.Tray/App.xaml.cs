@@ -8,6 +8,7 @@ using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Threading;
+using HADA.Core.Hosting;
 using HADA.Core.Logging;
 using HADA.Core;
 using HADA.Core.Abstractions;
@@ -63,18 +64,15 @@ public partial class App : Application
     private const int AnyProcess = -1;
 
     private Mutex? _singleInstance;
-    private EventWaitHandle? _showWindowSignal;
-    private RegisteredWaitHandle? _showWindowRegistration;
-    private EventWaitHandle? _closeWindowSignal;
-    private RegisteredWaitHandle? _closeWindowRegistration;
+    private AppSignal? _showWindowSignal;
+    private AppSignal? _closeWindowSignal;
     private FileLoggerProvider? _fileLog;
     private ILogger _logger = NullLogger.Instance;
     private IHost? _host;
     private TrayIcon? _trayIcon;
     private GlobalHotkeys? _hotkeys;
     private PortableService? _portableService;
-    private EventWaitHandle? _exitSignal;
-    private RegisteredWaitHandle? _exitRegistration;
+    private AppSignal? _exitSignal;
     private MainWindow? _mainWindow;
     private Window? _roleWindow;
     private bool _isShowingError;
@@ -131,11 +129,8 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _showWindowRegistration?.Unregister(null);
         _showWindowSignal?.Dispose();
-        _closeWindowRegistration?.Unregister(null);
         _closeWindowSignal?.Dispose();
-        _exitRegistration?.Unregister(null);
         _exitSignal?.Dispose();
         _hotkeys?.Dispose();
         _trayIcon?.Dispose();
@@ -165,13 +160,7 @@ public partial class App : Application
         if (HasArgument(e, ExitArgument))
         {
             // Asks the tray app of this copy to exit, e.g. before a portable copy's folders are replaced.
-            if (EventWaitHandle.TryOpenExisting(AppInstance.TrayExitEventName, out var exit))
-            {
-                using (exit)
-                {
-                    exit.Set();
-                }
-            }
+            AppSignal.TrySet(AppInstance.TrayExitSignalName);
 
             // And its windows, which would keep the program's files in use.
             CloseWindows();
@@ -188,9 +177,7 @@ public partial class App : Application
             return;
         }
 
-        _exitSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, AppInstance.TrayExitEventName);
-        _exitRegistration = ThreadPool.RegisterWaitForSingleObject(
-            _exitSignal, (_, _) => Dispatcher.InvokeAsync(() => Shutdown()), state: null, Timeout.Infinite, executeOnlyOnce: true);
+        _exitSignal = AppSignal.Listen(AppInstance.TrayExitSignalName, () => Dispatcher.InvokeAsync(() => Shutdown()), once: true);
 
         if (AppInstance.PortableRoot is { } portableRoot)
         {
@@ -275,13 +262,7 @@ public partial class App : Application
         {
             try
             {
-                if (EventWaitHandle.TryOpenExisting(role + AppInstance.Suffix + ".Close", out var close))
-                {
-                    using (close)
-                    {
-                        close.Set();
-                    }
-                }
+                AppSignal.TrySet(role + AppInstance.Suffix + ".Close");
             }
             catch (UnauthorizedAccessException)
             {
@@ -358,32 +339,18 @@ public partial class App : Application
         _singleInstance = new Mutex(initiallyOwned: true, name, out var isFirstInstance);
         if (!isFirstInstance)
         {
-            if (EventWaitHandle.TryOpenExisting(name + ".Show", out var signal))
-            {
-                using (signal)
-                {
-                    // This process was started by the user and may take the foreground; pass that right on,
-                    // or Windows would only flash the existing window's taskbar button.
-                    AllowSetForegroundWindow(AnyProcess);
-                    signal.Set();
-                }
-            }
+            // This process was started by the user and may take the foreground; pass that right on, or Windows
+            // would only flash the existing window's taskbar button.
+            AllowSetForegroundWindow(AnyProcess);
+            AppSignal.TrySet(name + ".Show");
 
             return false;
         }
 
-        _showWindowSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, name + ".Show");
-        _showWindowRegistration = ThreadPool.RegisterWaitForSingleObject(
-            _showWindowSignal,
-            (_, _) => Dispatcher.InvokeAsync(BringWindowToFront),
-            state: null,
-            Timeout.Infinite,
-            executeOnlyOnce: false);
+        _showWindowSignal = AppSignal.Listen(name + ".Show", () => Dispatcher.InvokeAsync(BringWindowToFront));
 
         // Shutdown and not Close: whoever asks is about to replace or remove the program, and cannot wait for an answer.
-        _closeWindowSignal = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, name + ".Close");
-        _closeWindowRegistration = ThreadPool.RegisterWaitForSingleObject(
-            _closeWindowSignal, (_, _) => Dispatcher.InvokeAsync(() => Shutdown()), state: null, Timeout.Infinite, executeOnlyOnce: true);
+        _closeWindowSignal = AppSignal.Listen(name + ".Close", () => Dispatcher.InvokeAsync(() => Shutdown()), once: true);
         return true;
     }
 
