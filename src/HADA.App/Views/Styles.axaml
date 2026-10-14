@@ -1,48 +1,32 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<!--
+    What every style shares. The colours, fonts and sizes come from the style of the system, Themes/*.axaml,
+    which also changes what that system does differently.
+-->
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fi="using:FluentIcons.Avalonia">
 
-    <Styles.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="HadaPaneBrush" Color="#202020" />
-                    <SolidColorBrush x:Key="HadaPageBrush" Color="#272727" />
-                    <SolidColorBrush x:Key="HadaCardBrush" Color="#2D2D2D" />
-                    <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#323232" />
-                    <SolidColorBrush x:Key="HadaStrokeBrush" Color="#1C1C1C" />
-                    <SolidColorBrush x:Key="HadaTileBrush" Color="#3A3A3A" />
-                    <SolidColorBrush x:Key="HadaSecondaryTextBrush" Color="#C5C5C5" />
-                    <SolidColorBrush x:Key="HadaTertiaryTextBrush" Color="#9A9A9A" />
-                    <SolidColorBrush x:Key="HadaAttentionBrush" Color="#60CDFF" />
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="HadaPaneBrush" Color="#F3F3F3" />
-                    <SolidColorBrush x:Key="HadaPageBrush" Color="#F9F9F9" />
-                    <SolidColorBrush x:Key="HadaCardBrush" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#F6F6F6" />
-                    <SolidColorBrush x:Key="HadaStrokeBrush" Color="#E5E5E5" />
-                    <SolidColorBrush x:Key="HadaTileBrush" Color="#EDEDED" />
-                    <SolidColorBrush x:Key="HadaSecondaryTextBrush" Color="#5F5F5F" />
-                    <SolidColorBrush x:Key="HadaTertiaryTextBrush" Color="#8A8A8A" />
-                    <SolidColorBrush x:Key="HadaAttentionBrush" Color="#005FB8" />
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
-        </ResourceDictionary>
-    </Styles.Resources>
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="{DynamicResource HadaFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource HadaBodySize}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+    </Style>
 
     <!--  Text  -->
     <Style Selector="TextBlock.title">
-        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontSize" Value="{DynamicResource HadaTitleSize}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="TextBlock.subtitle">
-        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontSize" Value="{DynamicResource HadaSubtitleSize}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="TextBlock.strong">
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="TextBlock.caption">
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="{DynamicResource HadaCaptionSize}" />
     </Style>
     <Style Selector="TextBlock.secondary">
         <Setter Property="Foreground" Value="{DynamicResource HadaSecondaryTextBrush}" />
@@ -50,23 +34,33 @@
     <Style Selector="TextBlock.tertiary">
         <Setter Property="Foreground" Value="{DynamicResource HadaTertiaryTextBrush}" />
     </Style>
+    <Style Selector="TextBlock.headerTitle">
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
     <!--  A card: a raised area on the page, also as a button that leads somewhere.  -->
     <Style Selector="Border.card">
         <Setter Property="Background" Value="{DynamicResource HadaCardBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource HadaStrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="{DynamicResource HadaCardCorner}" />
     </Style>
     <Style Selector="Button.card">
         <Setter Property="Background" Value="{DynamicResource HadaCardBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource HadaStrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="{DynamicResource HadaCardCorner}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
     </Style>
     <Style Selector="Button.card:pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource HadaCardHoverBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource HadaStrokeBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="Button.card:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HadaCardBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaSecondaryTextBrush}" />
     </Style>
 
     <!--  The rounded tile behind an icon.  -->
@@ -78,23 +72,104 @@
         <Setter Property="Background" Value="{DynamicResource HadaTileBrush}" />
     </Style>
 
-    <!--  A row of a table, with a line above it.  -->
+    <!--  A row of a table or boxed list, with a line above it; dimmed for an entity that is switched off.  -->
     <Style Selector="Border.tableRow">
         <Setter Property="Padding" Value="18,10" />
         <Setter Property="BorderThickness" Value="0,1,0,0" />
-        <Setter Property="BorderBrush" Value="{DynamicResource HadaStrokeBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaSeparatorBrush}" />
     </Style>
     <Style Selector="Border.tableRow.disabled">
         <Setter Property="Opacity" Value="0.55" />
     </Style>
 
-    <!--  The navigation on the left.  -->
+    <!--  The computer at the top of the sidebar.  -->
+    <Style Selector="Border.avatar">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="Background" Value="{DynamicResource HadaAvatarBrush}" />
+    </Style>
+
+    <!--  The navigation: the open page is filled; the accent bar and the coloured tiles are for the styles that use them.  -->
     <Style Selector="ListBox.navigation">
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="8,0" />
     </Style>
     <Style Selector="ListBox.navigation ListBoxItem">
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="Margin" Value="4,1" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="{DynamicResource HadaNavItemPadding}" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource HadaNavCorner}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.navigation ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HadaNavHoverBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="ListBox.navigation ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HadaNavSelectedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaNavSelectedTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaNavSelectedBorderBrush}" />
+    </Style>
+    <Style Selector="ListBox.navigation ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HadaNavSelectedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaNavSelectedTextBrush}" />
+    </Style>
+    <Style Selector="ListBox.navigation ListBoxItem:selected:focus /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HadaNavSelectedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaNavSelectedTextBrush}" />
+    </Style>
+    <Style Selector="ListBox.navigation ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HadaNavSelectedBrush}" />
+    </Style>
+    <Style Selector="Border.indicator">
+        <Setter Property="Width" Value="3" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Margin" Value="-9,0,6,0" />
+        <Setter Property="CornerRadius" Value="1.5" />
+        <Setter Property="Background" Value="{DynamicResource HadaIndicatorBrush}" />
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Border.navTile">
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="fi|FluentIcon.navIcon">
+        <Setter Property="FontSize" Value="18" />
+    </Style>
+
+    <!--  Window buttons HADA draws itself, where the system draws none or HADA shows another system's style.  -->
+    <Style Selector="Button.chrome">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="Button.chrome.windows">
+        <Setter Property="Width" Value="46" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="Button.chrome.windows.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#C42B1C" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.chrome.gnome">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Background" Value="{DynamicResource HadaTileBrush}" />
+    </Style>
+    <Style Selector="Button.chrome.kde">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="CornerRadius" Value="11" />
+    </Style>
+    <Style Selector="Button.chrome.kde.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#DA4453" />
+        <Setter Property="Foreground" Value="White" />
     </Style>
 </Styles>

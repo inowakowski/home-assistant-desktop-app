@@ -1,0 +1,101 @@
+<!--
+    macOS, as its System Settings: a translucent sidebar with a coloured tile behind each icon, the open page
+    filled with the accent colour, its title in the toolbar, and the content in grouped sections.
+-->
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fi="using:FluentIcons.Avalonia">
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="HadaWindowBrush" Color="#1E1E1E" />
+                    <SolidColorBrush x:Key="HadaSidebarBrush" Color="#E62A2A2C" />
+                    <SolidColorBrush x:Key="HadaContentBrush" Color="#1E1E1E" />
+                    <SolidColorBrush x:Key="HadaContentStrokeBrush" Color="#000000" />
+                    <SolidColorBrush x:Key="HadaHeaderBrush" Color="#1E1E1E" />
+                    <SolidColorBrush x:Key="HadaCardBrush" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="HadaStrokeBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="HadaSeparatorBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="HadaTileBrush" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="HadaPrimaryTextBrush" Color="#DFFFFFFF" />
+                    <SolidColorBrush x:Key="HadaSecondaryTextBrush" Color="#8CFFFFFF" />
+                    <SolidColorBrush x:Key="HadaTertiaryTextBrush" Color="#66FFFFFF" />
+                    <SolidColorBrush x:Key="HadaAttentionBrush" Color="#0A84FF" />
+                    <SolidColorBrush x:Key="HadaNavHoverBrush" Color="#0AFFFFFF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBrush" Color="#0A84FF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedTextBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaIndicatorBrush" Color="#0A84FF" />
+                    <LinearGradientBrush x:Key="HadaAvatarBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#8E8E93" />
+                        <GradientStop Offset="1" Color="#636366" />
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="HadaAvatarIconBrush" Color="#FFFFFF" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="HadaWindowBrush" Color="#ECECEC" />
+                    <SolidColorBrush x:Key="HadaSidebarBrush" Color="#E6E8E8E8" />
+                    <SolidColorBrush x:Key="HadaContentBrush" Color="#F2F2F2" />
+                    <SolidColorBrush x:Key="HadaContentStrokeBrush" Color="#D9D9D9" />
+                    <SolidColorBrush x:Key="HadaHeaderBrush" Color="#F2F2F2" />
+                    <SolidColorBrush x:Key="HadaCardBrush" Color="#08000000" />
+                    <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HadaStrokeBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HadaSeparatorBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HadaTileBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HadaPrimaryTextBrush" Color="#D9000000" />
+                    <SolidColorBrush x:Key="HadaSecondaryTextBrush" Color="#80000000" />
+                    <SolidColorBrush x:Key="HadaTertiaryTextBrush" Color="#59000000" />
+                    <SolidColorBrush x:Key="HadaAttentionBrush" Color="#007AFF" />
+                    <SolidColorBrush x:Key="HadaNavHoverBrush" Color="#0A000000" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBrush" Color="#007AFF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedTextBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="HadaNavSelectedBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="HadaIndicatorBrush" Color="#007AFF" />
+                    <LinearGradientBrush x:Key="HadaAvatarBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#A5A5AA" />
+                        <GradientStop Offset="1" Color="#8E8E93" />
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="HadaAvatarIconBrush" Color="#FFFFFF" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!--  The system's own font on a Mac; this stands in for it elsewhere, when trying the style out.  -->
+            <FontFamily x:Key="HadaFontFamily">fonts:Inter#Inter</FontFamily>
+            <x:Double x:Key="HadaBodySize">13</x:Double>
+            <x:Double x:Key="HadaTitleSize">22</x:Double>
+            <x:Double x:Key="HadaSubtitleSize">15</x:Double>
+            <x:Double x:Key="HadaCaptionSize">11</x:Double>
+            <x:Double x:Key="HadaSidebarWidth">250</x:Double>
+            <x:Double x:Key="HadaHeaderHeight">52</x:Double>
+            <CornerRadius x:Key="HadaCardCorner">10</CornerRadius>
+            <CornerRadius x:Key="HadaNavCorner">6</CornerRadius>
+            <CornerRadius x:Key="HadaContentCorner">0</CornerRadius>
+            <Thickness x:Key="HadaContentBorder">1,0,0,0</Thickness>
+            <Thickness x:Key="HadaPageMargin">24,8,24,24</Thickness>
+            <Thickness x:Key="HadaNavItemPadding">6,4</Thickness>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!--  The page's title is in the toolbar, as in System Settings.  -->
+    <Style Selector="TextBlock.pageTitle">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <!--  A coloured tile behind each icon of the sidebar, the icon white on it.  -->
+    <Style Selector="Border.navTile">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="fi|FluentIcon.navIcon">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <!--  Section headings above grouped content are small and bold.  -->
+    <Style Selector="TextBlock.subtitle">
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+</Styles>
