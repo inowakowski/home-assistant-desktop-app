@@ -108,6 +108,18 @@ public sealed class AppSignalTests : IDisposable
         Assert.Equal(Path.Combine("run", "HADA.Tray.Exit.P1A2B3C4D.sock"), AppSignal.SocketPath("run", @"Local\HADA.Tray.Exit.P1A2B3C4D"));
     }
 
+    [Fact]
+    public void A_socket_name_too_long_for_a_socket_is_shortened_the_same_way_each_time()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), new string('f', 60));
+        var path = AppSignal.SocketPath(folder, @"Local\HADA.Window.Admin.P1A2B3C4D.Close");
+
+        Assert.Equal(folder, Path.GetDirectoryName(path));
+        Assert.True(Path.GetFileName(path).Length < 25);
+        Assert.Equal(path, AppSignal.SocketPath(folder, @"Local\HADA.Window.Admin.P1A2B3C4D.Close"));
+        Assert.NotEqual(path, AppSignal.SocketPath(folder, @"Local\HADA.Window.Admin.P1A2B3C4D.Show"));
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(Timeout);
