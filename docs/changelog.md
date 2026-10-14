@@ -4,6 +4,7 @@ Installers are on the [releases page](https://github.com/inowakowski/home-assist
 
 ## Unreleased
 
+- Fixed: the service of a portable copy, told to stop while it was still starting, ended with an error instead of stopping.
 - Fixed: when HADA stopped right after its first reading of a sensor, a Home Assistant connected to directly could be sent that sensor once more as a new entity, only to show it as unavailable.
 
 ## 1.5.1
