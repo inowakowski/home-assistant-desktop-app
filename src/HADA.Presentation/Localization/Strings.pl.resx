@@ -243,6 +243,8 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Mqtt_ServerNameHint" xml:space="preserve"><value>Twoja nazwa tego Home Assistanta, widoczna tutaj i w logach. Potrzebna, gdy serwerów jest kilka.</value></data>
   <data name="Validation_ServerName" xml:space="preserve"><value>Nadaj każdemu serwerowi MQTT nazwę, żeby dało się je odróżnić.</value></data>
   <data name="Validation_ServerNameTwice" xml:space="preserve"><value>Dwa serwery MQTT nazywają się „{0}”.</value></data>
+  <data name="Validation_SameBroker" xml:space="preserve"><value>„{0}” i „{1}” łączą się z tym samym brokerem jako to samo urządzenie. Usuń jedno z nich albo nadaj im różne ID urządzenia.</value></data>
+  <data name="Validation_SameHomeAssistant" xml:space="preserve"><value>„{0}” i „{1}” łączą się z tym samym Home Assistant jako to samo urządzenie. Usuń jedno z nich albo nadaj im różne ID urządzenia.</value></data>
   <data name="Card_HomeAssistantServer" xml:space="preserve"><value>WebSocket · {0}</value></data>
   <data name="Preferences_Browser" xml:space="preserve"><value>Przeglądarka dla powiadomień</value></data>
   <data name="Preferences_BrowserDetail" xml:space="preserve"><value>W czym otwiera się adres powiadomienia albo jego przycisku, gdy go klikniesz.</value></data>
@@ -323,5 +325,221 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   </data>
   <data name="Pending_Detail" xml:space="preserve">
     <value>Tej strony nie ma jeszcze w nowym oknie. Do tego czasu otwórz ustawienia z ikony w zasobniku.</value>
+  </data>
+  <data name="Connections_GroupMqtt" xml:space="preserve">
+    <value>Przez MQTT</value>
+  </data>
+  <data name="Connections_GroupDirect" xml:space="preserve">
+    <value>Bezpośrednio</value>
+  </data>
+  <data name="Connections_GroupSummary" xml:space="preserve">
+    <value>Połączone: {0} z {1}</value>
+  </data>
+  <data name="Connections_UnnamedMqtt" xml:space="preserve">
+    <value>Serwer MQTT</value>
+  </data>
+  <data name="Connections_UnnamedHa" xml:space="preserve">
+    <value>Home Assistant</value>
+  </data>
+  <data name="Connections_ListSubtitle" xml:space="preserve">
+    <value>Z którymi Home Assistantami łączy się ten komputer i jak.</value>
+  </data>
+  <data name="Connections_Add" xml:space="preserve">
+    <value>Dodaj połączenie</value>
+  </data>
+  <data name="Connections_Empty" xml:space="preserve">
+    <value>Nie ma jeszcze żadnego połączenia z Home Assistant. Dodaj pierwsze, a HADA pomoże wybrać sposób.</value>
+  </data>
+  <data name="Connections_WayIntegration" xml:space="preserve">
+    <value>z integracją HADA</value>
+  </data>
+  <data name="Connections_WayEntities" xml:space="preserve">
+    <value>jak aplikacja mobilna</value>
+  </data>
+  <data name="Connections_WayStates" xml:space="preserve">
+    <value>jako stany</value>
+  </data>
+  <data name="Connections_WayNotifications" xml:space="preserve">
+    <value>tylko powiadomienia</value>
+  </data>
+  <data name="Connections_WayNothing" xml:space="preserve">
+    <value>nic nie wysyła</value>
+  </data>
+  <data name="Connections_NotSaved" xml:space="preserve">
+    <value>Jeszcze niezapisane</value>
+  </data>
+  <data name="Connections_Delete" xml:space="preserve">
+    <value>Usuń to połączenie</value>
+  </data>
+  <data name="Connections_SectionConnection" xml:space="preserve">
+    <value>Połączenie</value>
+  </data>
+  <data name="Connections_SectionSignIn" xml:space="preserve">
+    <value>Logowanie</value>
+  </data>
+  <data name="Connections_SectionSends" xml:space="preserve">
+    <value>Co dostaje Home Assistant</value>
+  </data>
+  <data name="Connections_SectionDevice" xml:space="preserve">
+    <value>Ten komputer w Home Assistant</value>
+  </data>
+  <data name="Connections_SectionBroker" xml:space="preserve">
+    <value>Broker</value>
+  </data>
+  <data name="Attention_One" xml:space="preserve">
+    <value>„{0}” ({1}) wymaga uwagi</value>
+  </data>
+  <data name="Attention_Several" xml:space="preserve">
+    <value>Połączenia wymagające uwagi: {0}</value>
+  </data>
+  <data name="Attention_Show" xml:space="preserve">
+    <value>Pokaż</value>
+  </data>
+  <data name="Attention_Dismiss" xml:space="preserve">
+    <value>Ukryj do następnego problemu</value>
+  </data>
+  <data name="Overview_Manage" xml:space="preserve">
+    <value>Zarządzaj</value>
+  </data>
+  <data name="Overview_DesktopSensors" xml:space="preserve">
+    <value>Sensory pulpitu:</value>
+  </data>
+  <data name="Overview_NoConnections" xml:space="preserve">
+    <value>Nie ustawiono jeszcze żadnego połączenia z Home Assistant.</value>
+  </data>
+  <data name="Overview_AddConnection" xml:space="preserve">
+    <value>Ustaw połączenie</value>
+  </data>
+  <data name="Sidebar_Toggle" xml:space="preserve">
+    <value>Zwiń lub rozwiń panel boczny</value>
+  </data>
+  <data name="Add_Title" xml:space="preserve">
+    <value>Dodaj połączenie</value>
+  </data>
+  <data name="Add_StepWay" xml:space="preserve">
+    <value>Sposób</value>
+  </data>
+  <data name="Add_StepAddress" xml:space="preserve">
+    <value>Adres i logowanie</value>
+  </data>
+  <data name="Add_StepCheck" xml:space="preserve">
+    <value>Sprawdzenie</value>
+  </data>
+  <data name="Add_Question" xml:space="preserve">
+    <value>Jak ten komputer ma rozmawiać z Home Assistant?</value>
+  </data>
+  <data name="Add_Way_integration_Title" xml:space="preserve">
+    <value>Bezpośrednio, z integracją HADA</value>
+  </data>
+  <data name="Add_Way_integration_Badge" xml:space="preserve">
+    <value>Najwięcej możliwości</value>
+  </data>
+  <data name="Add_Way_integration_Gives" xml:space="preserve">
+    <value>Czujniki oraz przyciski, przełączniki i suwaki do klikania w Home Assistant, powiadomienia jak na telefonie, odtwarzacz multimediów.</value>
+  </data>
+  <data name="Add_Way_integration_Needs" xml:space="preserve">
+    <value>integracji HADA w Home Assistant, instalowanej przez HACS w kilka minut</value>
+  </data>
+  <data name="Add_Way_direct_Title" xml:space="preserve">
+    <value>Bezpośrednio</value>
+  </data>
+  <data name="Add_Way_direct_Badge" xml:space="preserve">
+    <value>Najprostsze</value>
+  </data>
+  <data name="Add_Way_direct_Gives" xml:space="preserve">
+    <value>Czujniki i powiadomienia jak na telefonie. Bez przycisków i przełączników w Home Assistant.</value>
+  </data>
+  <data name="Add_Way_direct_Needs" xml:space="preserve">
+    <value>tylko adresu Twojego Home Assistant</value>
+  </data>
+  <data name="Add_Way_mqtt_Title" xml:space="preserve">
+    <value>Przez MQTT</value>
+  </data>
+  <data name="Add_Way_mqtt_Badge" xml:space="preserve">
+    <value>Gdy masz brokera</value>
+  </data>
+  <data name="Add_Way_mqtt_Gives" xml:space="preserve">
+    <value>Czujniki, przyciski i przełączniki pojawiają się same; powiadomienia z obrazkiem zapisuje się jako JSON.</value>
+  </data>
+  <data name="Add_Way_mqtt_Needs" xml:space="preserve">
+    <value>brokera MQTT, na przykład aplikacji Mosquitto w Home Assistant</value>
+  </data>
+  <data name="Add_Needs" xml:space="preserve">
+    <value>Potrzebujesz: {0}.</value>
+  </data>
+  <data name="Add_Next" xml:space="preserve">
+    <value>Dalej</value>
+  </data>
+  <data name="Add_Back" xml:space="preserve">
+    <value>Wstecz</value>
+  </data>
+  <data name="Add_Cancel" xml:space="preserve">
+    <value>Anuluj</value>
+  </data>
+  <data name="Add_Check" xml:space="preserve">
+    <value>Sprawdź i dodaj</value>
+  </data>
+  <data name="Add_AddAnyway" xml:space="preserve">
+    <value>Dodaj mimo to</value>
+  </data>
+  <data name="Add_Done" xml:space="preserve">
+    <value>Gotowe</value>
+  </data>
+  <data name="Add_CheckFailedHint" xml:space="preserve">
+    <value>HADA nie połączyła się z tymi ustawieniami. Popraw je i sprawdź jeszcze raz albo dodaj połączenie mimo to: HADA będzie próbować dalej.</value>
+  </data>
+  <data name="Add_DoneWorking" xml:space="preserve">
+    <value>Dodano. Ten komputer jest już w Home Assistant.</value>
+  </data>
+  <data name="Add_DoneTrying" xml:space="preserve">
+    <value>Dodano. HADA nadal próbuje się połączyć.</value>
+  </data>
+  <data name="Add_StateNow" xml:space="preserve">
+    <value>Teraz:</value>
+  </data>
+  <data name="Add_SendEntities" xml:space="preserve">
+    <value>Wysyłaj też encje</value>
+  </data>
+  <data name="Add_SendEntitiesHint" xml:space="preserve">
+    <value>Encje tego komputera idą już do Home Assistant przez MQTT. Włącz tylko, jeśli ten Home Assistant nie dostaje ich tą drogą; inaczej miałby je dwa razy.</value>
+  </data>
+  <data name="Add_NameHint" xml:space="preserve">
+    <value>Twoja nazwa, widoczna tylko w HADA.</value>
+  </data>
+  <data name="Add_TokenInstead" xml:space="preserve">
+    <value>Albo wklej token dostępu</value>
+  </data>
+  <data name="Add_Way_integration_Result1" xml:space="preserve">
+    <value>Czujniki komputera są w Home Assistant.</value>
+  </data>
+  <data name="Add_Way_integration_Result2" xml:space="preserve">
+    <value>Przyciski, przełączniki i suwaki działają.</value>
+  </data>
+  <data name="Add_Way_integration_Result3" xml:space="preserve">
+    <value>Powiadomienia z obrazkiem i przyciskami działają.</value>
+  </data>
+  <data name="Add_Way_direct_Result1" xml:space="preserve">
+    <value>Czujniki komputera są w Home Assistant.</value>
+  </data>
+  <data name="Add_Way_direct_Result2" xml:space="preserve">
+    <value>Powiadomienia z obrazkiem i przyciskami działają.</value>
+  </data>
+  <data name="Add_Way_direct_Result3" xml:space="preserve">
+    <value>Przycisków i przełączników nie ma: do tego potrzebna jest integracja HADA.</value>
+  </data>
+  <data name="Add_Way_mqtt_Result1" xml:space="preserve">
+    <value>Komputer pojawia się w Home Assistant jako urządzenie MQTT.</value>
+  </data>
+  <data name="Add_Way_mqtt_Result2" xml:space="preserve">
+    <value>Czujniki, przyciski i przełączniki działają.</value>
+  </data>
+  <data name="Add_Way_mqtt_Result3" xml:space="preserve">
+    <value>Obrazu z kamery w powiadomieniach przez MQTT nie ma.</value>
+  </data>
+  <data name="Add_Way_off_Result1" xml:space="preserve">
+    <value>Powiadomienia jak na telefonie działają.</value>
+  </data>
+  <data name="Add_Way_off_Result2" xml:space="preserve">
+    <value>Encje dalej idą przez MQTT.</value>
   </data>
 </root>

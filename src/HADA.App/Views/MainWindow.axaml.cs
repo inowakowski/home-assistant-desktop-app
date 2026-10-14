@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using HADA.App.Styling;
 using HADA.App.Views.Pages;
+using HADA.Presentation;
 using HADA.Presentation.Localization;
 using HADA.Presentation.ViewModels;
 using FluentIconKind = FluentIcons.Common.Icon;
@@ -35,12 +36,15 @@ public sealed partial class MainWindow : Window
     ];
 
     private bool _choosing;
+    private bool _showsSidebarTitle;
+    private MainViewModel? _viewModel;
 
     public MainWindow()
     {
         InitializeComponent();
         MainPages.ItemsSource = Main;
         FooterPages.ItemsSource = Footer;
+        SetSidebarCollapsed(UserPreferences.SidebarCollapsed);
     }
 
     /// <summary>
@@ -94,7 +98,8 @@ public sealed partial class MainWindow : Window
 
             case DesktopStyle.Gnome:
                 // Header bars on both panes, the page's title centred, a close button, round corners.
-                SidebarTitle.IsVisible = true;
+                _showsSidebarTitle = true;
+                SidebarTitle.IsVisible = !Sidebar.Classes.Contains("collapsed");
                 SidebarTitle.HorizontalAlignment = HorizontalAlignment.Center;
                 HeaderTitle.HorizontalAlignment = HorizontalAlignment.Center;
                 HeaderTitle.Margin = new Thickness(56, 0, 20, 0);
@@ -107,7 +112,8 @@ public sealed partial class MainWindow : Window
 
             case DesktopStyle.Kde:
                 // KWin's title bar, or Breeze's drawn like it; a toolbar with the page's title above the page.
-                SidebarTitle.IsVisible = true;
+                _showsSidebarTitle = true;
+                SidebarTitle.IsVisible = !Sidebar.Classes.Contains("collapsed");
                 SidebarTitle.Margin = new Thickness(16, 0);
                 SidebarHeader.Background = ContentHeader.Background;
                 if (drawnFrame)
@@ -127,6 +133,7 @@ public sealed partial class MainWindow : Window
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         DataContext = viewModel;
+        _viewModel = viewModel;
         Title = viewModel.WindowTitle;
         TitleText.Text = viewModel.WindowTitle;
         viewModel.NavigationRequested += ShowPage;
@@ -151,7 +158,8 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void ShowPage(string target)
     {
-        var name = target.Split('#', 2)[0];
+        var parts = target.Split('#', 2);
+        var name = parts[0];
         var item = Main.Concat(Footer).FirstOrDefault(candidate => candidate.Name == name) ?? Main[0];
 
         _choosing = true;
@@ -160,11 +168,35 @@ public sealed partial class MainWindow : Window
         _choosing = false;
 
         HeaderTitle.Text = item.Title;
+        if (item.Name == "connections")
+        {
+            _viewModel?.Connections.Show(parts.Length > 1 ? parts[1] : null);
+        }
+        else
+        {
+            _viewModel?.Connections.Leave();
+        }
+
         PageHost.Content = item.Name switch
         {
             "overview" => new OverviewPage(),
+            "connections" => new ConnectionsPage(),
             _ => new PendingPage(),
         };
+    }
+
+    private void OnToggleSidebar(object? sender, RoutedEventArgs e)
+    {
+        var collapsed = !Sidebar.Classes.Contains("collapsed");
+        SetSidebarCollapsed(collapsed);
+        UserPreferences.SidebarCollapsed = collapsed;
+    }
+
+    /// <summary>Shows the sidebar with the names of the pages, or their icons only.</summary>
+    private void SetSidebarCollapsed(bool collapsed)
+    {
+        Sidebar.Classes.Set("collapsed", collapsed);
+        SidebarTitle.IsVisible = _showsSidebarTitle && !collapsed;
     }
 
     private void OnPageChosen(object? sender, SelectionChangedEventArgs e)

@@ -22,6 +22,8 @@ public sealed class OverviewViewModel : ObservableObject
     private string? _servers;
     private bool _hasNoEntities = true;
     private string _serviceVersion = string.Empty;
+    private Dictionary<string, (EngineStatus Engine, StatusCardViewModel Card)> _states = [];
+    private bool _isReachable;
 
     /// <param name="navigate">
     /// Opens the page a status card is about: <c>logs</c>, <c>connections</c>, <c>connections#mqtt=</c> and a
@@ -33,6 +35,7 @@ public sealed class OverviewViewModel : ObservableObject
         _navigate = navigate;
         _service = new(Loc.Get("Card_Service"), Glyph.Server, Loc.Get("Card_OpenLogs"), () => navigate("logs"));
         _tray = new(Loc.Get("Card_Tray"), Glyph.WindowApps, Loc.Get("Card_OpenEntities"), () => navigate("entities"));
+        Attention = new AttentionViewModel(navigate);
         ShowServers(
             [new EngineStatus(MqttEngineName, false, EngineConnectionState.Disconnected)],
             [new EngineStatus(HomeAssistantEngineName, false, EngineConnectionState.Disconnected)]);
@@ -45,6 +48,31 @@ public sealed class OverviewViewModel : ObservableObject
     public ObservableCollection<StatusCardViewModel> Cards { get; } = [];
 
     public ObservableCollection<EntityRowViewModel> Entities { get; } = [];
+
+    /// <summary>
+    /// The servers HADA is set up to reach, one group per way of connecting; a way without servers has no group.
+    /// </summary>
+    public ObservableCollection<ConnectionGroupViewModel> ConnectionGroups { get; } = [];
+
+    public bool HasNoConnections => ConnectionGroups.Count == 0;
+
+    /// <summary>Whether to say that no connection is set up: the service was reached and runs none.</summary>
+    public bool ShowsNoConnections => _isReachable && HasNoConnections;
+
+    /// <summary>Opens the Connections page.</summary>
+    public ICommand ManageConnectionsCommand => new RelayCommand(() => _navigate("connections"));
+
+    /// <summary>Opens the Connections page at adding a connection, for when there is none.</summary>
+    public ICommand AddConnectionCommand => new RelayCommand(() => _navigate("connections#add"));
+
+    /// <summary>The notice at the top, while a connection needs the user.</summary>
+    public AttentionViewModel Attention { get; }
+
+    /// <summary>The tray app's sensors of the desktop, told in one line.</summary>
+    public StatusCardViewModel DesktopSensors => _tray;
+
+    /// <summary>Raised after every refresh: the state of each server may have changed.</summary>
+    public event EventHandler? StatesChanged;
 
     /// <summary>The computer HADA runs on, as the window names it at its top.</summary>
     public string ComputerName { get; } = Environment.MachineName;
@@ -68,6 +96,7 @@ public sealed class OverviewViewModel : ObservableObject
     public void Update(ServiceStatus status)
     {
         ServiceVersion = status.Version.Split('+')[0];
+        _isReachable = true;
         _service.Set(
             Loc.Get("Status_Running"),
             StatusKind.Success,
@@ -84,6 +113,8 @@ public sealed class OverviewViewModel : ObservableObject
         {
             UpdateEngine(_homeAssistant[i], homeAssistants[i]);
         }
+
+        ShowConnections(servers, homeAssistants);
 
         var trayCount = status.SensorClients.Count;
         _tray.Set(
@@ -104,12 +135,98 @@ public sealed class OverviewViewModel : ObservableObject
     public void SetUnavailable()
     {
         ServiceVersion = string.Empty;
+        _isReachable = false;
         _service.Set(Loc.Get("Status_NotRunning"), StatusKind.Error, Loc.Get("Status_NotRunningDetail"));
         foreach (var card in Cards.Where(card => card != _service))
         {
             card.Set("—", StatusKind.Neutral);
         }
+
+        // Nothing is known about the connections while the service cannot be asked.
+        _states = [];
+        ConnectionGroups.Clear();
+        OnPropertyChanged(nameof(HasNoConnections));
+        OnPropertyChanged(nameof(ShowsNoConnections));
+        Attention.Update([]);
+        StatesChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>How a server is doing as the service last told; <see langword="null"/> for one it does not run, such as one not saved yet.</summary>
+    public (string Text, StatusKind Kind, string Detail)? StateOf(ConnectionWay way, string serverId) =>
+        _states.TryGetValue(StateKey(way, serverId), out var state) && state.Engine.IsConfigured
+            ? (state.Card.Text, state.Card.Kind, state.Card.Detail)
+            : null;
+
+    private static string StateKey(ConnectionWay way, string? serverId) => $"{way}:{serverId}";
+
+    /// <summary>
+    /// Groups the servers that are set up by the way they connect, and tells the notice which of them need the
+    /// user: one that does not connect, and one connected but not doing all it is set up to do.
+    /// </summary>
+    private void ShowConnections(IReadOnlyList<EngineStatus> mqtt, IReadOnlyList<EngineStatus> homeAssistants)
+    {
+        var states = new Dictionary<string, (EngineStatus Engine, StatusCardViewModel Card)>(StringComparer.Ordinal);
+        var problems = new List<ConnectionProblem>();
+        var groups = new List<(ConnectionWay Way, List<(EngineStatus Engine, StatusCardViewModel Card)> Servers)>();
+        foreach (var (way, engines, cards) in (IEnumerable<(ConnectionWay, IReadOnlyList<EngineStatus>, List<StatusCardViewModel>)>)
+            [(ConnectionWay.Mqtt, mqtt, _mqtt), (ConnectionWay.HomeAssistant, homeAssistants, _homeAssistant)])
+        {
+            var configured = new List<(EngineStatus Engine, StatusCardViewModel Card)>();
+            for (var i = 0; i < engines.Count; i++)
+            {
+                states[StateKey(way, engines[i].ServerId)] = (engines[i], cards[i]);
+                if (!engines[i].IsConfigured)
+                {
+                    continue;
+                }
+
+                configured.Add((engines[i], cards[i]));
+                if (engines[i].State == EngineConnectionState.Faulted
+                    || (engines[i].State == EngineConnectionState.Connected && engines[i].Issue is { Length: > 0 }))
+                {
+                    problems.Add(new ConnectionProblem(
+                        $"{StateKey(way, engines[i].ServerId)}\t{engines[i].State}\t{engines[i].Issue}",
+                        ServerName(way, engines[i]),
+                        Loc.Get(way == ConnectionWay.Mqtt ? "Card_Mqtt" : "Connections_GroupDirect"),
+                        cards[i].Detail,
+                        $"connections#{(way == ConnectionWay.Mqtt ? "mqtt" : "ha")}={engines[i].ServerId}"));
+                }
+            }
+
+            if (configured.Count > 0)
+            {
+                groups.Add((way, configured));
+            }
+        }
+
+        _states = states;
+        CollectionSync.Sync(
+            ConnectionGroups,
+            groups,
+            group => group.Way.ToString(),
+            group => group.Key,
+            key => new ConnectionGroupViewModel(Enum.Parse<ConnectionWay>(key)),
+            (group, item) =>
+            {
+                group.Summary = Loc.Format(
+                    "Connections_GroupSummary", item.Servers.Count(server => server.Engine.State == EngineConnectionState.Connected), item.Servers.Count);
+                CollectionSync.Sync(
+                    group.Rows,
+                    item.Servers,
+                    server => server.Engine.ServerId ?? string.Empty,
+                    row => row.Id,
+                    id => new ConnectionRowViewModel(id, () => _navigate($"connections#{(group.IsMqtt ? "mqtt" : "ha")}={id}")),
+                    (row, server) => row.Set(ServerName(group.Way, server.Engine), string.Empty, server.Card.Text, server.Card.Kind));
+            });
+        OnPropertyChanged(nameof(HasNoConnections));
+        OnPropertyChanged(nameof(ShowsNoConnections));
+        Attention.Update(problems);
+        StatesChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static string ServerName(ConnectionWay way, EngineStatus engine) =>
+        engine.ServerName is { Length: > 0 } name ? name
+        : Loc.Get(way == ConnectionWay.Mqtt ? "Connections_UnnamedMqtt" : "Connections_UnnamedHa");
 
     /// <summary>
     /// Puts up a card for each MQTT server and each Home Assistant, when the servers are not the ones there are

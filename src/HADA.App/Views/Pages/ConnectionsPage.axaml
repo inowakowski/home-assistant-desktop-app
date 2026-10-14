@@ -1,0 +1,865 @@
+<UserControl
+    x:Class="HADA.App.Views.Pages.ConnectionsPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:v="using:HADA.App.Views"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:MainViewModel">
+
+    <DockPanel>
+        <!--  Changes are saved together, from any of the three screens.  -->
+        <Border
+            Padding="28,12"
+            BorderBrush="{DynamicResource HadaSeparatorBrush}"
+            BorderThickness="0,1,0,0"
+            DockPanel.Dock="Bottom"
+            IsVisible="{Binding Connections.ShowsSaveBar}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button
+                    Classes="accent"
+                    Command="{Binding Settings.SaveCommand}"
+                    Content="{l:Tr Common_Save}" />
+                <Button Command="{Binding Settings.RevertCommand}" Content="{l:Tr Common_Revert}" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel
+                MaxWidth="1000"
+                Margin="{DynamicResource HadaPageMargin}"
+                Spacing="16">
+
+                <!--  Read only, until opened as administrator.  -->
+                <Border
+                    Background="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}}"
+                    BorderBrush="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+                    Classes="message"
+                    IsVisible="{Binding Settings.IsLocked}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                            <TextBlock Classes="strong" Text="{l:Tr Settings_LockedTitle}" />
+                            <TextBlock Classes="caption secondary" Text="{l:Tr Settings_LockedMessage}" />
+                        </StackPanel>
+                        <Button
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Command="{Binding UnlockCommand}"
+                            Content="{l:Tr Common_Unlock}" />
+                    </Grid>
+                </Border>
+
+                <!--  How saving went.  -->
+                <Border
+                    Background="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}}"
+                    BorderBrush="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+                    Classes="message"
+                    IsVisible="{Binding Settings.Feedback.IsOpen}">
+                    <StackPanel>
+                        <TextBlock Classes="strong" Text="{Binding Settings.Feedback.Title}" />
+                        <TextBlock Text="{Binding Settings.Feedback.Message}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Spacing="16" DataContext="{Binding Connections}" x:DataType="vm:ConnectionsViewModel">
+
+                    <!--  1. Every connection, grouped by the way it connects.  -->
+                    <StackPanel IsVisible="{Binding IsList}" Spacing="16">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="title pageTitle" Text="{l:Tr Nav_Connections}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Classes="secondary"
+                                    Text="{l:Tr Connections_ListSubtitle}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="1"
+                                Margin="16,0,0,0"
+                                VerticalAlignment="Bottom"
+                                Classes="accent"
+                                Command="{Binding AddCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fi:FluentIcon
+                                        VerticalAlignment="Center"
+                                        FontSize="14"
+                                        Icon="Add" />
+                                    <TextBlock Text="{l:Tr Connections_Add}" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <Border Classes="card" IsVisible="{Binding !HasNoConnections}">
+                            <ItemsControl ItemsSource="{Binding Groups}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ConnectionGroupViewModel">
+                                        <StackPanel>
+                                            <TextBlock
+                                                Classes="caption tertiary sectionTitle"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding Title}" />
+                                            <ItemsControl ItemsSource="{Binding Rows}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:ConnectionRowViewModel">
+                                                        <Border Padding="0" Classes="tableRow">
+                                                            <Button
+                                                                AutomationProperties.Name="{Binding Name}"
+                                                                Classes="row"
+                                                                Command="{Binding OpenCommand}">
+                                                                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                                                    <Ellipse
+                                                                        Width="10"
+                                                                        Height="10"
+                                                                        VerticalAlignment="Center"
+                                                                        Fill="{Binding Kind, Converter={StaticResource StatusBrush}}" />
+                                                                    <StackPanel
+                                                                        Grid.Column="1"
+                                                                        Margin="12,0"
+                                                                        VerticalAlignment="Center">
+                                                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock
+                                                                            Classes="caption tertiary"
+                                                                            IsVisible="{Binding HasDetail}"
+                                                                            Text="{Binding Detail}"
+                                                                            TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+                                                                    <TextBlock
+                                                                        Grid.Column="2"
+                                                                        Margin="0,0,12,0"
+                                                                        VerticalAlignment="Center"
+                                                                        Classes="caption secondary"
+                                                                        Classes.error="{Binding IsProblem}"
+                                                                        Text="{Binding StatusText}" />
+                                                                    <fi:FluentIcon
+                                                                        Grid.Column="3"
+                                                                        VerticalAlignment="Center"
+                                                                        FontSize="14"
+                                                                        Foreground="{DynamicResource HadaTertiaryTextBrush}"
+                                                                        Icon="ChevronRight" />
+                                                                </Grid>
+                                                            </Button>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+
+                        <Border
+                            Padding="18,16"
+                            Classes="card"
+                            IsVisible="{Binding HasNoConnections}">
+                            <TextBlock
+                                Classes="secondary"
+                                Text="{l:Tr Connections_Empty}"
+                                TextWrapping="Wrap" />
+                        </Border>
+                    </StackPanel>
+
+                    <!--  2. One server: where it is, how it is doing, and its settings.  -->
+                    <StackPanel IsVisible="{Binding IsDetail}" Spacing="16">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button
+                                Classes="link"
+                                Command="{Binding BackCommand}"
+                                Content="{l:Tr Nav_Connections}" />
+                            <fi:FluentIcon
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="{DynamicResource HadaTertiaryTextBrush}"
+                                Icon="ChevronRight" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Classes="secondary"
+                                Text="{Binding Title}" />
+                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="{Binding Title}" />
+                                <StackPanel
+                                    Margin="0,6,0,0"
+                                    Orientation="Horizontal"
+                                    Spacing="8">
+                                    <Ellipse
+                                        Width="10"
+                                        Height="10"
+                                        VerticalAlignment="Center"
+                                        Fill="{Binding StateKind, Converter={StaticResource StatusBrush}}" />
+                                    <TextBlock VerticalAlignment="Center" Text="{Binding StateText}" />
+                                    <Border
+                                        Padding="8,2"
+                                        Background="{DynamicResource HadaTileBrush}"
+                                        CornerRadius="10">
+                                        <TextBlock Classes="caption" Text="{Binding Way}" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock
+                                    Margin="0,6,0,0"
+                                    Classes="caption secondary"
+                                    IsVisible="{Binding HasStateDetail}"
+                                    Text="{Binding StateDetail}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="1"
+                                Margin="16,0,8,0"
+                                VerticalAlignment="Top"
+                                Command="{Binding TestCommand}"
+                                Content="{l:Tr Test_Button}" />
+                            <Button
+                                Grid.Column="2"
+                                VerticalAlignment="Top"
+                                Command="{Binding DeleteCommand}"
+                                Content="{l:Tr Connections_Delete}" />
+                        </Grid>
+                    </StackPanel>
+
+                    <!--  An MQTT server's settings.  -->
+                    <StackPanel
+                        IsEnabled="{Binding Settings.CanEdit}"
+                        IsVisible="{Binding IsMqtt}"
+                        Spacing="12">
+                        <Border
+                            Background="{Binding Settings.MqttTest.Severity, Converter={StaticResource SeverityBrush}}"
+                            BorderBrush="{Binding Settings.MqttTest.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+                            Classes="message"
+                            IsVisible="{Binding Settings.MqttTest.IsOpen}">
+                            <StackPanel>
+                                <TextBlock Classes="strong" Text="{Binding Settings.MqttTest.Title}" />
+                                <TextBlock Text="{Binding Settings.MqttTest.Message}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel
+                            DataContext="{Binding Mqtt}"
+                            Spacing="12"
+                            x:DataType="vm:MqttServerViewModel">
+                            <Border Padding="0,0,0,8" Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="sectionTitle" Text="{l:Tr Connections_SectionBroker}" />
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_ServerName}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Text="{Binding Name}"
+                                            PlaceholderText="{l:Tr Placeholder_ServerName}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_Host}" />
+                                        <TextBox Grid.Column="1" Text="{Binding Host}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_Port}" />
+                                        <NumericUpDown
+                                            Grid.Column="1"
+                                            Width="140"
+                                            HorizontalAlignment="Left"
+                                            FormatString="0"
+                                            Maximum="65535"
+                                            Minimum="1"
+                                            ShowButtonSpinner="False"
+                                            Value="{Binding Port}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_UseTls}" />
+                                        <ToggleSwitch
+                                            Grid.Column="1"
+                                            IsChecked="{Binding UseTls}"
+                                            OffContent="{l:Tr Common_Off}"
+                                            OnContent="{l:Tr Common_On}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_Username}" />
+                                        <TextBox Grid.Column="1" Text="{Binding Username}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_Password}" />
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <TextBox
+                                                PasswordChar="•"
+                                                Text="{Binding Password}"
+                                                PlaceholderText="{Binding PasswordPlaceholder}" />
+                                            <CheckBox
+                                                Content="{l:Tr Field_ClearSecret}"
+                                                IsChecked="{Binding ClearPassword}"
+                                                IsVisible="{Binding HasPassword}" />
+                                        </StackPanel>
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Border>
+                            <Border Padding="0,0,0,8" Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="sectionTitle" Text="{l:Tr Connections_SectionDevice}" />
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_DeviceId}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Text="{Binding DeviceId}"
+                                            PlaceholderText="{Binding MachineNamePlaceholder}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_DeviceName}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Text="{Binding DeviceName}"
+                                            PlaceholderText="{Binding MachineNamePlaceholder}" />
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Border>
+                            <Expander HorizontalAlignment="Stretch" Header="{l:Tr Field_Advanced}">
+                                <StackPanel>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_DiscoveryPrefix}" />
+                                        <TextBox Grid.Column="1" Text="{Binding DiscoveryPrefix}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_BaseTopic}" />
+                                        <TextBox Grid.Column="1" Text="{Binding BaseTopic}" />
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!--  A Home Assistant's settings.  -->
+                    <StackPanel
+                        IsEnabled="{Binding Settings.CanEdit}"
+                        IsVisible="{Binding IsHomeAssistant}"
+                        Spacing="12">
+                        <Border
+                            Background="{Binding Settings.HomeAssistantTest.Severity, Converter={StaticResource SeverityBrush}}"
+                            BorderBrush="{Binding Settings.HomeAssistantTest.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+                            Classes="message"
+                            IsVisible="{Binding Settings.HomeAssistantTest.IsOpen}">
+                            <StackPanel>
+                                <TextBlock Classes="strong" Text="{Binding Settings.HomeAssistantTest.Title}" />
+                                <TextBlock Text="{Binding Settings.HomeAssistantTest.Message}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel
+                            DataContext="{Binding HomeAssistant}"
+                            Spacing="12"
+                            x:DataType="vm:HomeAssistantServerViewModel">
+                            <Border Padding="0,0,0,8" Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="sectionTitle" Text="{l:Tr Connections_SectionConnection}" />
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_ServerName}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Text="{Binding Name}"
+                                            PlaceholderText="{l:Tr Placeholder_ServerName}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_BaseUrl}" />
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <TextBox Text="{Binding Url}" />
+                                            <TextBlock
+                                                MaxWidth="460"
+                                                HorizontalAlignment="Left"
+                                                Classes="caption secondary"
+                                                Classes.error="{Binding IsUnencryptedPublic}"
+                                                IsVisible="{Binding HasEncryptionNote}"
+                                                Text="{Binding EncryptionNote}"
+                                                TextWrapping="Wrap" />
+                                            <CheckBox
+                                                Content="{l:Tr Ha_AllowUnencrypted}"
+                                                IsChecked="{Binding AllowUnencrypted}"
+                                                IsVisible="{Binding CanAllowUnencrypted}" />
+                                        </StackPanel>
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Padding="0,0,0,8" Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="sectionTitle" Text="{l:Tr Connections_SectionSignIn}" />
+                                    <v:FieldRow>
+                                        <Button
+                                            Grid.ColumnSpan="2"
+                                            Classes="accent"
+                                            Command="{Binding SignInCommand}"
+                                            Content="{l:Tr SignIn_Button}" />
+                                    </v:FieldRow>
+                                    <TextBlock
+                                        Margin="18,0,18,8"
+                                        Classes="caption secondary"
+                                        Text="{Binding SignInNote}"
+                                        TextWrapping="Wrap" />
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_AccessToken}" />
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <TextBox
+                                                PasswordChar="•"
+                                                Text="{Binding AccessToken}"
+                                                PlaceholderText="{Binding AccessTokenPlaceholder}" />
+                                            <CheckBox
+                                                Content="{l:Tr Field_ClearSecret}"
+                                                IsChecked="{Binding ClearAccessToken}"
+                                                IsVisible="{Binding HasAccessToken}" />
+                                        </StackPanel>
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Padding="0,0,0,8" Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="sectionTitle" Text="{l:Tr Connections_SectionSends}" />
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_HaSensors}" />
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <ComboBox
+                                                MinWidth="280"
+                                                ItemsSource="{Binding SensorModes}"
+                                                SelectedValue="{Binding SensorMode}"
+                                                SelectedValueBinding="{ReflectionBinding Mode}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:SensorModeOption">
+                                                        <TextBlock Text="{Binding Label}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock
+                                                MaxWidth="460"
+                                                HorizontalAlignment="Left"
+                                                Classes="caption secondary"
+                                                Text="{Binding SensorModeDescription}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_HaNotifications}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <ToggleSwitch
+                                                IsChecked="{Binding Notifications}"
+                                                OffContent="{l:Tr Common_Off}"
+                                                OnContent="{l:Tr Common_On}" />
+                                            <TextBlock
+                                                MaxWidth="460"
+                                                HorizontalAlignment="Left"
+                                                Classes="caption secondary"
+                                                Text="{l:Tr Ha_NotificationsHint}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Padding="0,0,0,8" Classes="card">
+                                <StackPanel>
+                                    <TextBlock Classes="sectionTitle" Text="{l:Tr Connections_SectionDevice}" />
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_DeviceId}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Text="{Binding DeviceId}"
+                                            PlaceholderText="{Binding MachineNamePlaceholder}" />
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_DeviceName}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Text="{Binding DeviceName}"
+                                            PlaceholderText="{Binding MachineNamePlaceholder}" />
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Border>
+
+                            <Expander
+                                HorizontalAlignment="Stretch"
+                                Header="{l:Tr Ha_HomeTitle}"
+                                IsExpanded="{Binding UsesHomeNetwork, Mode=OneTime}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock
+                                        Margin="18,4,18,4"
+                                        Classes="caption secondary"
+                                        Text="{l:Tr Ha_HomeIntro}"
+                                        TextWrapping="Wrap" />
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_LocalUrl}" />
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <TextBox Text="{Binding LocalUrl}" />
+                                            <TextBlock
+                                                MaxWidth="460"
+                                                HorizontalAlignment="Left"
+                                                Classes="caption secondary"
+                                                IsVisible="{Binding HasHomeNetworkNote}"
+                                                Text="{Binding HomeNetworkNote}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </v:FieldRow>
+                                    <v:FieldRow>
+                                        <TextBlock Classes="label" Text="{l:Tr Field_HomeNetworks}" />
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <TextBox
+                                                MinHeight="72"
+                                                AcceptsReturn="True"
+                                                Text="{Binding LocalNetworks}"
+                                                TextWrapping="Wrap" />
+                                            <TextBlock
+                                                Classes="caption secondary"
+                                                IsVisible="{Binding HasConnectedNetworks}"
+                                                Text="{l:Tr Ha_ConnectedNetworks}"
+                                                TextWrapping="Wrap" />
+                                            <ItemsControl IsVisible="{Binding HasConnectedNetworks}" ItemsSource="{Binding ConnectedNetworks}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:NetworkChoice">
+                                                        <Button
+                                                            Margin="0,0,6,6"
+                                                            Command="{Binding Add}"
+                                                            Content="{Binding Name}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </v:FieldRow>
+                                </StackPanel>
+                            </Expander>
+
+                            <Expander HorizontalAlignment="Stretch" Header="{l:Tr Field_Advanced}">
+                                <v:FieldRow>
+                                    <TextBlock Classes="label" Text="{l:Tr Field_CommandEventType}" />
+                                    <TextBox Grid.Column="1" Text="{Binding CommandEventType}" />
+                                </v:FieldRow>
+                            </Expander>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!--  3. Adding a connection: how, where, and a check.  -->
+                    <StackPanel IsVisible="{Binding IsAdding}" Spacing="16">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button
+                                Classes="link"
+                                Command="{Binding CancelCommand}"
+                                Content="{l:Tr Nav_Connections}" />
+                            <fi:FluentIcon
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="{DynamicResource HadaTertiaryTextBrush}"
+                                Icon="ChevronRight" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Classes="secondary"
+                                Text="{l:Tr Add_Title}" />
+                        </StackPanel>
+                        <TextBlock Classes="title" Text="{l:Tr Add_Title}" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="24">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Classes="stepNumber" Classes.current="{Binding IsStep1}">
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Classes="caption strong"
+                                        Text="1" />
+                                </Border>
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Classes="caption"
+                                    Classes.secondary="{Binding !IsStep1}"
+                                    Text="{l:Tr Add_StepWay}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Classes="stepNumber" Classes.current="{Binding IsStep2}">
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Classes="caption strong"
+                                        Text="2" />
+                                </Border>
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Classes="caption"
+                                    Classes.secondary="{Binding !IsStep2}"
+                                    Text="{l:Tr Add_StepAddress}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Classes="stepNumber" Classes.current="{Binding IsStep3}">
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Classes="caption strong"
+                                        Text="3" />
+                                </Border>
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Classes="caption"
+                                    Classes.secondary="{Binding !IsStep3}"
+                                    Text="{l:Tr Add_StepCheck}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!--  Step 1: the way, with what each gives and needs.  -->
+                        <StackPanel IsVisible="{Binding IsStep1}" Spacing="10">
+                            <TextBlock
+                                Classes="strong"
+                                FontSize="16"
+                                Text="{l:Tr Add_Question}" />
+                            <ItemsControl ItemsSource="{Binding Ways}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:WayOptionViewModel">
+                                        <Button
+                                            Margin="0,0,0,10"
+                                            AutomationProperties.Name="{Binding Title}"
+                                            Classes="option"
+                                            Classes.selected="{Binding IsSelected}"
+                                            Command="{Binding PickCommand}">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <Panel
+                                                    Width="18"
+                                                    Height="18"
+                                                    Margin="0,2,14,0"
+                                                    VerticalAlignment="Top">
+                                                    <Ellipse Stroke="{DynamicResource HadaTertiaryTextBrush}" StrokeThickness="2" />
+                                                    <Ellipse
+                                                        Width="10"
+                                                        Height="10"
+                                                        Fill="{DynamicResource HadaIndicatorBrush}"
+                                                        IsVisible="{Binding IsSelected}" />
+                                                </Panel>
+                                                <StackPanel Grid.Column="1" Spacing="4">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Classes="strong" Text="{Binding Title}" />
+                                                        <Border
+                                                            Padding="8,1"
+                                                            VerticalAlignment="Center"
+                                                            Background="{DynamicResource HadaTileBrush}"
+                                                            CornerRadius="10">
+                                                            <TextBlock Classes="caption" Text="{Binding Badge}" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock
+                                                        Classes="secondary"
+                                                        Text="{Binding Gives}"
+                                                        TextWrapping="Wrap" />
+                                                    <TextBlock
+                                                        Classes="caption tertiary"
+                                                        Text="{Binding Needs}"
+                                                        TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button
+                                    Classes="accent"
+                                    Command="{Binding NextCommand}"
+                                    Content="{l:Tr Add_Next}" />
+                                <Button Command="{Binding CancelCommand}" Content="{l:Tr Add_Cancel}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!--  Step 2: where the server is, and signing in.  -->
+                        <StackPanel IsVisible="{Binding IsStep2}" Spacing="12">
+                            <StackPanel IsVisible="{Binding AddsHomeAssistant}" Spacing="12">
+                                <Border
+                                    Padding="0,0,0,8"
+                                    Classes="card"
+                                    DataContext="{Binding HomeAssistant}"
+                                    x:DataType="vm:HomeAssistantServerViewModel">
+                                    <StackPanel>
+                                        <v:FieldRow>
+                                            <TextBlock Classes="label" Text="{l:Tr Field_BaseUrl}" />
+                                            <StackPanel Grid.Column="1" Spacing="6">
+                                                <TextBox Text="{Binding Url}" PlaceholderText="http://homeassistant.local:8123" />
+                                                <TextBlock
+                                                    MaxWidth="460"
+                                                    HorizontalAlignment="Left"
+                                                    Classes="caption secondary"
+                                                    Classes.error="{Binding IsUnencryptedPublic}"
+                                                    IsVisible="{Binding HasEncryptionNote}"
+                                                    Text="{Binding EncryptionNote}"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </v:FieldRow>
+                                        <v:FieldRow>
+                                            <TextBlock Classes="label" Text="{l:Tr Field_ServerName}" />
+                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                <TextBox Text="{Binding Name}" PlaceholderText="{l:Tr Placeholder_ServerName}" />
+                                                <TextBlock Classes="caption tertiary" Text="{l:Tr Add_NameHint}" />
+                                            </StackPanel>
+                                        </v:FieldRow>
+                                        <v:FieldRow>
+                                            <TextBlock Classes="label" Text="{l:Tr Connections_SectionSignIn}" />
+                                            <StackPanel Grid.Column="1" Spacing="6">
+                                                <Button
+                                                    Classes="accent"
+                                                    Command="{Binding SignInCommand}"
+                                                    Content="{l:Tr SignIn_Button}" />
+                                                <TextBlock
+                                                    MaxWidth="460"
+                                                    HorizontalAlignment="Left"
+                                                    Classes="caption secondary"
+                                                    Text="{Binding SignInNote}"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </v:FieldRow>
+                                        <Expander
+                                            Margin="18,4"
+                                            HorizontalAlignment="Stretch"
+                                            Header="{l:Tr Add_TokenInstead}">
+                                            <TextBox
+                                                PasswordChar="•"
+                                                Text="{Binding AccessToken}"
+                                                PlaceholderText="{l:Tr Field_AccessToken}" />
+                                        </Expander>
+                                    </StackPanel>
+                                </Border>
+                                <Border
+                                    Padding="18,12"
+                                    Classes="card"
+                                    IsVisible="{Binding AsksAboutEntities}">
+                                    <StackPanel Spacing="4">
+                                        <ToggleSwitch
+                                            Content="{l:Tr Add_SendEntities}"
+                                            IsChecked="{Binding SendEntities}"
+                                            OffContent="{l:Tr Common_Off}"
+                                            OnContent="{l:Tr Common_On}" />
+                                        <TextBlock
+                                            Classes="caption secondary"
+                                            Text="{l:Tr Add_SendEntitiesHint}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                                <Border
+                                    Background="{Binding Settings.HomeAssistantTest.Severity, Converter={StaticResource SeverityBrush}}"
+                                    BorderBrush="{Binding Settings.HomeAssistantTest.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+                                    Classes="message"
+                                    IsVisible="{Binding Settings.HomeAssistantTest.IsOpen}">
+                                    <StackPanel>
+                                        <TextBlock Classes="strong" Text="{Binding Settings.HomeAssistantTest.Title}" />
+                                        <TextBlock Text="{Binding Settings.HomeAssistantTest.Message}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel IsVisible="{Binding AddsMqtt}" Spacing="12">
+                                <Border
+                                    Padding="0,0,0,8"
+                                    Classes="card"
+                                    DataContext="{Binding Mqtt}"
+                                    x:DataType="vm:MqttServerViewModel">
+                                    <StackPanel>
+                                        <v:FieldRow>
+                                            <TextBlock Classes="label" Text="{l:Tr Field_Host}" />
+                                            <TextBox Grid.Column="1" Text="{Binding Host}" PlaceholderText="homeassistant.local" />
+                                        </v:FieldRow>
+                                        <v:FieldRow>
+                                            <TextBlock Classes="label" Text="{l:Tr Field_Username}" />
+                                            <TextBox Grid.Column="1" Text="{Binding Username}" />
+                                        </v:FieldRow>
+                                        <v:FieldRow>
+                                            <TextBlock Classes="label" Text="{l:Tr Field_Password}" />
+                                            <TextBox
+                                                Grid.Column="1"
+                                                PasswordChar="•"
+                                                Text="{Binding Password}" />
+                                        </v:FieldRow>
+                                        <v:FieldRow>
+                                            <TextBlock Classes="label" Text="{l:Tr Field_ServerName}" />
+                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                <TextBox Text="{Binding Name}" PlaceholderText="{l:Tr Placeholder_ServerName}" />
+                                                <TextBlock Classes="caption tertiary" Text="{l:Tr Add_NameHint}" />
+                                            </StackPanel>
+                                        </v:FieldRow>
+                                    </StackPanel>
+                                </Border>
+                                <Border
+                                    Background="{Binding Settings.MqttTest.Severity, Converter={StaticResource SeverityBrush}}"
+                                    BorderBrush="{Binding Settings.MqttTest.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+                                    Classes="message"
+                                    IsVisible="{Binding Settings.MqttTest.IsOpen}">
+                                    <StackPanel>
+                                        <TextBlock Classes="strong" Text="{Binding Settings.MqttTest.Title}" />
+                                        <TextBlock Text="{Binding Settings.MqttTest.Message}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <TextBlock
+                                Classes="secondary"
+                                IsVisible="{Binding CheckFailed}"
+                                Text="{l:Tr Add_CheckFailedHint}"
+                                TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button
+                                    Classes="accent"
+                                    Command="{Binding CheckCommand}"
+                                    Content="{l:Tr Add_Check}" />
+                                <Button
+                                    Command="{Binding AddAnywayCommand}"
+                                    Content="{l:Tr Add_AddAnyway}"
+                                    IsVisible="{Binding CheckFailed}" />
+                                <Button Command="{Binding StepBackCommand}" Content="{l:Tr Add_Back}" />
+                                <Button Command="{Binding CancelCommand}" Content="{l:Tr Add_Cancel}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!--  Step 3: what was added, and how it is doing now.  -->
+                        <StackPanel IsVisible="{Binding IsStep3}" Spacing="12">
+                            <Border Padding="22,20" Classes="card">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <fi:FluentIcon
+                                        Margin="0,0,16,0"
+                                        VerticalAlignment="Top"
+                                        FontSize="32"
+                                        Foreground="{DynamicResource HadaSuccessIconBrush}"
+                                        Icon="CheckmarkCircle" />
+                                    <StackPanel Grid.Column="1" Spacing="10">
+                                        <TextBlock
+                                            Classes="strong"
+                                            FontSize="16"
+                                            Text="{Binding ResultTitle}"
+                                            TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Classes="secondary" Text="{l:Tr Add_StateNow}" />
+                                            <Ellipse
+                                                Width="10"
+                                                Height="10"
+                                                VerticalAlignment="Center"
+                                                Fill="{Binding StateKind, Converter={StaticResource StatusBrush}}" />
+                                            <TextBlock Text="{Binding StateText}" />
+                                        </StackPanel>
+                                        <TextBlock
+                                            Classes="caption secondary"
+                                            IsVisible="{Binding HasStateDetail}"
+                                            Text="{Binding StateDetail}"
+                                            TextWrapping="Wrap" />
+                                        <ItemsControl ItemsSource="{Binding Results}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="x:String">
+                                                    <StackPanel
+                                                        Margin="0,2"
+                                                        Orientation="Horizontal"
+                                                        Spacing="8">
+                                                        <TextBlock Classes="secondary" Text="•" />
+                                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Button
+                                Classes="accent"
+                                Command="{Binding FinishCommand}"
+                                Content="{l:Tr Add_Done}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

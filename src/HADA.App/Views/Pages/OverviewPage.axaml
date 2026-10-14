@@ -7,17 +7,21 @@
     xmlns:vm="using:HADA.Presentation.ViewModels"
     x:DataType="vm:MainViewModel">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="1000" Margin="{DynamicResource HadaPageMargin}">
-            <TextBlock Classes="title pageTitle" Text="{l:Tr Overview_Title}" />
-            <TextBlock
-                Margin="0,4,0,20"
-                Classes="secondary"
-                Text="{l:Tr Overview_Subtitle}"
-                TextWrapping="Wrap" />
+        <StackPanel
+            MaxWidth="1000"
+            Margin="{DynamicResource HadaPageMargin}"
+            Spacing="20">
+            <StackPanel>
+                <TextBlock Classes="title pageTitle" Text="{l:Tr Overview_Title}" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    Classes="secondary"
+                    Text="{l:Tr Overview_Subtitle}"
+                    TextWrapping="Wrap" />
+            </StackPanel>
 
             <!--  A newer version, when there is one.  -->
             <Border
-                Margin="0,0,0,12"
                 Padding="18,14"
                 Classes="card"
                 IsVisible="{Binding Updates.IsAvailable}">
@@ -59,130 +63,241 @@
                 </Grid>
             </Border>
 
-            <!--  Each card leads to where what it shows is set up or explained.  -->
-            <ItemsControl Margin="0,0,-12,0" ItemsSource="{Binding Overview.Cards}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <UniformGrid Columns="2" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:StatusCardViewModel">
-                        <Button
-                            Margin="0,0,12,12"
-                            Padding="18"
-                            HorizontalAlignment="Stretch"
-                            VerticalAlignment="Stretch"
-                            HorizontalContentAlignment="Stretch"
-                            VerticalContentAlignment="Top"
-                            Classes="card"
-                            Command="{Binding OpenCommand}"
-                            ToolTip.Tip="{Binding ActionText}">
-                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                <Border Classes="iconTile">
-                                    <fi:FluentIcon
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        FontSize="22"
-                                        Icon="{Binding Symbol, Converter={StaticResource Glyph}}" />
-                                </Border>
-                                <StackPanel Grid.Column="1" Margin="14,0,8,0">
-                                    <TextBlock Classes="strong" Text="{Binding Title}" />
-                                    <StackPanel
-                                        Margin="0,6,0,0"
-                                        Orientation="Horizontal"
-                                        Spacing="8">
-                                        <Ellipse
-                                            Width="10"
-                                            Height="10"
-                                            VerticalAlignment="Center"
-                                            Fill="{Binding Kind, Converter={StaticResource StatusBrush}}" />
-                                        <TextBlock Text="{Binding Text}" />
-                                    </StackPanel>
-                                    <TextBlock
-                                        Margin="0,4,0,0"
-                                        Classes="caption secondary"
-                                        Text="{Binding Detail}"
-                                        TextWrapping="Wrap" />
-                                </StackPanel>
-                                <fi:FluentIcon
-                                    Grid.Column="2"
-                                    VerticalAlignment="Center"
-                                    FontSize="16"
-                                    Icon="ChevronRight" />
-                            </Grid>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <!--  While a connection needs the user, until they close it.  -->
+            <Border
+                Background="#26FCE100"
+                BorderBrush="#99C9A800"
+                Classes="message"
+                IsVisible="{Binding Overview.Attention.IsOpen}">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <fi:FluentIcon
+                        VerticalAlignment="Center"
+                        FontSize="22"
+                        Foreground="{DynamicResource HadaWarningIconBrush}"
+                        Icon="Warning" />
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="14,0,16,0"
+                        VerticalAlignment="Center">
+                        <TextBlock Classes="strong" Text="{Binding Overview.Attention.Title}" />
+                        <TextBlock
+                            Classes="caption secondary"
+                            Text="{Binding Overview.Attention.Detail}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Command="{Binding Overview.Attention.ShowCommand}"
+                        Content="{l:Tr Attention_Show}" />
+                    <Button
+                        Grid.Column="3"
+                        Width="32"
+                        Height="32"
+                        Margin="6,0,0,0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{l:Tr Attention_Dismiss}"
+                        Classes="chrome"
+                        Command="{Binding Overview.Attention.DismissCommand}"
+                        ToolTip.Tip="{l:Tr Attention_Dismiss}">
+                        <fi:FluentIcon FontSize="14" Icon="Dismiss" />
+                    </Button>
+                </Grid>
+            </Border>
 
-            <TextBlock
-                Margin="0,12,0,10"
-                Classes="subtitle"
-                Text="{l:Tr Overview_Entities}" />
-            <Border Classes="card">
-                <StackPanel>
-                    <Grid Margin="18,12" ColumnDefinitions="3*,3*,2*,110">
-                        <TextBlock Classes="caption secondary" Text="{l:Tr Column_Entity}" />
-                        <TextBlock
-                            Grid.Column="1"
-                            Classes="caption secondary"
-                            Text="{l:Tr Column_Value}" />
-                        <TextBlock
-                            Grid.Column="2"
-                            Classes="caption secondary"
-                            Text="{l:Tr Column_Source}" />
-                        <TextBlock
-                            Grid.Column="3"
-                            Classes="caption secondary"
-                            Text="{l:Tr Column_Updated}" />
-                    </Grid>
-                    <ItemsControl ItemsSource="{Binding Overview.Entities}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:EntityRowViewModel">
-                                <!--  Rows of entities that are switched off are dimmed.  -->
-                                <Border Classes="tableRow" Classes.disabled="{Binding !IsEnabled}">
-                                    <Grid ColumnDefinitions="3*,3*,2*,110">
-                                        <StackPanel Orientation="Horizontal" Spacing="12">
+            <!--  The connections, a card for each way of connecting that has servers.  -->
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Classes="subtitle"
+                        Text="{l:Tr Nav_Connections}" />
+                    <Button Grid.Column="1" Command="{Binding Overview.ManageConnectionsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="{l:Tr Overview_Manage}" />
+                            <fi:FluentIcon
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Icon="ChevronRight" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <ItemsControl Margin="0,0,-12,0" ItemsSource="{Binding Overview.ConnectionGroups}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <!--  One row: one card spans the page, two share it.  -->
+                            <UniformGrid Rows="1" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ConnectionGroupViewModel">
+                            <Border
+                                Margin="0,0,12,0"
+                                VerticalAlignment="Top"
+                                Classes="card">
+                                <StackPanel>
+                                    <Grid Margin="18,14,18,8" ColumnDefinitions="Auto,*,Auto">
+                                        <Border
+                                            Width="32"
+                                            Height="32"
+                                            VerticalAlignment="Center"
+                                            Classes="iconTile">
                                             <fi:FluentIcon
+                                                HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
-                                                FontSize="20"
+                                                FontSize="18"
                                                 Icon="{Binding Symbol, Converter={StaticResource Glyph}}" />
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Name}" />
-                                                <TextBlock Classes="caption tertiary" Text="{Binding Caption}" />
-                                            </StackPanel>
-                                        </StackPanel>
+                                        </Border>
                                         <TextBlock
                                             Grid.Column="1"
-                                            Margin="0,0,12,0"
+                                            Margin="12,0"
                                             VerticalAlignment="Center"
-                                            Text="{Binding ValueText}"
-                                            TextTrimming="CharacterEllipsis"
-                                            ToolTip.Tip="{Binding ValueText}" />
+                                            Classes="strong"
+                                            Text="{Binding Title}" />
                                         <TextBlock
                                             Grid.Column="2"
                                             VerticalAlignment="Center"
-                                            Classes="secondary"
-                                            Text="{Binding SourceText}"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            Grid.Column="3"
-                                            VerticalAlignment="Center"
-                                            Classes="secondary"
-                                            Text="{Binding UpdatedText}" />
+                                            Classes="caption secondary"
+                                            Text="{Binding Summary}" />
                                     </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <TextBlock
-                        Margin="18,4,18,16"
-                        Classes="secondary"
-                        IsVisible="{Binding Overview.HasNoEntities}"
-                        Text="{l:Tr Overview_NoEntities}" />
+                                    <ItemsControl Margin="0,0,0,6" ItemsSource="{Binding Rows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ConnectionRowViewModel">
+                                                <Button
+                                                    AutomationProperties.Name="{Binding Name}"
+                                                    Classes="row"
+                                                    Command="{Binding OpenCommand}">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                                        <Ellipse
+                                                            Width="10"
+                                                            Height="10"
+                                                            VerticalAlignment="Center"
+                                                            Fill="{Binding Kind, Converter={StaticResource StatusBrush}}" />
+                                                        <TextBlock
+                                                            Grid.Column="1"
+                                                            Margin="12,0"
+                                                            VerticalAlignment="Center"
+                                                            Text="{Binding Name}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock
+                                                            Grid.Column="2"
+                                                            VerticalAlignment="Center"
+                                                            Classes="caption secondary"
+                                                            Classes.error="{Binding IsProblem}"
+                                                            Text="{Binding StatusText}" />
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border
+                    Padding="18,14"
+                    Classes="card"
+                    IsVisible="{Binding Overview.ShowsNoConnections}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Classes="secondary"
+                            Text="{l:Tr Overview_NoConnections}"
+                            TextWrapping="Wrap" />
+                        <Button
+                            Grid.Column="1"
+                            Margin="16,0,0,0"
+                            Classes="accent"
+                            Command="{Binding Overview.AddConnectionCommand}"
+                            Content="{l:Tr Overview_AddConnection}" />
+                    </Grid>
+                </Border>
+
+                <StackPanel
+                    Margin="4,2,0,0"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Ellipse
+                        Width="8"
+                        Height="8"
+                        VerticalAlignment="Center"
+                        Fill="{Binding Overview.DesktopSensors.Kind, Converter={StaticResource StatusBrush}}" />
+                    <TextBlock Classes="caption secondary">
+                        <Run Text="{l:Tr Overview_DesktopSensors}" />
+                        <Run Text="{Binding Overview.DesktopSensors.Text}" />
+                    </TextBlock>
                 </StackPanel>
-            </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="10">
+                <TextBlock Classes="subtitle" Text="{l:Tr Overview_Entities}" />
+                <Border Classes="card">
+                    <StackPanel>
+                        <Grid Margin="18,12" ColumnDefinitions="3*,3*,2*,110">
+                            <TextBlock Classes="caption secondary" Text="{l:Tr Column_Entity}" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Classes="caption secondary"
+                                Text="{l:Tr Column_Value}" />
+                            <TextBlock
+                                Grid.Column="2"
+                                Classes="caption secondary"
+                                Text="{l:Tr Column_Source}" />
+                            <TextBlock
+                                Grid.Column="3"
+                                Classes="caption secondary"
+                                Text="{l:Tr Column_Updated}" />
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Overview.Entities}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:EntityRowViewModel">
+                                    <!--  Rows of entities that are switched off are dimmed.  -->
+                                    <Border Classes="tableRow" Classes.disabled="{Binding !IsEnabled}">
+                                        <Grid ColumnDefinitions="3*,3*,2*,110">
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <fi:FluentIcon
+                                                    VerticalAlignment="Center"
+                                                    FontSize="20"
+                                                    Icon="{Binding Symbol, Converter={StaticResource Glyph}}" />
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" />
+                                                    <TextBlock Classes="caption tertiary" Text="{Binding Caption}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Margin="0,0,12,0"
+                                                VerticalAlignment="Center"
+                                                Text="{Binding ValueText}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip.Tip="{Binding ValueText}" />
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                Classes="secondary"
+                                                Text="{Binding SourceText}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Column="3"
+                                                VerticalAlignment="Center"
+                                                Classes="secondary"
+                                                Text="{Binding UpdatedText}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock
+                            Margin="18,4,18,16"
+                            Classes="secondary"
+                            IsVisible="{Binding Overview.HasNoEntities}"
+                            Text="{l:Tr Overview_NoEntities}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
