@@ -24,7 +24,13 @@ public abstract class EagerBackgroundService : BackgroundService
         _stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _executeTask = ExecuteAsync(_stopping.Token);
 
-        // Already finished, e.g. a sensor for hardware this computer lacks: let a failure surface right here.
+        // Already finished, e.g. a sensor for hardware this computer lacks: let a failure surface right here. One
+        // that ended because the host was asked to stop while it was still starting did not fail.
+        if (_executeTask.IsCanceled && _stopping.IsCancellationRequested)
+        {
+            return Task.CompletedTask;
+        }
+
         return _executeTask.IsCompleted ? _executeTask : Task.CompletedTask;
     }
 
