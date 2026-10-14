@@ -2,7 +2,9 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## Unreleased
+## 1.6.0 (pre-release)
+
+Little to see: this version changes how HADA is built inside. The settings window, the tray app and the service work as before. A pre-release, so that it gets tried before a stable version carries the change.
 
 - Fixed: the service of a portable copy, told to stop while it was still starting, ended with an error instead of stopping.
 - Fixed: when HADA stopped right after its first reading of a sensor, a Home Assistant connected to directly could be sent that sensor once more as a new entity, only to show it as unavailable.
