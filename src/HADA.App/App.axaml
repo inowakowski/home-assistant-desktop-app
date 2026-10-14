@@ -13,5 +13,7 @@
     <Application.Resources>
         <views:GlyphConverter x:Key="Glyph" />
         <views:StatusBrushConverter x:Key="StatusBrush" />
+        <views:SeverityBrushConverter x:Key="SeverityBrush" />
+        <views:EqualsConverter x:Key="Equals" />
     </Application.Resources>
 </Application>

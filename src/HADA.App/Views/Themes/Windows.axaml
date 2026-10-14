@@ -15,6 +15,15 @@
                     <SolidColorBrush x:Key="HadaCardBrush" Color="#0DFFFFFF" />
                     <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#15FFFFFF" />
                     <SolidColorBrush x:Key="HadaStrokeBrush" Color="#19000000" />
+                    <!--  Expanders look like the cards they sit among.  -->
+                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#15FFFFFF" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#19000000" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="#19000000" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPressed" Color="#19000000" />
+                    <SolidColorBrush x:Key="ExpanderContentBackground" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="ExpanderContentBorderBrush" Color="#19000000" />
                     <SolidColorBrush x:Key="HadaSeparatorBrush" Color="#15FFFFFF" />
                     <SolidColorBrush x:Key="HadaTileBrush" Color="#0FFFFFFF" />
                     <SolidColorBrush x:Key="HadaPrimaryTextBrush" Color="#FFFFFF" />
@@ -38,6 +47,15 @@
                     <SolidColorBrush x:Key="HadaCardBrush" Color="#B3FFFFFF" />
                     <SolidColorBrush x:Key="HadaCardHoverBrush" Color="#80F9F9F9" />
                     <SolidColorBrush x:Key="HadaStrokeBrush" Color="#0F000000" />
+                    <!--  Expanders look like the cards they sit among.  -->
+                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#B3FFFFFF" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#80F9F9F9" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#B3FFFFFF" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="#0F000000" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPressed" Color="#0F000000" />
+                    <SolidColorBrush x:Key="ExpanderContentBackground" Color="#B3FFFFFF" />
+                    <SolidColorBrush x:Key="ExpanderContentBorderBrush" Color="#0F000000" />
                     <SolidColorBrush x:Key="HadaSeparatorBrush" Color="#0F000000" />
                     <SolidColorBrush x:Key="HadaTileBrush" Color="#09000000" />
                     <SolidColorBrush x:Key="HadaPrimaryTextBrush" Color="#E4000000" />

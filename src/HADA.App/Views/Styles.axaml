@@ -7,6 +7,23 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:fi="using:FluentIcons.Avalonia">
 
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="HadaErrorTextBrush" Color="#FFB3BB" />
+                    <SolidColorBrush x:Key="HadaWarningIconBrush" Color="#FCE100" />
+                    <SolidColorBrush x:Key="HadaSuccessIconBrush" Color="#6CCB5F" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="HadaErrorTextBrush" Color="#C42B1C" />
+                    <SolidColorBrush x:Key="HadaWarningIconBrush" Color="#9D5D00" />
+                    <SolidColorBrush x:Key="HadaSuccessIconBrush" Color="#0F7B0F" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Styles.Resources>
+
     <Style Selector="Window">
         <Setter Property="FontFamily" Value="{DynamicResource HadaFontFamily}" />
         <Setter Property="FontSize" Value="{DynamicResource HadaBodySize}" />
@@ -33,6 +50,13 @@
     </Style>
     <Style Selector="TextBlock.tertiary">
         <Setter Property="Foreground" Value="{DynamicResource HadaTertiaryTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.error">
+        <Setter Property="Foreground" Value="{DynamicResource HadaErrorTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.sectionTitle">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="18,14,18,6" />
     </Style>
     <Style Selector="TextBlock.headerTitle">
         <Setter Property="FontWeight" Value="Bold" />
@@ -61,6 +85,93 @@
     <Style Selector="Button.card:pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource HadaCardBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource HadaSecondaryTextBrush}" />
+    </Style>
+
+    <!--  A row of a settings section, a FieldRow: what it is on the left, the field on the right.  -->
+    <Style Selector="Grid.field">
+        <Setter Property="Margin" Value="18,8" />
+    </Style>
+    <Style Selector="Grid.field > TextBlock.label">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,16,0" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!--  A message: what happened, coloured by how it is to be taken.  -->
+    <Style Selector="Border.message">
+        <Setter Property="CornerRadius" Value="{DynamicResource HadaCardCorner}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="16,12" />
+    </Style>
+
+    <!--  A list row that is a button: the whole row is clickable.  -->
+    <Style Selector="Button.row">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="18,10" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HadaCardHoverBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+    </Style>
+
+    <!--  A plain button that reads like a link, as in a breadcrumb.  -->
+    <Style Selector="Button.link">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaAttentionBrush}" />
+    </Style>
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaAttentionBrush}" />
+    </Style>
+
+    <!--  A way to connect, offered when one is added; the chosen one is outlined in the accent colour.  -->
+    <Style Selector="Button.option">
+        <Setter Property="Background" Value="{DynamicResource HadaCardBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaStrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource HadaCardCorner}" />
+        <Setter Property="Padding" Value="18,14" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Foreground" Value="{DynamicResource HadaPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="Button.option.selected">
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaIndicatorBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Button.option.selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaIndicatorBrush}" />
+    </Style>
+
+    <!--  The steps of adding a connection.  -->
+    <Style Selector="Border.stepNumber">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaTertiaryTextBrush}" />
+    </Style>
+    <Style Selector="Border.stepNumber.current">
+        <Setter Property="Background" Value="{DynamicResource HadaIndicatorBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaIndicatorBrush}" />
+    </Style>
+
+    <!--  The sidebar, and the same collapsed to its icons.  -->
+    <Style Selector="Border#Sidebar">
+        <Setter Property="Width" Value="{DynamicResource HadaSidebarWidth}" />
+    </Style>
+    <Style Selector="Border#Sidebar.collapsed">
+        <Setter Property="Width" Value="76" />
+    </Style>
+    <Style Selector="Border#Sidebar.collapsed TextBlock.navText">
+        <Setter Property="IsVisible" Value="False" />
     </Style>
 
     <!--  The rounded tile behind an icon.  -->

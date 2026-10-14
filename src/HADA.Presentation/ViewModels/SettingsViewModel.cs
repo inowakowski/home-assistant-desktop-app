@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using HADA.Core.Entities;
 using HADA.Ipc;
 using HADA.Presentation;
 using HADA.Presentation.Localization;
@@ -55,7 +56,7 @@ public sealed class SettingsViewModel : ObservableObject
         _client = client;
         _desktop = desktop;
         IsElevated = isElevated;
-        _saveCommand = new AsyncCommand(SaveAsync, () => CanEdit && IsDirty && !IsBusy);
+        _saveCommand = new AsyncCommand(SaveChangesAsync, () => CanEdit && IsDirty && !IsBusy);
         _revertCommand = new RelayCommand(Revert, () => IsDirty && !IsBusy);
         _testMqttCommand = new AsyncCommand(() => TestAsync(ConnectionTarget.Mqtt), () => CanEdit && !IsBusy && SelectedMqttServer is not null);
         _testHomeAssistantCommand = new AsyncCommand(
@@ -238,6 +239,100 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
+    /// <summary>The MQTT servers there are, leaving out the empty one kept to type into.</summary>
+    public IEnumerable<MqttServerViewModel> ConfiguredMqttServers => PendingMqttServers();
+
+    /// <summary>The Home Assistants connected to directly, leaving out the empty one kept to type into.</summary>
+    public IEnumerable<HomeAssistantServerViewModel> ConfiguredHomeAssistantServers => PendingHomeAssistantServers();
+
+    /// <summary>Whether the server is one the service has, as opposed to one added since and not saved yet.</summary>
+    public bool IsSaved(string serverId) =>
+        _snapshot is { } snapshot
+        && (snapshot.MqttServers.Any(server => server.Settings.Id == serverId)
+            || snapshot.HomeAssistantServers.Any(server => server.Settings.Id == serverId));
+
+    /// <summary>A new MQTT server to set up: the empty one kept to type into, else one more.</summary>
+    public MqttServerViewModel StartMqttServer()
+    {
+        var server = MqttServers.FirstOrDefault(candidate => candidate.IsBlank && !IsSaved(candidate.Id));
+        if (server is null)
+        {
+            server = MqttServerViewModel.New(UpdateDirty);
+            MqttServers.Add(server);
+            OnMqttServersChanged();
+        }
+
+        SelectedMqttServer = server;
+        return server;
+    }
+
+    /// <summary>A new Home Assistant to connect to directly, sending what <paramref name="sensors"/> says.</summary>
+    public HomeAssistantServerViewModel StartHomeAssistantServer(HomeAssistantSensorMode sensors)
+    {
+        var server = HomeAssistantServers.FirstOrDefault(candidate => candidate.IsBlank && !IsSaved(candidate.Id));
+        if (server is null)
+        {
+            server = HomeAssistantServerViewModel.New(UpdateDirty, _desktop, sensors: true);
+            HomeAssistantServers.Add(server);
+            OnHomeAssistantServersChanged();
+        }
+
+        server.SensorMode = sensors;
+        SelectedHomeAssistantServer = server;
+        return server;
+    }
+
+    /// <summary>
+    /// Takes a server out of the settings; saving removes it from the service. The last one leaves an empty one
+    /// behind to type into, as there always is one.
+    /// </summary>
+    public void Remove(MqttServerViewModel server)
+    {
+        if (!MqttServers.Remove(server))
+        {
+            return;
+        }
+
+        if (MqttServers.Count == 0)
+        {
+            MqttServers.Add(MqttServerViewModel.New(UpdateDirty));
+        }
+
+        SelectedMqttServer = MqttServers[0];
+        OnMqttServersChanged();
+    }
+
+    /// <inheritdoc cref="Remove(MqttServerViewModel)"/>
+    public void Remove(HomeAssistantServerViewModel server)
+    {
+        if (!HomeAssistantServers.Remove(server))
+        {
+            return;
+        }
+
+        if (HomeAssistantServers.Count == 0)
+        {
+            HomeAssistantServers.Add(HomeAssistantServerViewModel.New(UpdateDirty, _desktop, sensors: !PendingMqttServers().Any()));
+        }
+
+        SelectedHomeAssistantServer = HomeAssistantServers[0];
+        OnHomeAssistantServersChanged();
+    }
+
+    /// <summary>Tries the server as it is typed; the result is shown in <see cref="MqttTest"/>. True when it worked.</summary>
+    public Task<bool> TestAsync(MqttServerViewModel server)
+    {
+        SelectedMqttServer = server;
+        return TestAsync(ConnectionTarget.Mqtt);
+    }
+
+    /// <summary>Tries the Home Assistant as it is typed; the result is shown in <see cref="HomeAssistantTest"/>. True when it worked.</summary>
+    public Task<bool> TestAsync(HomeAssistantServerViewModel server)
+    {
+        SelectedHomeAssistantServer = server;
+        return TestAsync(ConnectionTarget.HomeAssistant);
+    }
+
     public async Task LoadAsync()
     {
         try
@@ -250,12 +345,16 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
-    private async Task SaveAsync()
+    /// <summary>What saving would be refused for, as said before saving; <see langword="null"/> when nothing.</summary>
+    public string? ProblemBeforeSaving() => Validate(target: null);
+
+    /// <summary>Saves what was changed; the outcome is shown in <see cref="Feedback"/>. True when it was saved.</summary>
+    public async Task<bool> SaveChangesAsync()
     {
         if (Validate(target: null) is { } error)
         {
             Feedback.Show(Loc.Get("Validation_Title"), error, Severity.Warning);
-            return;
+            return false;
         }
 
         IsBusy = true;
@@ -266,15 +365,17 @@ public sealed class SettingsViewModel : ObservableObject
             if (!result.Success)
             {
                 Feedback.Show(Loc.Get("Save_FailureTitle"), result.Message ?? string.Empty, Severity.Error);
-                return;
+                return false;
             }
 
             Apply(await _client.GetSettingsAsync());
             Feedback.Show(Loc.Get("Save_SuccessTitle"), Loc.Get("Save_SuccessMessage"), Severity.Success);
+            return true;
         }
         catch (Exception ex) when (ServiceErrors.IsExpected(ex))
         {
             Feedback.Show(Loc.Get("Save_FailureTitle"), ServiceErrors.Describe(ex), Severity.Error);
+            return false;
         }
         finally
         {
@@ -282,7 +383,7 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
-    private async Task TestAsync(ConnectionTarget target)
+    private async Task<bool> TestAsync(ConnectionTarget target)
     {
         var result = target == ConnectionTarget.Mqtt ? MqttTest : HomeAssistantTest;
         var mqttServer = target == ConnectionTarget.Mqtt ? SelectedMqttServer : null;
@@ -290,7 +391,7 @@ public sealed class SettingsViewModel : ObservableObject
         if (Validate(target) is { } error)
         {
             result.Show(Loc.Get("Validation_Title"), error, Severity.Warning);
-            return;
+            return false;
         }
 
         SetTesting(target, true);
@@ -304,10 +405,12 @@ public sealed class SettingsViewModel : ObservableObject
                 Loc.Get(outcome.Success ? "Test_SuccessTitle" : "Test_FailureTitle"),
                 outcome.Message ?? string.Empty,
                 outcome.Success ? Severity.Success : Severity.Error);
+            return outcome.Success;
         }
         catch (Exception ex) when (ServiceErrors.IsExpected(ex))
         {
             result.Show(Loc.Get("Test_FailureTitle"), ServiceErrors.Describe(ex), Severity.Error);
+            return false;
         }
         finally
         {
@@ -530,6 +633,16 @@ public sealed class SettingsViewModel : ObservableObject
             {
                 return Loc.Format("Validation_ServerNameTwice", twice.Key);
             }
+
+            // The same computer twice on one broker, which the service refuses: the connections would throw each other off.
+            var sameBroker = servers
+                .Where(server => server.Host.Trim().Length > 0)
+                .GroupBy(BrokerOf, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(group => group.Count() > 1);
+            if (sameBroker is not null)
+            {
+                return Loc.Format("Validation_SameBroker", sameBroker.First().DisplayName, sameBroker.Last().DisplayName);
+            }
         }
 
         if (target == ConnectionTarget.HomeAssistant && SelectedHomeAssistantServer?.Validate(urlRequired: true) is { } homeAssistantTestError)
@@ -560,6 +673,16 @@ public sealed class SettingsViewModel : ObservableObject
             {
                 return Loc.Format("Validation_HaServerNameTwice", twice.Key);
             }
+
+            // The same computer twice in one Home Assistant, which the service refuses: both would write the same entities.
+            var sameHome = servers
+                .Where(server => server.Url.Trim().Length > 0)
+                .GroupBy(server => $"{server.Url.Trim().TrimEnd('/')} {DeviceOf(server.DeviceId)}", StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(group => group.Count() > 1);
+            if (sameHome is not null)
+            {
+                return Loc.Format("Validation_SameHomeAssistant", sameHome.First().DisplayName, sameHome.Last().DisplayName);
+            }
         }
 
         // The service checks custom sensors in full; these two are the mistakes an unfinished row makes.
@@ -582,6 +705,17 @@ public sealed class SettingsViewModel : ObservableObject
 
         return null;
     }
+
+    /// <summary>What the service tells MQTT servers apart by: the broker, as the host field names it, and the device.</summary>
+    private static string BrokerOf(MqttServerViewModel server)
+    {
+        var address = MqttAddress.Parse(server.Host);
+        var port = address.Port ?? (int)Math.Round(server.Port ?? MqttServerViewModel.DefaultPort);
+        return $"{address.Host} {port} {DeviceOf(server.DeviceId)}";
+    }
+
+    // Without an id of its own, the computer is known by its name.
+    private static string DeviceOf(string deviceId) => deviceId.Trim() is { Length: > 0 } id ? id : Environment.MachineName;
 
     private void SetSetting<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

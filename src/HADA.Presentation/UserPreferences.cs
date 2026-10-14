@@ -30,6 +30,7 @@ public static class UserPreferences
     private const string DashboardServersValue = "DashboardServers";
     private const string DashboardSelectedValue = "DashboardSelected";
     private const string BrowserValue = "NotificationBrowser";
+    private const string SidebarValue = "SidebarCollapsed";
 
     private static readonly IPreferenceStore Store = OperatingSystem.IsWindows() && !AppInstance.IsPortable
         ? new RegistryPreferenceStore()
@@ -91,6 +92,13 @@ public static class UserPreferences
             var selected = DashboardSelected;
             return all.FirstOrDefault(dashboard => dashboard.Id == selected) ?? (all.Count > 0 ? all[0] : null);
         }
+    }
+
+    /// <summary>Whether the window's sidebar shows the icons of its pages only.</summary>
+    public static bool SidebarCollapsed
+    {
+        get => Store.ReadNumber(SidebarValue) is 1;
+        set => Store.Write(SidebarValue, value ? 1 : null);
     }
 
     /// <summary>

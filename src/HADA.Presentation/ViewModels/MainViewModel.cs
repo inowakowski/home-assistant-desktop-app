@@ -36,6 +36,7 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
         // Each Home Assistant connected to directly has a dashboard, a personal setting that follows the servers.
         Settings.SnapshotApplied += (_, _) => Preferences.SyncDashboards(Settings.SavedHomeAssistantServers);
         Entities = new EntitiesViewModel(Settings);
+        Connections = new ConnectionsViewModel(Settings, Overview);
         Logs = new LogsViewModel(client, desktop);
         UnlockCommand = new RelayCommand(
             () =>
@@ -72,6 +73,9 @@ public sealed class MainViewModel : ObservableObject, IAsyncDisposable
     public PreferencesViewModel Preferences { get; }
 
     public SettingsViewModel Settings { get; }
+
+    /// <summary>The Connections page as the window for every system shows it: a list, a page per server, and adding one.</summary>
+    public ConnectionsViewModel Connections { get; }
 
     public EntitiesViewModel Entities { get; }
 

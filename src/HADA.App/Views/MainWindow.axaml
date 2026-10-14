@@ -3,6 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
     xmlns:views="using:HADA.App.Views"
     xmlns:vm="using:HADA.Presentation.ViewModels"
     Width="1100"
@@ -13,6 +14,23 @@
     Background="{DynamicResource HadaWindowBrush}"
     Icon="avares://HADA.App/Assets/hada.ico"
     WindowStartupLocation="CenterScreen">
+
+    <Window.Styles>
+        <!--  Each page by its name for screen readers, also when only its icon shows.  -->
+        <Style Selector="Border#Sidebar ListBoxItem" x:DataType="views:NavigationItem">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
+        </Style>
+        <!--  Collapsed, the sidebar names each page in a tooltip.  -->
+        <Style Selector="Border#Sidebar.collapsed ListBoxItem" x:DataType="views:NavigationItem">
+            <Setter Property="ToolTip.Tip" Value="{Binding Title}" />
+        </Style>
+        <Style Selector="Border#Sidebar.collapsed StackPanel#DeviceText">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Border#Sidebar.collapsed Border#DeviceCard">
+            <Setter Property="Margin" Value="18,8,0,14" />
+        </Style>
+    </Window.Styles>
 
     <Window.Resources>
         <DataTemplate x:Key="NavigationItemTemplate" x:DataType="views:NavigationItem">
@@ -29,7 +47,10 @@
                         Classes="navIcon"
                         Icon="{Binding Icon}" />
                 </Panel>
-                <TextBlock VerticalAlignment="Center" Text="{Binding Title}" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Classes="navText"
+                    Text="{Binding Title}" />
             </StackPanel>
         </DataTemplate>
     </Window.Resources>
@@ -102,10 +123,7 @@
             <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
 
                 <!--  The sidebar: this computer, then the pages, the less used ones at the bottom.  -->
-                <Border
-                    x:Name="Sidebar"
-                    Width="{DynamicResource HadaSidebarWidth}"
-                    Background="{DynamicResource HadaSidebarBrush}">
+                <Border x:Name="Sidebar" Background="{DynamicResource HadaSidebarBrush}">
                     <DockPanel>
                         <Border
                             x:Name="SidebarHeader"
@@ -148,6 +166,20 @@
                             </Panel>
                         </Border>
 
+                        <!--  Collapses the sidebar to its icons, and back.  -->
+                        <Button
+                            x:Name="SidebarToggle"
+                            Width="40"
+                            Height="34"
+                            Margin="18,0,0,4"
+                            HorizontalAlignment="Left"
+                            Classes="chrome"
+                            Click="OnToggleSidebar"
+                            DockPanel.Dock="Top"
+                            ToolTip.Tip="{l:Tr Sidebar_Toggle}">
+                            <fi:FluentIcon FontSize="16" Icon="LineHorizontal3" />
+                        </Button>
+
                         <Border
                             x:Name="DeviceCard"
                             Margin="16,8,16,14"
@@ -162,6 +194,7 @@
                                         Icon="Laptop" />
                                 </Border>
                                 <StackPanel
+                                    x:Name="DeviceText"
                                     Grid.Column="1"
                                     Margin="12,0,0,0"
                                     VerticalAlignment="Center">

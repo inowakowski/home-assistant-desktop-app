@@ -243,6 +243,8 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Mqtt_ServerNameHint" xml:space="preserve"><value>Your name for this Home Assistant, shown here and in the logs. Needed once there are several.</value></data>
   <data name="Validation_ServerName" xml:space="preserve"><value>Give each MQTT server a name, to tell them apart.</value></data>
   <data name="Validation_ServerNameTwice" xml:space="preserve"><value>Two MQTT servers are called "{0}".</value></data>
+  <data name="Validation_SameBroker" xml:space="preserve"><value>"{0}" and "{1}" connect to the same broker as the same device. Remove one of them, or give them different device IDs.</value></data>
+  <data name="Validation_SameHomeAssistant" xml:space="preserve"><value>"{0}" and "{1}" connect to the same Home Assistant as the same device. Remove one of them, or give them different device IDs.</value></data>
   <data name="Card_HomeAssistantServer" xml:space="preserve"><value>WebSocket · {0}</value></data>
   <data name="Preferences_Browser" xml:space="preserve"><value>Browser for notifications</value></data>
   <data name="Preferences_BrowserDetail" xml:space="preserve"><value>Where the address of a notification, or of one of its buttons, is opened when you press it.</value></data>
@@ -323,5 +325,221 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   </data>
   <data name="Pending_Detail" xml:space="preserve">
     <value>This page is not in the new window yet. Until it is, open the settings from the tray icon.</value>
+  </data>
+  <data name="Connections_GroupMqtt" xml:space="preserve">
+    <value>Through MQTT</value>
+  </data>
+  <data name="Connections_GroupDirect" xml:space="preserve">
+    <value>Directly</value>
+  </data>
+  <data name="Connections_GroupSummary" xml:space="preserve">
+    <value>Connected: {0} of {1}</value>
+  </data>
+  <data name="Connections_UnnamedMqtt" xml:space="preserve">
+    <value>MQTT server</value>
+  </data>
+  <data name="Connections_UnnamedHa" xml:space="preserve">
+    <value>Home Assistant</value>
+  </data>
+  <data name="Connections_ListSubtitle" xml:space="preserve">
+    <value>Which Home Assistants this computer connects to, and how.</value>
+  </data>
+  <data name="Connections_Add" xml:space="preserve">
+    <value>Add a connection</value>
+  </data>
+  <data name="Connections_Empty" xml:space="preserve">
+    <value>There is no connection to Home Assistant yet. Add one, and HADA helps you choose how.</value>
+  </data>
+  <data name="Connections_WayIntegration" xml:space="preserve">
+    <value>with the HADA integration</value>
+  </data>
+  <data name="Connections_WayEntities" xml:space="preserve">
+    <value>as a mobile app</value>
+  </data>
+  <data name="Connections_WayStates" xml:space="preserve">
+    <value>as states</value>
+  </data>
+  <data name="Connections_WayNotifications" xml:space="preserve">
+    <value>notifications only</value>
+  </data>
+  <data name="Connections_WayNothing" xml:space="preserve">
+    <value>sends nothing</value>
+  </data>
+  <data name="Connections_NotSaved" xml:space="preserve">
+    <value>Not saved yet</value>
+  </data>
+  <data name="Connections_Delete" xml:space="preserve">
+    <value>Remove this connection</value>
+  </data>
+  <data name="Connections_SectionConnection" xml:space="preserve">
+    <value>Connection</value>
+  </data>
+  <data name="Connections_SectionSignIn" xml:space="preserve">
+    <value>Signing in</value>
+  </data>
+  <data name="Connections_SectionSends" xml:space="preserve">
+    <value>What Home Assistant gets</value>
+  </data>
+  <data name="Connections_SectionDevice" xml:space="preserve">
+    <value>This computer in Home Assistant</value>
+  </data>
+  <data name="Connections_SectionBroker" xml:space="preserve">
+    <value>Broker</value>
+  </data>
+  <data name="Attention_One" xml:space="preserve">
+    <value>“{0}” ({1}) needs attention</value>
+  </data>
+  <data name="Attention_Several" xml:space="preserve">
+    <value>{0} connections need attention</value>
+  </data>
+  <data name="Attention_Show" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="Attention_Dismiss" xml:space="preserve">
+    <value>Hide until the next problem</value>
+  </data>
+  <data name="Overview_Manage" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="Overview_DesktopSensors" xml:space="preserve">
+    <value>Desktop sensors:</value>
+  </data>
+  <data name="Overview_NoConnections" xml:space="preserve">
+    <value>No connection to Home Assistant is set up yet.</value>
+  </data>
+  <data name="Overview_AddConnection" xml:space="preserve">
+    <value>Set one up</value>
+  </data>
+  <data name="Sidebar_Toggle" xml:space="preserve">
+    <value>Collapse or expand the sidebar</value>
+  </data>
+  <data name="Add_Title" xml:space="preserve">
+    <value>Add a connection</value>
+  </data>
+  <data name="Add_StepWay" xml:space="preserve">
+    <value>Way</value>
+  </data>
+  <data name="Add_StepAddress" xml:space="preserve">
+    <value>Address and sign-in</value>
+  </data>
+  <data name="Add_StepCheck" xml:space="preserve">
+    <value>Check</value>
+  </data>
+  <data name="Add_Question" xml:space="preserve">
+    <value>How should this computer talk to Home Assistant?</value>
+  </data>
+  <data name="Add_Way_integration_Title" xml:space="preserve">
+    <value>Directly, with the HADA integration</value>
+  </data>
+  <data name="Add_Way_integration_Badge" xml:space="preserve">
+    <value>Does the most</value>
+  </data>
+  <data name="Add_Way_integration_Gives" xml:space="preserve">
+    <value>Sensors, and buttons, switches and sliders to click in Home Assistant; notifications as on a phone; the computer as a media player.</value>
+  </data>
+  <data name="Add_Way_integration_Needs" xml:space="preserve">
+    <value>the HADA integration in Home Assistant, installed through HACS in a few minutes</value>
+  </data>
+  <data name="Add_Way_direct_Title" xml:space="preserve">
+    <value>Directly</value>
+  </data>
+  <data name="Add_Way_direct_Badge" xml:space="preserve">
+    <value>Simplest</value>
+  </data>
+  <data name="Add_Way_direct_Gives" xml:space="preserve">
+    <value>Sensors and notifications as on a phone. No buttons or switches in Home Assistant.</value>
+  </data>
+  <data name="Add_Way_direct_Needs" xml:space="preserve">
+    <value>nothing but your Home Assistant’s address</value>
+  </data>
+  <data name="Add_Way_mqtt_Title" xml:space="preserve">
+    <value>Through MQTT</value>
+  </data>
+  <data name="Add_Way_mqtt_Badge" xml:space="preserve">
+    <value>If you have a broker</value>
+  </data>
+  <data name="Add_Way_mqtt_Gives" xml:space="preserve">
+    <value>Sensors, buttons and switches appear by themselves; notifications with a picture are written as JSON.</value>
+  </data>
+  <data name="Add_Way_mqtt_Needs" xml:space="preserve">
+    <value>an MQTT broker, such as the Mosquitto app in Home Assistant</value>
+  </data>
+  <data name="Add_Needs" xml:space="preserve">
+    <value>You need: {0}.</value>
+  </data>
+  <data name="Add_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Add_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Add_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Add_Check" xml:space="preserve">
+    <value>Check and add</value>
+  </data>
+  <data name="Add_AddAnyway" xml:space="preserve">
+    <value>Add anyway</value>
+  </data>
+  <data name="Add_Done" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Add_CheckFailedHint" xml:space="preserve">
+    <value>HADA could not connect with these settings. Correct them and check again, or add the connection anyway: HADA keeps trying.</value>
+  </data>
+  <data name="Add_DoneWorking" xml:space="preserve">
+    <value>Added. This computer is in Home Assistant now.</value>
+  </data>
+  <data name="Add_DoneTrying" xml:space="preserve">
+    <value>Added. HADA keeps trying to connect.</value>
+  </data>
+  <data name="Add_StateNow" xml:space="preserve">
+    <value>Now:</value>
+  </data>
+  <data name="Add_SendEntities" xml:space="preserve">
+    <value>Send the entities too</value>
+  </data>
+  <data name="Add_SendEntitiesHint" xml:space="preserve">
+    <value>This computer’s entities go to Home Assistant through MQTT already. Turn this on only if this Home Assistant does not get them that way; otherwise it would have them twice.</value>
+  </data>
+  <data name="Add_NameHint" xml:space="preserve">
+    <value>Your name for it, shown in HADA only.</value>
+  </data>
+  <data name="Add_TokenInstead" xml:space="preserve">
+    <value>Or paste an access token</value>
+  </data>
+  <data name="Add_Way_integration_Result1" xml:space="preserve">
+    <value>The computer’s sensors are in Home Assistant.</value>
+  </data>
+  <data name="Add_Way_integration_Result2" xml:space="preserve">
+    <value>Buttons, switches and sliders work.</value>
+  </data>
+  <data name="Add_Way_integration_Result3" xml:space="preserve">
+    <value>Notifications with a picture and buttons work.</value>
+  </data>
+  <data name="Add_Way_direct_Result1" xml:space="preserve">
+    <value>The computer’s sensors are in Home Assistant.</value>
+  </data>
+  <data name="Add_Way_direct_Result2" xml:space="preserve">
+    <value>Notifications with a picture and buttons work.</value>
+  </data>
+  <data name="Add_Way_direct_Result3" xml:space="preserve">
+    <value>There are no buttons or switches: they need the HADA integration.</value>
+  </data>
+  <data name="Add_Way_mqtt_Result1" xml:space="preserve">
+    <value>The computer appears in Home Assistant as an MQTT device.</value>
+  </data>
+  <data name="Add_Way_mqtt_Result2" xml:space="preserve">
+    <value>Sensors, buttons and switches work.</value>
+  </data>
+  <data name="Add_Way_mqtt_Result3" xml:space="preserve">
+    <value>A camera picture in a notification is not available through MQTT.</value>
+  </data>
+  <data name="Add_Way_off_Result1" xml:space="preserve">
+    <value>Notifications as on a phone work.</value>
+  </data>
+  <data name="Add_Way_off_Result2" xml:space="preserve">
+    <value>The entities keep going through MQTT.</value>
   </data>
 </root>
