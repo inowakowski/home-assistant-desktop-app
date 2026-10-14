@@ -87,9 +87,7 @@ public partial class App : Application
         _fileLog = new FileLoggerProvider(new FileLoggerOptions
         {
             FilePath = Path.Combine(
-                TrayPaths.DataFolder,
-                "logs",
-                isDashboard ? "dashboard-window.log" : isWindow ? "settings-window.log" : "tray.log"),
+                AppFolders.UserLogs, isDashboard ? "dashboard-window.log" : isWindow ? "settings-window.log" : "tray.log"),
         });
         _logger = _fileLog.CreateLogger(typeof(App).FullName!);
 

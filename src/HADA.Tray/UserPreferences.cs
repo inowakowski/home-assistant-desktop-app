@@ -10,12 +10,10 @@ namespace HADA.Tray;
 internal static class TrayPaths
 {
     /// <summary>
-    /// Logs, the dashboard window's browser profile, downloaded updates and notification pictures:
+    /// The dashboard window's browser profile, downloaded updates and notification pictures:
     /// <c>%LocalAppData%\HADA</c> for the installed app, the copy's own <c>data</c> folder for a portable one.
     /// </summary>
-    public static string DataFolder { get; } =
-        AppInstance.PortableDataFolder
-        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HADA");
+    public static string DataFolder { get; } = AppFolders.UserData;
 }
 
 /// <summary>
