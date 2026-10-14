@@ -12,7 +12,10 @@ public enum CustomSensorType
     /// <summary>On while a process with the given name is running. Shows up as a binary sensor.</summary>
     ProcessRunning,
 
-    /// <summary>The output of a PowerShell command, run by the service at a fixed interval.</summary>
+    /// <summary>
+    /// The output of a command, run by the service at a fixed interval in the system's shell: PowerShell on
+    /// Windows, <c>sh</c> elsewhere. Saved settings name it <c>PowerShell</c> on every system.
+    /// </summary>
     PowerShell,
 
     /// <summary>
@@ -22,7 +25,7 @@ public enum CustomSensorType
     DeviceConnected,
 
     /// <summary>
-    /// A button in Home Assistant that runs a PowerShell command when pressed. The service runs it, so it has the
+    /// A button in Home Assistant that runs a command when pressed, in the shell <see cref="PowerShell"/> uses. The service runs it, so it has the
     /// service's rights and no desktop.
     /// </summary>
     CommandButton,
@@ -72,7 +75,7 @@ public sealed record CustomSensorDefinition
     public bool IsTrigger => Type == CustomSensorType.QuickAction;
 
     /// <summary>
-    /// The text, the process name, the PowerShell command, the device id, the program to start or the key
+    /// The text, the process name, the command, the device id, the program to start or the key
     /// combination, depending on <see cref="Type"/>. For a quick action it is its keyboard shortcut, and may be empty.
     /// </summary>
     public string Value { get; init; } = string.Empty;

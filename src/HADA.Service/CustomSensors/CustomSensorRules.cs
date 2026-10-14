@@ -63,9 +63,9 @@ public static partial class CustomSensorRules
             return sensor.Type switch
             {
                 CustomSensorType.ProcessRunning => $"Custom sensor '{label}' needs a process name.",
-                CustomSensorType.PowerShell => $"Custom sensor '{label}' needs a PowerShell command.",
+                CustomSensorType.PowerShell => $"Custom sensor '{label}' needs a {CommandRunner.ShellName} command.",
                 CustomSensorType.DeviceConnected => $"Custom sensor '{label}' needs a device ID, such as VID_0BDA&PID_8153.",
-                CustomSensorType.CommandButton => $"Custom button '{label}' needs a PowerShell command.",
+                CustomSensorType.CommandButton => $"Custom button '{label}' needs a {CommandRunner.ShellName} command.",
                 CustomSensorType.LaunchButton => $"Custom button '{label}' needs a program, document or address to open.",
                 CustomSensorType.KeysButton => $"Custom button '{label}' needs a key combination, such as Ctrl+Shift+M.",
                 _ => $"Custom sensor '{label}' needs a value.",
@@ -150,7 +150,7 @@ public static partial class CustomSensorRules
         Icon = sensor.Type switch
         {
             CustomSensorType.ProcessRunning => "mdi:application-cog-outline",
-            CustomSensorType.PowerShell => "mdi:powershell",
+            CustomSensorType.PowerShell => OperatingSystem.IsWindows() ? "mdi:powershell" : "mdi:console",
             CustomSensorType.DeviceConnected => "mdi:usb-port",
             CustomSensorType.CommandButton => "mdi:console-line",
             CustomSensorType.LaunchButton => "mdi:rocket-launch",

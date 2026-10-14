@@ -119,11 +119,11 @@ public sealed partial class CustomSensorHost(
     {
         try
         {
-            var result = await PowerShellRunner.RunAsync(button.Value, ButtonCommandTimeout, cancellationToken);
+            var result = await CommandRunner.RunAsync(button.Value, ButtonCommandTimeout, cancellationToken);
             if (result.ExitCode != 0)
             {
                 LogButtonFailed(
-                    logger, button.Id, $"PowerShell exited with code {result.ExitCode}: {(result.Error.Length > 0 ? result.Error : "no error output")}");
+                    logger, button.Id, $"{CommandRunner.ShellName} exited with code {result.ExitCode}: {(result.Error.Length > 0 ? result.Error : "no error output")}");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -271,16 +271,16 @@ public sealed partial class CustomSensorHost(
             return;
         }
 
-        var result = await PowerShellRunner.RunAsync(sensor.Value, PowerShellRunner.DefaultTimeout, cancellationToken);
+        var result = await CommandRunner.RunAsync(sensor.Value, CommandRunner.DefaultTimeout, cancellationToken);
         if (result.ExitCode != 0)
         {
             throw new InvalidOperationException(
-                $"PowerShell exited with code {result.ExitCode}: {(result.Error.Length > 0 ? result.Error : "no error output")}");
+                $"{CommandRunner.ShellName} exited with code {result.ExitCode}: {(result.Error.Length > 0 ? result.Error : "no error output")}");
         }
 
         if (result.Output.Length == 0)
         {
-            throw new InvalidOperationException("the PowerShell command printed nothing");
+            throw new InvalidOperationException($"the {CommandRunner.ShellName} command printed nothing");
         }
 
         await publisher.PublishAsync(sensor.Id, result.Output, cancellationToken: cancellationToken);
