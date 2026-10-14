@@ -419,7 +419,8 @@ public sealed class IntegrationTests : IAsyncLifetime
         _homeAssistant.Integration = FakeIntegration.SetUp;
         await WaitUntilAsync(() => _homeAssistant.IntegrationEntity("cpu_load")?.State == "5");
 
-        Assert.Null(engine.Issue);
+        // Cleared once the answer is in, which may be a moment after Home Assistant has the state.
+        await WaitUntilAsync(() => engine.Issue is null);
     }
 
     [Fact]
