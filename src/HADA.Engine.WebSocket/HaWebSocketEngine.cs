@@ -787,7 +787,16 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
 
         foreach (var chunk in sensors.Chunk(MaxBatch))
         {
-            await TrySetStatesAsync(chunk, cancellationToken).ConfigureAwait(false);
+            // Entities of the mobile_app device are only updated: one whose registering was cut short by stopping
+            // is not made now just to be unavailable.
+            if (_options.SensorMode == HomeAssistantSensorMode.Entities)
+            {
+                await MarkSensorEntitiesUnavailableAsync([.. chunk.Select(reading => reading.Entity)], cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await TrySetStatesAsync(chunk, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 

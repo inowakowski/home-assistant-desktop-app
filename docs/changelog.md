@@ -2,6 +2,10 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## Unreleased
+
+- Fixed: when HADA stopped right after its first reading of a sensor, a Home Assistant connected to directly could be sent that sensor once more as a new entity, only to show it as unavailable.
+
 ## 1.5.1
 
 - Fixed: **Sign in through Home Assistant** opened a window of files instead of the browser when it was chosen in the window unlocked for editing, which is where it is chosen in an installed HADA. The browser is now sent to Home Assistant by way of an address on the computer itself, which works however the browser is opened.
