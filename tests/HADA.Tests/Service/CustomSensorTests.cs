@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
@@ -25,7 +26,11 @@ public sealed class CustomSensorTests : IAsyncDisposable
     {
         _registry = new EntityRegistry(_bus);
         _host = new CustomSensorHost(
-            _bus, _registry, _options, NullLogger<CustomSensorHost>.Instance, new HADA.Platform.Windows.WindowsDeviceDirectory());
+            _bus,
+            _registry,
+            _options,
+            NullLogger<CustomSensorHost>.Instance,
+            OperatingSystem.IsWindows() ? new HADA.Platform.Windows.WindowsDeviceDirectory() : null);
     }
 
     public async ValueTask DisposeAsync()
@@ -76,7 +81,8 @@ public sealed class CustomSensorTests : IAsyncDisposable
         Assert.Equal(EntityKind.BinarySensor, entity.Kind);
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public async Task Device_sensor_is_a_binary_sensor_that_is_on_while_the_device_is_connected()
     {
         var connected = PnpDevices.PresentInstanceIds()[0];
@@ -110,7 +116,8 @@ public sealed class CustomSensorTests : IAsyncDisposable
         Assert.Null(CustomSensorRules.Validate(sensor with { Value = "VID_0BDA&PID_8153" }));
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public async Task A_command_button_runs_its_command_when_pressed_and_only_then()
     {
         var marker = Path.Combine(Path.GetTempPath(), $"hada-button-{Guid.NewGuid():N}.txt");
@@ -285,7 +292,8 @@ public sealed class CustomSensorTests : IAsyncDisposable
         Assert.Equal("fine", Assert.Single(_registry.Entities).Id);
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public async Task PowerShell_output_is_returned_trimmed_with_non_ascii_text_intact()
     {
         var result = await PowerShellRunner.RunAsync("Write-Output ('zażółć ' + (20 + 22))", TimeSpan.FromSeconds(60), CancellationToken.None);
@@ -294,7 +302,8 @@ public sealed class CustomSensorTests : IAsyncDisposable
         Assert.Equal("zażółć 42", result.Output);
     }
 
-    [Fact]
+    [WindowsFact]
+    [SupportedOSPlatform("windows")]
     public async Task PowerShell_commands_that_hang_are_stopped()
     {
         await Assert.ThrowsAsync<TimeoutException>(

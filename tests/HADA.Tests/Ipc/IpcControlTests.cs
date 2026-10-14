@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using System.Security.Principal;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
@@ -10,6 +11,8 @@ using Microsoft.Extensions.Options;
 namespace HADA.Tests.Ipc;
 
 /// <summary>The settings window's control API over a real pipe, backed by a fake <see cref="IServiceControl"/>.</summary>
+// Tests of the session pipe, which only has Windows rules so far.
+[SupportedOSPlatform("windows")]
 public sealed class IpcControlTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
@@ -43,7 +46,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         await _serviceBus.DisposeAsync();
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Status_lists_connected_trays_and_the_entities_they_own()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -61,7 +64,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         await tray.StopAsync(CancellationToken.None);
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Settings_and_logs_are_readable_without_elevation()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -75,7 +78,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         Assert.True(settings.Updates.IncludePrereleases);
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Looking_for_an_update_needs_no_elevation()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -86,7 +89,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         Assert.Equal("9.9.9", result.LatestVersion);
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Saving_settings_requires_an_elevated_administrator()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -108,7 +111,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task A_portable_copys_service_lets_its_own_user_save_settings_without_elevation()
     {
         // The service of a portable copy runs as the user; what its settings can make it do, that user can do anyway.
@@ -127,7 +130,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         await server.StopAsync(CancellationToken.None);
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Client_reports_when_the_service_is_not_running()
     {
         await Assert.ThrowsAsync<ServiceUnavailableException>(() => _client.GetStatusAsync());

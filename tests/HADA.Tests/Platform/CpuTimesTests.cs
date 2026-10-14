@@ -1,10 +1,13 @@
+using System.Runtime.Versioning;
 using HADA.Platform.Windows.Sensors;
 
 namespace HADA.Tests.Platform;
 
+// Tests of sensors and actions of Windows.
+[SupportedOSPlatform("windows")]
 public class CpuTimesTests
 {
-    [Fact]
+    [WindowsFact]
     public void LoadPercent_is_busy_share_of_elapsed_time()
     {
         // 200 ticks elapsed (kernel 100 incl. 75 idle, user 100) => 125 busy => 62.5 %.
@@ -13,7 +16,7 @@ public class CpuTimesTests
         Assert.Equal(62.5, load);
     }
 
-    [Fact]
+    [WindowsFact]
     public void LoadPercent_is_zero_when_no_time_elapsed()
     {
         var sample = new CpuTimes(10, 20, 30);
@@ -21,7 +24,7 @@ public class CpuTimesTests
         Assert.Equal(0, CpuTimes.LoadPercent(sample, sample));
     }
 
-    [Fact]
+    [WindowsFact]
     public void TryRead_returns_monotonic_system_times()
     {
         Assert.True(CpuTimes.TryRead(out var first));

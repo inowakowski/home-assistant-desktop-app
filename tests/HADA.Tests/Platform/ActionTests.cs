@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.Versioning;
 using HADA.Core.Entities;
 using HADA.Core.Input;
 using HADA.Core.Messaging;
@@ -13,6 +14,8 @@ namespace HADA.Tests.Platform;
 /// What Home Assistant can make the computer do. Nothing here switches the computer off, presses a key or changes
 /// the volume: the tests stop where the real effect would begin.
 /// </summary>
+// Tests of sensors and actions of Windows.
+[SupportedOSPlatform("windows")]
 public sealed class ActionTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
@@ -24,7 +27,7 @@ public sealed class ActionTests : IAsyncDisposable
 
     public ValueTask DisposeAsync() => _bus.DisposeAsync();
 
-    [Fact]
+    [WindowsFact]
     public async Task Power_buttons_are_off_by_default_and_do_what_their_name_says()
     {
         var power = new FakePower();
@@ -50,13 +53,13 @@ public sealed class ActionTests : IAsyncDisposable
         await actions.StopAsync(CancellationToken.None);
     }
 
-    [Fact]
+    [WindowsFact]
     public void The_privilege_that_sleeping_needs_can_be_enabled()
     {
         Assert.Equal(0, WindowsPowerControl.EnableShutdownPrivilege());
     }
 
-    [Fact]
+    [WindowsFact]
     public void Input_can_be_injected()
     {
         // Session 0 (a service, or a build agent) has no desktop that takes input.
@@ -74,7 +77,7 @@ public sealed class ActionTests : IAsyncDisposable
         Assert.False(InputSimulator.Press(default(KeyCombination)));
     }
 
-    [Theory]
+    [WindowsTheory]
     [InlineData("notepad", "notepad", "")]
     [InlineData("notepad notes.txt", "notepad", "notes.txt")]
     [InlineData("  https://example.com/page?a=1  ", "https://example.com/page?a=1", "")]
@@ -86,7 +89,7 @@ public sealed class ActionTests : IAsyncDisposable
         Assert.Equal((file, arguments), LaunchAction.Split(commandLine));
     }
 
-    [Fact]
+    [WindowsFact]
     public void An_unquoted_path_with_spaces_is_taken_whole_when_it_exists()
     {
         var folder = Path.Combine(Path.GetTempPath(), "HADA tests " + Guid.NewGuid().ToString("N"));
@@ -101,7 +104,7 @@ public sealed class ActionTests : IAsyncDisposable
         }
     }
 
-    [Fact]
+    [WindowsFact]
     public async Task Volume_and_mute_controls_are_registered_with_the_kinds_home_assistant_needs()
     {
         using var audio = new AudioControl(_bus, _registry, NullLogger<AudioControl>.Instance);
@@ -117,7 +120,7 @@ public sealed class ActionTests : IAsyncDisposable
         await audio.StopAsync(CancellationToken.None);
     }
 
-    [Fact]
+    [WindowsFact]
     public void The_default_audio_device_has_a_name_when_there_is_one()
     {
         using var speakers = new DefaultAudioEndpoint();
