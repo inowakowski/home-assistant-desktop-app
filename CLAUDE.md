@@ -14,7 +14,8 @@ Target Architectures: win-x64, win-arm64.
   - `Engine A`: MQTT (MQTTnet) with HA Discovery and LWT.
   - `Engine B`: Direct HA WebSocket API + REST/Webhooks.
 - **Decoupling**: All sensors/actions must communicate via an internal `IEventBus`. Neither sensors nor actions directly reference MQTT or WebSocket implementations.
-- **Portability** (macOS and Linux versions are planned): only `HADA.Tray` and the tests target `net10.0-windows`; every other project targets plain `net10.0`. Windows API calls live in `HADA.Platform.Windows` or in members marked `[SupportedOSPlatform("windows")]`, reached through an interface (`IPipeAccess`, `ISessionDirectory`, `ISecretProtector`, `IDeviceDirectory`) or an `OperatingSystem.IsWindows()` check; CA1416 fails the build otherwise. Entity ids are shared across systems in `BuiltInEntityIds`. Background services derive from `EagerBackgroundService`, not `BackgroundService`.
+- **Portability** (macOS and Linux versions are being built): only `HADA.Tray` targets `net10.0-windows`; every other project, the tests included, targets plain `net10.0`. Windows API calls live in `HADA.Platform.Windows` or in members marked `[SupportedOSPlatform("windows")]`, reached through an interface (`IPipeAccess`, `ISessionDirectory`, `ISecretProtector`, `IDeviceDirectory`) or an `OperatingSystem.IsWindows()` check; CA1416 fails the build otherwise. Entity ids are shared across systems in `BuiltInEntityIds`. Background services derive from `EagerBackgroundService`, not `BackgroundService`. Signals between processes go through `AppSignal` (not named events), folders through `AppFolders`, commands of custom sensors through `CommandRunner`, update package names through `HadaReleases.PackageNames`.
+- **Tests** run on Windows, Ubuntu and macOS in CI. A test of something only Windows has is `[WindowsFact]`/`[WindowsTheory]`, plus `[SupportedOSPlatform("windows")]` where it calls Windows APIs.
 
 ## Build & Test Commands
 
