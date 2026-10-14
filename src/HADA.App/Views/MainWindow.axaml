@@ -1,0 +1,53 @@
+<Window
+    x:Class="HADA.App.Views.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:views="using:HADA.App.Views"
+    Width="1100"
+    Height="760"
+    MinWidth="760"
+    MinHeight="500"
+    Icon="avares://HADA.App/Assets/hada.ico"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid ColumnDefinitions="230,*">
+        <!--  The pages, with the less used ones at the bottom.  -->
+        <DockPanel Background="{DynamicResource HadaPaneBrush}">
+            <ListBox
+                x:Name="FooterPages"
+                Classes="navigation"
+                Margin="0,0,0,8"
+                DockPanel.Dock="Bottom"
+                SelectionChanged="OnPageChosen">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="views:NavigationItem">
+                        <StackPanel Orientation="Horizontal" Spacing="14">
+                            <fi:FluentIcon FontSize="18" Icon="{Binding Icon}" />
+                            <TextBlock VerticalAlignment="Center" Text="{Binding Title}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <ListBox
+                x:Name="MainPages"
+                Classes="navigation"
+                Margin="0,12,0,0"
+                SelectionChanged="OnPageChosen">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="views:NavigationItem">
+                        <StackPanel Orientation="Horizontal" Spacing="14">
+                            <fi:FluentIcon FontSize="18" Icon="{Binding Icon}" />
+                            <TextBlock VerticalAlignment="Center" Text="{Binding Title}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+
+        <ContentControl
+            x:Name="PageHost"
+            Grid.Column="1"
+            Background="{DynamicResource HadaPageBrush}" />
+    </Grid>
+</Window>

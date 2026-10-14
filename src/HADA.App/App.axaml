@@ -1,0 +1,17 @@
+<Application
+    x:Class="HADA.App.App"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:HADA.App.Views"
+    RequestedThemeVariant="Default">
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://HADA.App/Views/Styles.axaml" />
+    </Application.Styles>
+
+    <Application.Resources>
+        <views:GlyphConverter x:Key="Glyph" />
+        <views:StatusBrushConverter x:Key="StatusBrush" />
+    </Application.Resources>
+</Application>

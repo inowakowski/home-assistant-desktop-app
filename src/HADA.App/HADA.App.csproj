@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The window for every system, drawn with Avalonia. It takes over from the WPF window once it does all that one does. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyTitle>HADA</AssemblyTitle>
+    <ApplicationIcon>..\..\assets\hada.ico</ApplicationIcon>
+    <!-- Bindings are checked when building, against the x:DataType of each view. -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="..\..\assets\hada.ico" Link="Assets\hada.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="FluentIcons.Avalonia" Version="2.1.344" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HADA.Core\HADA.Core.csproj" />
+    <ProjectReference Include="..\HADA.Ipc\HADA.Ipc.csproj" />
+    <ProjectReference Include="..\HADA.Platform.Windows\HADA.Platform.Windows.csproj" />
+    <ProjectReference Include="..\HADA.Presentation\HADA.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>
