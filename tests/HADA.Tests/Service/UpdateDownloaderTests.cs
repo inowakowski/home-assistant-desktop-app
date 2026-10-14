@@ -142,6 +142,38 @@ public sealed class UpdateDownloaderTests : IAsyncLifetime
         Assert.Equal(expected, HadaReleases.InstallerName("1.2.3", architecture));
     }
 
+    [Theory]
+    [InlineData(PackageKind.Msi, Architecture.X64, "HADA-1.6.0-x64.msi", null)]
+    [InlineData(PackageKind.AppImage, Architecture.X64, "HADA-1.6.0-linux-x64-untested.AppImage", "HADA-1.6.0-linux-x64.AppImage")]
+    [InlineData(PackageKind.Deb, Architecture.Arm64, "HADA-1.6.0-linux-arm64-untested.deb", "HADA-1.6.0-linux-arm64.deb")]
+    [InlineData(PackageKind.Rpm, Architecture.X64, "HADA-1.6.0-linux-x64-untested.rpm", "HADA-1.6.0-linux-x64.rpm")]
+    [InlineData(PackageKind.Dmg, Architecture.Arm64, "HADA-1.6.0-macos-arm64-untested.dmg", "HADA-1.6.0-macos-arm64.dmg")]
+    public void Packages_for_systems_not_tried_by_hand_say_so_and_are_found_under_either_name(
+        PackageKind kind, Architecture architecture, string current, string? later)
+    {
+        Assert.Equal(later is null ? [current] : [current, later], HadaReleases.PackageNames("1.6.0", architecture, kind));
+    }
+
+    [Theory]
+    [InlineData("HADA-0.9.0-linux-x64-untested.deb")]
+    [InlineData("HADA-0.9.0-linux-x64.deb")]
+    public async Task A_package_is_downloaded_under_the_name_its_release_gave_it(string name)
+    {
+        _files[$"/releases/download/v{Version}/{name}"] = _installer;
+        _files[$"/releases/download/v{Version}/{HadaReleases.ChecksumsName}"] =
+            Encoding.ASCII.GetBytes($"{Convert.ToHexString(SHA256.HashData(_installer))}  {name}\n");
+
+        using var package = await UpdateDownloader.DownloadAsync(
+            _http, _downloads, Version, Architecture.X64, _folder, kind: PackageKind.Deb);
+
+        Assert.Equal(Path.Combine(_folder, name), package.Path);
+        Assert.Equal(_installer, ReadShared(package.Path));
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(_folder));
+        }
+    }
+
     private void Publish(byte[] installer, byte[] checksumOf)
     {
         _files[$"/releases/download/v{Version}/{InstallerName}"] = installer;

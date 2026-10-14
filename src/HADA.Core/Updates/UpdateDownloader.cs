@@ -5,6 +5,25 @@ using System.Text.RegularExpressions;
 
 namespace HADA.Core.Updates;
 
+/// <summary>The kinds of package HADA is installed from, and so updates itself from.</summary>
+public enum PackageKind
+{
+    /// <summary>The Windows installer.</summary>
+    Msi,
+
+    /// <summary>A Linux program in one file, run without installing.</summary>
+    AppImage,
+
+    /// <summary>A package for Debian, Ubuntu and the systems built on them.</summary>
+    Deb,
+
+    /// <summary>A package for Fedora, openSUSE and the systems built on them.</summary>
+    Rpm,
+
+    /// <summary>A macOS disk image with the app on it.</summary>
+    Dmg,
+}
+
 /// <summary>Where HADA's releases are published.</summary>
 public static partial class HadaReleases
 {
@@ -25,16 +44,41 @@ public static partial class HadaReleases
     public static bool IsVersion(string? text) => text is not null && VersionPattern().IsMatch(text);
 
     /// <summary>The installer for a computer: ARM64 Windows gets the ARM64 one, everything else x64.</summary>
-    public static string InstallerName(string version, Architecture architecture) =>
-        $"HADA-{version}-{(architecture == Architecture.Arm64 ? "arm64" : "x64")}.msi";
+    public static string InstallerName(string version, Architecture architecture) => PackageNames(version, architecture, PackageKind.Msi)[0];
+
+    /// <summary>
+    /// The names a release may give a package of this kind, the one it is given now first. The packages of systems
+    /// nobody has tried HADA on by hand yet say so: <c>HADA-1.6.0-linux-x64-untested.deb</c>. Once tried, the same
+    /// package is published without <c>-untested</c>, so an installed copy looks for both.
+    /// </summary>
+    public static IReadOnlyList<string> PackageNames(string version, Architecture architecture, PackageKind kind)
+    {
+        var processor = architecture == Architecture.Arm64 ? "arm64" : "x64";
+        var (system, extension) = kind switch
+        {
+            PackageKind.AppImage => ("linux-", ".AppImage"),
+            PackageKind.Deb => ("linux-", ".deb"),
+            PackageKind.Rpm => ("linux-", ".rpm"),
+            PackageKind.Dmg => ("macos-", ".dmg"),
+            _ => (string.Empty, ".msi"),
+        };
+
+        var tested = $"HADA-{version}-{system}{processor}{extension}";
+        var untested = $"HADA-{version}-{system}{processor}-untested{extension}";
+        return IsTriedByHand(kind) ? [tested] : [untested, tested];
+    }
+
+    /// <summary>Whether HADA was tried by hand on the system this kind of package is for. So far only on Windows.</summary>
+    public static bool IsTriedByHand(PackageKind kind) => kind == PackageKind.Msi;
 
     [GeneratedRegex(@"^\d{1,5}\.\d{1,5}\.\d{1,5}$")]
     private static partial Regex VersionPattern();
 }
 
 /// <summary>
-/// An installer that was downloaded and found to match its published checksum. Until disposed, nobody can
-/// change, replace or delete the file, so what is started is what was checked.
+/// An installer that was downloaded and found to match its published checksum. On Windows nobody can change,
+/// replace or delete the file until this is disposed; elsewhere it lies in a folder only the user may enter. Either
+/// way, what is started is what was checked.
 /// </summary>
 public sealed class DownloadedInstaller : IDisposable
 {
@@ -62,6 +106,7 @@ public static class UpdateDownloader
     /// <param name="downloads">Where releases are; <see cref="HadaReleases.Downloads"/> outside tests.</param>
     /// <param name="folder">Where to put the installer. Created when missing; an older download of the same name is replaced.</param>
     /// <param name="progress">Told the fraction downloaded, 0 to 1, when the server says how large the file is.</param>
+    /// <param name="kind">The kind of package this copy of HADA was installed from.</param>
     /// <exception cref="ArgumentException"><paramref name="version"/> is not a version.</exception>
     /// <exception cref="HttpRequestException">The release, its checksums or the installer cannot be fetched.</exception>
     /// <exception cref="InvalidDataException">The release lists no checksum for the installer, or the download does not match it.</exception>
@@ -73,6 +118,7 @@ public static class UpdateDownloader
         Architecture architecture,
         string folder,
         IProgress<double>? progress = null,
+        PackageKind kind = PackageKind.Msi,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(http);
@@ -84,18 +130,20 @@ public static class UpdateDownloader
             throw new ArgumentException($"'{version}' is not a version.", nameof(version));
         }
 
-        var name = HadaReleases.InstallerName(version, architecture);
+        var names = HadaReleases.PackageNames(version, architecture, kind);
         var release = new Uri(downloads, $"v{version}/");
 
         // Checksums first: without one there is nothing to check the download against, so no point in downloading.
+        // They also say which of the names the release gave the package.
         var checksums = ParseChecksums(
             await http.GetStringAsync(new Uri(release, HadaReleases.ChecksumsName), cancellationToken).ConfigureAwait(false));
-        if (!checksums.TryGetValue(name, out var expected))
+        if (names.FirstOrDefault(checksums.ContainsKey) is not { } name)
         {
-            throw new InvalidDataException($"The release publishes no checksum for {name}.");
+            throw new InvalidDataException($"The release publishes no checksum for {names[0]}.");
         }
 
-        Directory.CreateDirectory(folder);
+        var expected = checksums[name];
+        AppFolders.CreatePrivate(folder);
         var path = Path.Combine(folder, name);
         try
         {
