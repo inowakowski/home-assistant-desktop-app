@@ -1,17 +1,17 @@
 using System.Diagnostics;
 using System.IO;
 using System.Security;
+using HADA.Core;
 using HADA.Core.Entities;
-using HADA.Presentation;
 using Microsoft.Win32;
 
-namespace HADA.Tray;
+namespace HADA.Platform.Windows.Desktop;
 
 /// <summary>
 /// The web browsers installed on this computer, as they registered themselves with Windows, and opening an
 /// address in one of them rather than in whichever is the default.
 /// </summary>
-internal static class Browsers
+public static class Browsers
 {
     private const string ClientsKey = @"SOFTWARE\Clients\StartMenuInternet";
 

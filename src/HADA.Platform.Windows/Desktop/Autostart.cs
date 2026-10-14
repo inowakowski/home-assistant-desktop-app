@@ -1,7 +1,7 @@
 using HADA.Core;
 using Microsoft.Win32;
 
-namespace HADA.Tray;
+namespace HADA.Platform.Windows.Desktop;
 
 /// <summary>
 /// Whether the tray app starts when this user signs in.
@@ -15,7 +15,7 @@ namespace HADA.Tray;
 /// programs, and turning it off removes it again; that entry is the one thing a portable copy writes outside its folder.
 /// </para>
 /// </remarks>
-internal static class Autostart
+public static class Autostart
 {
     /// <summary>Marks a start made by Windows at sign-in, as opposed to one made by the user.</summary>
     public const string Argument = "--autostart";
