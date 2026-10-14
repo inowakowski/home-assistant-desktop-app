@@ -56,7 +56,7 @@ public sealed class FileLoggerProvider : ILoggerProvider
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(_options.FilePath)!);
+                AppFolders.CreatePrivate(Path.GetDirectoryName(_options.FilePath)!);
                 RollIfTooLarge();
 
                 // Shared, so the file can be read, and rolled by another process, while this one is running.

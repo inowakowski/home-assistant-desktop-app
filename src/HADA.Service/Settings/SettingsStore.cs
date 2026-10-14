@@ -3,6 +3,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using HADA.Core;
 using HADA.Engine.Mqtt;
 using HADA.Engine.WebSocket;
 using HADA.Ipc;
@@ -65,7 +66,8 @@ public sealed record StoredMqttServer(MqttSettings Settings, string? Password);
 public sealed record StoredHomeAssistantServer(HomeAssistantSettings Settings, string? AccessToken);
 
 /// <summary>
-/// Persists <see cref="StoredSettings"/> as JSON, by default in <c>%ProgramData%\HADA\settings.json</c>.
+/// Persists <see cref="StoredSettings"/> as JSON, by default in <c>settings.json</c> in <see cref="AppFolders.ServiceData"/>,
+/// on Windows <c>%ProgramData%\HADA</c>.
 /// The folder is limited to SYSTEM, administrators and the account running the service, and secrets are also
 /// encrypted with DPAPI, so a copy of the file is useless on another machine.
 /// </summary>
@@ -80,8 +82,10 @@ public sealed class SettingsStore(string? folderPath = null, bool protectFolder 
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public string FolderPath { get; } =
-        folderPath ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "HADA");
+    public string FolderPath { get; } = folderPath ?? AppFolders.ServiceData;
+
+    /// <summary>Where the service writes its logs: <see cref="AppFolders.ServiceLogs"/>, or <c>logs</c> in a folder given here.</summary>
+    public string LogFolder { get; } = folderPath is null ? AppFolders.ServiceLogs : Path.Combine(folderPath, "logs");
 
     public string FilePath => Path.Combine(FolderPath, "settings.json");
 

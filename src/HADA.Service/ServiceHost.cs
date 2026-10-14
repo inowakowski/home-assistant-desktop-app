@@ -63,7 +63,7 @@ public static class ServiceHost
             || LocalAdministrators.Contains(owner);
     }
 
-    /// <param name="settingsStore">Where settings and logs live; <c>%ProgramData%\HADA</c> unless a test says otherwise.</param>
+    /// <param name="settingsStore">Where settings and logs live; <see cref="AppFolders.ServiceData"/> unless a test says otherwise.</param>
     public static HostApplicationBuilder CreateBuilder(string[] args, SettingsStore? settingsStore = null)
     {
         var builder = Host.CreateApplicationBuilder(args);
@@ -108,7 +108,7 @@ public static class ServiceHost
         }
 
         builder.Logging.AddProvider(new FileLoggerProvider(
-            new FileLoggerOptions { FilePath = Path.Combine(settingsStore.FolderPath, "logs", "service.log") }));
+            new FileLoggerOptions { FilePath = Path.Combine(settingsStore.LogFolder, "service.log") }));
 
         // A sensor that fails must not take the connection to Home Assistant and every other sensor down with it.
         // The host logs the failure; the rest of the service keeps running.
