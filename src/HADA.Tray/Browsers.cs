@@ -2,13 +2,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Security;
 using HADA.Core.Entities;
+using HADA.Presentation;
 using Microsoft.Win32;
 
 namespace HADA.Tray;
-
-/// <param name="Name">As the browser calls itself, e.g. "Firefox".</param>
-/// <param name="Path">Its program file.</param>
-internal sealed record InstalledBrowser(string Name, string Path);
 
 /// <summary>
 /// The web browsers installed on this computer, as they registered themselves with Windows, and opening an

@@ -14,9 +14,11 @@ using HADA.Core;
 using HADA.Core.Abstractions;
 using HADA.Core.Models;
 using HADA.Ipc;
+using HADA.Presentation;
+using HADA.Presentation.Localization;
 using HADA.Tray.Localization;
 using HADA.Tray.Session;
-using HADA.Tray.ViewModels;
+using HADA.Presentation.ViewModels;
 using HADA.Tray.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -377,7 +379,8 @@ public partial class App : Application
 
         var client = new ServiceControlClient(new IpcOptions { ClientName = $"ui:{Environment.UserName}" });
         // The settings of a portable copy are its user's own; there is no administrator window to unlock.
-        var viewModel = new MainViewModel(client, Elevation.IsElevated && !AppInstance.IsPortable, AppInstance.IsPortable, RequestElevation);
+        var viewModel = new MainViewModel(
+            client, new WindowsDesktop(), Elevation.IsElevated && !AppInstance.IsPortable, AppInstance.IsPortable, RequestElevation);
         _mainWindow = new MainWindow(viewModel, PageNames.Find(page));
         _roleWindow = _mainWindow;
         _mainWindow.Closed += (_, _) => Shutdown();

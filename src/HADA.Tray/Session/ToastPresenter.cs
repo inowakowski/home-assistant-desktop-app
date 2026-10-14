@@ -3,6 +3,7 @@ using System.Net.Http;
 using HADA.Core;
 using HADA.Core.Entities;
 using System.Security;
+using HADA.Presentation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Windows.Data.Xml.Dom;
@@ -37,7 +38,7 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
 
-    private static readonly string DataFolder = TrayPaths.DataFolder;
+    private static readonly string DataFolder = AppFolders.UserData;
 
     private readonly List<ToastNotification> _shown = [];
     private bool _isRegistered;

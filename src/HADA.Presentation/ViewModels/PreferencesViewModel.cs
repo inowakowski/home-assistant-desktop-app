@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using HADA.Core;
 using HADA.Ipc;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 public sealed record LanguageOption(string Code, string Label);
 
@@ -68,7 +68,7 @@ public sealed class DashboardServerViewModel(ServerDashboard dashboard, Action<S
 /// would change that account's choices instead of the user's, so they are read-only there.
 /// </param>
 /// <param name="isPortable">Whether this is a portable copy, where starting with Windows means something else.</param>
-public sealed class PreferencesViewModel(bool isElevated, bool isPortable = false) : ObservableObject
+public sealed class PreferencesViewModel(IDesktop desktop, bool isElevated, bool isPortable = false) : ObservableObject
 {
     private readonly string _languageAtStart = UserPreferences.Language;
 
@@ -89,7 +89,7 @@ public sealed class PreferencesViewModel(bool isElevated, bool isPortable = fals
     public IReadOnlyList<BrowserOption> Browsers { get; } =
     [
         new(string.Empty, Loc.Get("Preferences_BrowserDefault")),
-        .. HADA.Tray.Browsers.Installed().Select(browser => new BrowserOption(browser.Path, browser.Name)),
+        .. desktop.InstalledBrowsers().Select(browser => new BrowserOption(browser.Path, browser.Name)),
     ];
 
     /// <summary>The program file of the browser that addresses of notifications are opened in; empty for the default one.</summary>
@@ -111,10 +111,10 @@ public sealed class PreferencesViewModel(bool isElevated, bool isPortable = fals
 
     public bool StartWithWindows
     {
-        get => Autostart.IsEnabled;
+        get => desktop.StartsWithSystem;
         set
         {
-            Autostart.IsEnabled = value;
+            desktop.StartsWithSystem = value;
             OnPropertyChanged();
         }
     }

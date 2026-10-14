@@ -205,7 +205,7 @@
                             Margin="0,16,0,0"
                             IsOpen="{Binding MqttTest.IsOpen, Mode=TwoWay}"
                             Message="{Binding MqttTest.Message}"
-                            Severity="{Binding MqttTest.Severity}" />
+                            Severity="{Binding MqttTest.Severity, Converter={StaticResource Severity}}" />
 
                         <Grid
                             Margin="0,18,0,0"
@@ -473,7 +473,7 @@
                             Margin="0,16,0,0"
                             IsOpen="{Binding HomeAssistantTest.IsOpen, Mode=TwoWay}"
                             Message="{Binding HomeAssistantTest.Message}"
-                            Severity="{Binding HomeAssistantTest.Severity}" />
+                            Severity="{Binding HomeAssistantTest.Severity, Converter={StaticResource Severity}}" />
 
                         <Grid
                             Margin="0,18,0,0"

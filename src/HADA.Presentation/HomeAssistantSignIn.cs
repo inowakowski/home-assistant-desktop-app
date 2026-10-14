@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -6,9 +5,9 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using HADA.Core;
-using HADA.Tray.Localization;
+using HADA.Presentation.Localization;
 
-namespace HADA.Tray;
+namespace HADA.Presentation;
 
 /// <param name="ClientId">The address the sign-in was made under; the refresh token only works together with it.</param>
 /// <param name="RefreshToken">What is saved in place of an access token.</param>
@@ -26,7 +25,7 @@ public sealed record HomeAssistantSignInResult(string ClientId, string RefreshTo
 /// <para>
 /// The browser is not opened at Home Assistant's page but at that same listener, which sends it on. The page's
 /// address has a query string, and Explorer, which is what opens the browser from the administrator copy of the
-/// window, takes an address with one for a file to look for.
+/// window on Windows, takes an address with one for a file to look for.
 /// </para>
 /// </remarks>
 public static class HomeAssistantSignIn
@@ -35,7 +34,7 @@ public static class HomeAssistantSignIn
     private static readonly TimeSpan WaitForRequest = TimeSpan.FromSeconds(10);
 
     /// <param name="openBrowser">
-    /// Opens the address in a browser; see <see cref="OpenInBrowser(Uri)"/>. The address is one on this computer,
+    /// Opens the address in a browser; see <see cref="IDesktop.OpenInBrowser"/>. The address is one on this computer,
     /// without a query string, and can be shown to the user to open by hand should no browser come up.
     /// </param>
     /// <exception cref="TimeoutException">Nobody signed in within five minutes.</exception>
@@ -76,39 +75,6 @@ public static class HomeAssistantSignIn
             listener.Stop();
             await accepting;
         }
-    }
-
-    /// <summary>
-    /// Opens an address in the user's default browser. From the administrator copy of the window that is left to
-    /// the desktop's own Explorer, so that the browser runs as the signed-in user, where their Home Assistant
-    /// session is, and not with an administrator's rights.
-    /// </summary>
-    public static void OpenInBrowser(Uri address) => OpenInBrowser(address, Elevation.IsElevated);
-
-    /// <param name="throughExplorer">
-    /// Whether Explorer is asked to open it. It takes plain addresses only: one with a query string it does not
-    /// hand to a browser, and opens a window of its own instead.
-    /// </param>
-    public static void OpenInBrowser(Uri address, bool throughExplorer)
-    {
-        ArgumentNullException.ThrowIfNull(address);
-        if (address.Scheme != Uri.UriSchemeHttp && address.Scheme != Uri.UriSchemeHttps)
-        {
-            return;
-        }
-
-        if (throughExplorer && address.Query.Length == 0)
-        {
-            var start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"))
-            {
-                UseShellExecute = false,
-            };
-            start.ArgumentList.Add(address.AbsoluteUri);
-            using var explorer = Process.Start(start);
-            return;
-        }
-
-        using var process = Process.Start(new ProcessStartInfo(address.AbsoluteUri) { UseShellExecute = true });
     }
 
     private static async Task AcceptAsync(

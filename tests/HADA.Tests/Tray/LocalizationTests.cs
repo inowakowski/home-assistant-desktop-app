@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace HADA.Tests.Tray;
 
-/// <summary>Guards the tray's translations: both languages complete, and no key used in code or XAML missing.</summary>
+/// <summary>Guards the window's translations: both languages complete, and no key used in code or XAML missing.</summary>
 public partial class LocalizationTests
 {
     [Fact]
@@ -37,7 +37,7 @@ public partial class LocalizationTests
     }
 
     private static HashSet<string> Keys(string fileName) =>
-        XDocument.Load(Path.Combine(TrayFolder(), "Localization", fileName)).Root!
+        XDocument.Load(Path.Combine(SourceFolder("HADA.Presentation"), "Localization", fileName)).Root!
             .Elements("data")
             .Select(data => (string)data.Attribute("name")!)
             .ToHashSet(StringComparer.Ordinal);
@@ -45,13 +45,14 @@ public partial class LocalizationTests
     private static IEnumerable<string> SourceFiles()
     {
         var excluded = new[] { $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}" };
-        return Directory.EnumerateFiles(TrayFolder(), "*.*", SearchOption.AllDirectories)
+        return ((string[])["HADA.Tray", "HADA.Presentation"])
+            .SelectMany(project => Directory.EnumerateFiles(SourceFolder(project), "*.*", SearchOption.AllDirectories))
             .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
             .Where(file => !excluded.Any(file.Contains));
     }
 
-    private static string TrayFolder([CallerFilePath] string testFile = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(testFile)!, "..", "..", "..", "src", "HADA.Tray"));
+    private static string SourceFolder(string project, [CallerFilePath] string testFile = "") =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(testFile)!, "..", "..", "..", "src", project));
 
     [GeneratedRegex(@"\{l:Tr (?<key>\w+)\}")]
     private static partial Regex XamlKey();

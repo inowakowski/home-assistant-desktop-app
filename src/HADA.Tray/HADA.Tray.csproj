@@ -38,6 +38,7 @@
     <ProjectReference Include="..\HADA.Core\HADA.Core.csproj" />
     <ProjectReference Include="..\HADA.Ipc\HADA.Ipc.csproj" />
     <ProjectReference Include="..\HADA.Platform.Windows\HADA.Platform.Windows.csproj" />
+    <ProjectReference Include="..\HADA.Presentation\HADA.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,11 +1,11 @@
 using System.Collections.ObjectModel;
 using HADA.Core.Entities;
 using HADA.Ipc;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
-using Wpf.Ui.Controls;
+using HADA.Presentation;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 /// <summary>What a connection does not carry to Home Assistant, said on the Entities page.</summary>
 /// <param name="Connection">The name of the connection's Home Assistant.</param>
@@ -116,7 +116,7 @@ public sealed class EntitiesViewModel : ObservableObject
 public sealed class EntityToggleViewModel(string id, SettingsViewModel settings) : ObservableObject
 {
     private string _name = string.Empty;
-    private SymbolRegular _symbol;
+    private Glyph _symbol;
     private string _caption = string.Empty;
     private string _hint = string.Empty;
     private bool _enabledByDefault = true;
@@ -129,7 +129,7 @@ public sealed class EntityToggleViewModel(string id, SettingsViewModel settings)
         private set => SetProperty(ref _name, value);
     }
 
-    public SymbolRegular Symbol
+    public Glyph Symbol
     {
         get => _symbol;
         private set => SetProperty(ref _symbol, value);

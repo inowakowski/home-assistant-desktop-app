@@ -1,10 +1,9 @@
 using System.Windows.Input;
 using HADA.Ipc;
-using HADA.Platform.Windows.Sensors;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 public sealed record CustomSensorTypeOption(CustomSensorType Type, string Label);
 
@@ -19,6 +18,7 @@ public sealed record UsbDeviceOption(string MatchId, string Name)
 public sealed class CustomSensorViewModel : ObservableObject
 {
     private readonly Action _changed;
+    private readonly IDesktop _desktop;
     private string _id;
     private string _name;
     private CustomSensorType _type;
@@ -28,9 +28,10 @@ public sealed class CustomSensorViewModel : ObservableObject
     private IReadOnlyList<UsbDeviceOption>? _connectedDevices;
 
     /// <param name="changed">Called after every edit, so the owner can update its unsaved-changes state.</param>
-    public CustomSensorViewModel(CustomSensorDefinition definition, Action changed, Action<CustomSensorViewModel> remove)
+    public CustomSensorViewModel(CustomSensorDefinition definition, Action changed, Action<CustomSensorViewModel> remove, IDesktop desktop)
     {
         _changed = changed;
+        _desktop = desktop;
         _id = definition.Id;
         _name = definition.Name;
         _type = definition.Type;
@@ -112,7 +113,7 @@ public sealed class CustomSensorViewModel : ObservableObject
 
     /// <summary>USB devices connected right now; read when first shown and again by <see cref="RefreshDevices"/>.</summary>
     public IReadOnlyList<UsbDeviceOption> ConnectedDevices =>
-        _connectedDevices ??= [.. PnpDevices.ConnectedUsbDevices().Select(device => new UsbDeviceOption(device.MatchId, device.Name))];
+        _connectedDevices ??= _desktop.ConnectedUsbDevices();
 
     /// <summary>Picking a device fills in its id, and its name when the sensor has none yet.</summary>
     public UsbDeviceOption? SelectedDevice

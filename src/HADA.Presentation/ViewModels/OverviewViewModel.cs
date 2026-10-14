@@ -3,11 +3,11 @@ using System.Windows.Input;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Ipc;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
-using Wpf.Ui.Controls;
+using HADA.Presentation;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 public sealed class OverviewViewModel : ObservableObject
 {
@@ -30,8 +30,8 @@ public sealed class OverviewViewModel : ObservableObject
     public OverviewViewModel(Action<string> navigate)
     {
         _navigate = navigate;
-        _service = new(Loc.Get("Card_Service"), SymbolRegular.Server24, Loc.Get("Card_OpenLogs"), () => navigate("logs"));
-        _tray = new(Loc.Get("Card_Tray"), SymbolRegular.WindowApps24, Loc.Get("Card_OpenEntities"), () => navigate("entities"));
+        _service = new(Loc.Get("Card_Service"), Glyph.Server, Loc.Get("Card_OpenLogs"), () => navigate("logs"));
+        _tray = new(Loc.Get("Card_Tray"), Glyph.WindowApps, Loc.Get("Card_OpenEntities"), () => navigate("entities"));
         ShowServers(
             [new EngineStatus(MqttEngineName, false, EngineConnectionState.Disconnected)],
             [new EngineStatus(HomeAssistantEngineName, false, EngineConnectionState.Disconnected)]);
@@ -108,9 +108,9 @@ public sealed class OverviewViewModel : ObservableObject
         }
 
         _servers = key;
-        AddCards(_mqtt, mqtt, "Card_Mqtt", "Card_MqttServer", SymbolRegular.Router24, "connections#mqtt=", "connections");
+        AddCards(_mqtt, mqtt, "Card_Mqtt", "Card_MqttServer", Glyph.Router, "connections#mqtt=", "connections");
         AddCards(
-            _homeAssistant, homeAssistants, "Card_HomeAssistant", "Card_HomeAssistantServer", SymbolRegular.HomeCheckmark24, "connections#ha=", "connections#ha");
+            _homeAssistant, homeAssistants, "Card_HomeAssistant", "Card_HomeAssistantServer", Glyph.HomeCheckmark, "connections#ha=", "connections#ha");
 
         Cards.Clear();
         foreach (var card in (IEnumerable<StatusCardViewModel>)[_service, .. _mqtt, .. _homeAssistant, _tray])
@@ -124,7 +124,7 @@ public sealed class OverviewViewModel : ObservableObject
         IReadOnlyList<EngineStatus> servers,
         string titleKey,
         string namedTitleKey,
-        SymbolRegular symbol,
+        Glyph symbol,
         string serverTarget,
         string fallbackTarget)
     {
@@ -178,7 +178,7 @@ public sealed class OverviewViewModel : ObservableObject
 
 /// <param name="actionText">What clicking the card does, as its tooltip.</param>
 /// <param name="open">Opens the page where what the card shows is set up or explained.</param>
-public sealed class StatusCardViewModel(string title, SymbolRegular symbol, string actionText, Action open) : ObservableObject
+public sealed class StatusCardViewModel(string title, Glyph symbol, string actionText, Action open) : ObservableObject
 {
     private string _text = string.Empty;
     private string _detail = string.Empty;
@@ -186,7 +186,7 @@ public sealed class StatusCardViewModel(string title, SymbolRegular symbol, stri
 
     public string Title { get; } = title;
 
-    public SymbolRegular Symbol { get; } = symbol;
+    public Glyph Symbol { get; } = symbol;
 
     public string ActionText { get; } = actionText;
 
@@ -221,7 +221,7 @@ public sealed class StatusCardViewModel(string title, SymbolRegular symbol, stri
 public sealed class EntityRowViewModel(string id) : ObservableObject
 {
     private string _name = string.Empty;
-    private SymbolRegular _symbol;
+    private Glyph _symbol;
     private string _caption = string.Empty;
     private string _valueText = string.Empty;
     private string _sourceText = string.Empty;
@@ -236,7 +236,7 @@ public sealed class EntityRowViewModel(string id) : ObservableObject
         private set => SetProperty(ref _name, value);
     }
 
-    public SymbolRegular Symbol
+    public Glyph Symbol
     {
         get => _symbol;
         private set => SetProperty(ref _symbol, value);

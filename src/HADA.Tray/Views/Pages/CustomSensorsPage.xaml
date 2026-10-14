@@ -5,7 +5,7 @@
     xmlns:controls="clr-namespace:HADA.Tray.Views.Controls"
     xmlns:l="clr-namespace:HADA.Tray.Localization"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    xmlns:vm="clr-namespace:HADA.Tray.ViewModels"
+    xmlns:vm="clr-namespace:HADA.Presentation.ViewModels;assembly=HADA.Presentation"
     Title="{l:Tr Nav_CustomSensors}"
     Style="{StaticResource HadaPage}">
     <Grid>

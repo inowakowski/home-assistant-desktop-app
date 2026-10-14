@@ -1,6 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
-using HADA.Tray.ViewModels;
+using HADA.Presentation.ViewModels;
 
 namespace HADA.Tray.Views.Pages;
 

@@ -2,11 +2,11 @@ using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using HADA.Ipc;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
-using Wpf.Ui.Controls;
+using HADA.Presentation;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 /// <summary>
 /// Editable copy of the service's settings, shared by every page that edits them, so one save covers them all.
@@ -44,14 +44,16 @@ public sealed class SettingsViewModel : ObservableObject
     private HomeAssistantServerViewModel? _selectedHomeAssistantServer;
     private bool _checkUpdatesAutomatically = true;
     private bool _includePrereleases;
+    private readonly IDesktop _desktop;
 
     /// <param name="isElevated">
     /// Whether this window may change settings: the administrator window of the installed app, or any window of
     /// a portable copy.
     /// </param>
-    public SettingsViewModel(ServiceControlClient client, bool isElevated)
+    public SettingsViewModel(ServiceControlClient client, IDesktop desktop, bool isElevated)
     {
         _client = client;
+        _desktop = desktop;
         IsElevated = isElevated;
         _saveCommand = new AsyncCommand(SaveAsync, () => CanEdit && IsDirty && !IsBusy);
         _revertCommand = new RelayCommand(Revert, () => IsDirty && !IsBusy);
@@ -252,7 +254,7 @@ public sealed class SettingsViewModel : ObservableObject
     {
         if (Validate(target: null) is { } error)
         {
-            Feedback.Show(Loc.Get("Validation_Title"), error, InfoBarSeverity.Warning);
+            Feedback.Show(Loc.Get("Validation_Title"), error, Severity.Warning);
             return;
         }
 
@@ -263,16 +265,16 @@ public sealed class SettingsViewModel : ObservableObject
             var result = await _client.SaveSettingsAsync(BuildUpdate());
             if (!result.Success)
             {
-                Feedback.Show(Loc.Get("Save_FailureTitle"), result.Message ?? string.Empty, InfoBarSeverity.Error);
+                Feedback.Show(Loc.Get("Save_FailureTitle"), result.Message ?? string.Empty, Severity.Error);
                 return;
             }
 
             Apply(await _client.GetSettingsAsync());
-            Feedback.Show(Loc.Get("Save_SuccessTitle"), Loc.Get("Save_SuccessMessage"), InfoBarSeverity.Success);
+            Feedback.Show(Loc.Get("Save_SuccessTitle"), Loc.Get("Save_SuccessMessage"), Severity.Success);
         }
         catch (Exception ex) when (ServiceErrors.IsExpected(ex))
         {
-            Feedback.Show(Loc.Get("Save_FailureTitle"), ServiceErrors.Describe(ex), InfoBarSeverity.Error);
+            Feedback.Show(Loc.Get("Save_FailureTitle"), ServiceErrors.Describe(ex), Severity.Error);
         }
         finally
         {
@@ -287,7 +289,7 @@ public sealed class SettingsViewModel : ObservableObject
         var homeAssistantServer = target == ConnectionTarget.HomeAssistant ? SelectedHomeAssistantServer : null;
         if (Validate(target) is { } error)
         {
-            result.Show(Loc.Get("Validation_Title"), error, InfoBarSeverity.Warning);
+            result.Show(Loc.Get("Validation_Title"), error, Severity.Warning);
             return;
         }
 
@@ -301,11 +303,11 @@ public sealed class SettingsViewModel : ObservableObject
             result.Show(
                 Loc.Get(outcome.Success ? "Test_SuccessTitle" : "Test_FailureTitle"),
                 outcome.Message ?? string.Empty,
-                outcome.Success ? InfoBarSeverity.Success : InfoBarSeverity.Error);
+                outcome.Success ? Severity.Success : Severity.Error);
         }
         catch (Exception ex) when (ServiceErrors.IsExpected(ex))
         {
-            result.Show(Loc.Get("Test_FailureTitle"), ServiceErrors.Describe(ex), InfoBarSeverity.Error);
+            result.Show(Loc.Get("Test_FailureTitle"), ServiceErrors.Describe(ex), Severity.Error);
         }
         finally
         {
@@ -348,12 +350,12 @@ public sealed class SettingsViewModel : ObservableObject
             HomeAssistantServers.Clear();
             foreach (var server in snapshot.HomeAssistantServers)
             {
-                HomeAssistantServers.Add(new HomeAssistantServerViewModel(server.Settings, server.HasAccessToken, UpdateDirty));
+                HomeAssistantServers.Add(new HomeAssistantServerViewModel(server.Settings, server.HasAccessToken, UpdateDirty, _desktop));
             }
 
             if (HomeAssistantServers.Count == 0)
             {
-                HomeAssistantServers.Add(HomeAssistantServerViewModel.New(UpdateDirty, sensors: !PendingMqttServers().Any()));
+                HomeAssistantServers.Add(HomeAssistantServerViewModel.New(UpdateDirty, _desktop, sensors: !PendingMqttServers().Any()));
             }
 
             SelectedHomeAssistantServer =
@@ -440,7 +442,7 @@ public sealed class SettingsViewModel : ObservableObject
 
     private void AddHomeAssistantServer()
     {
-        var server = HomeAssistantServerViewModel.New(UpdateDirty, sensors: !PendingMqttServers().Any());
+        var server = HomeAssistantServerViewModel.New(UpdateDirty, _desktop, sensors: !PendingMqttServers().Any());
         HomeAssistantServers.Add(server);
         SelectedHomeAssistantServer = server;
         OnHomeAssistantServersChanged();
@@ -473,7 +475,7 @@ public sealed class SettingsViewModel : ObservableObject
 
     private void AddCustomSensor(CustomSensorDefinition definition)
     {
-        CustomSensors.Add(new CustomSensorViewModel(definition, UpdateDirty, RemoveCustomSensor));
+        CustomSensors.Add(new CustomSensorViewModel(definition, UpdateDirty, RemoveCustomSensor, _desktop));
         OnCustomSensorsChanged();
     }
 

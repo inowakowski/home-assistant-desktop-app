@@ -1,6 +1,8 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using HADA.Core;
+using HADA.Presentation.Localization;
 using HADA.Tray.Localization;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -73,7 +75,7 @@ public sealed class DashboardWindow : Window
         {
             var environment = await CoreWebView2Environment.CreateAsync(
                 browserExecutableFolder: null,
-                userDataFolder: Path.Combine(TrayPaths.DataFolder, "dashboard"));
+                userDataFolder: Path.Combine(AppFolders.UserData, "dashboard"));
             await _browser.EnsureCoreWebView2Async(environment);
             _browser.CoreWebView2.NavigationCompleted += (_, args) => _firstNavigation.TrySetResult(args.IsSuccess);
             _browser.CoreWebView2.Navigate(_address.AbsoluteUri);

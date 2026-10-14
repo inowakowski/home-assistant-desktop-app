@@ -4,6 +4,7 @@ using HADA.Core.Messaging;
 using HADA.Ipc;
 using HADA.Platform.Windows.Actions;
 using HADA.Platform.Windows.Sensors;
+using HADA.Presentation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

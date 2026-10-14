@@ -1,16 +1,12 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Data;
 using System.Windows.Input;
 using HADA.Ipc;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 using Microsoft.Extensions.Logging;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 public sealed class LogsViewModel : ObservableObject
 {
@@ -19,6 +15,7 @@ public sealed class LogsViewModel : ObservableObject
     private const int MaxPagesPerRefresh = 10;
 
     private readonly ServiceControlClient _client;
+    private readonly IDesktop _desktop;
     private readonly RelayCommand _copyCommand;
     private readonly RelayCommand _clearCommand;
     private long _lastSequence;
@@ -26,9 +23,10 @@ public sealed class LogsViewModel : ObservableObject
     private LevelOption _minimumLevel;
     private bool _autoScroll = true;
 
-    public LogsViewModel(ServiceControlClient client)
+    public LogsViewModel(ServiceControlClient client, IDesktop desktop)
     {
         _client = client;
+        _desktop = desktop;
         LevelOptions =
         [
             new(LogLevel.Trace, Loc.Get("Logs_LevelAll")),
@@ -37,9 +35,6 @@ public sealed class LogsViewModel : ObservableObject
             new(LogLevel.Error, Loc.Get("Logs_LevelError")),
         ];
         _minimumLevel = LevelOptions[0];
-
-        View = CollectionViewSource.GetDefaultView(Entries);
-        View.Filter = item => ((LogEntryViewModel)item).Level >= _minimumLevel.Level;
 
         _copyCommand = new RelayCommand(Copy, () => Entries.Count > 0);
         _clearCommand = new RelayCommand(Clear, () => Entries.Count > 0);
@@ -63,7 +58,11 @@ public sealed class LogsViewModel : ObservableObject
         {
             if (SetProperty(ref _minimumLevel, value))
             {
-                View.Refresh();
+                Shown.Clear();
+                foreach (var entry in Entries.Where(IsShown))
+                {
+                    Shown.Add(entry);
+                }
             }
         }
     }
@@ -76,7 +75,8 @@ public sealed class LogsViewModel : ObservableObject
 
     public ObservableCollection<LogEntryViewModel> Entries { get; } = [];
 
-    public ICollectionView View { get; }
+    /// <summary>The <see cref="Entries"/> at <see cref="MinimumLevel"/> or above, in the same order.</summary>
+    public ObservableCollection<LogEntryViewModel> Shown { get; } = [];
 
     public bool HasNoEntries => Entries.Count == 0;
 
@@ -102,7 +102,13 @@ public sealed class LogsViewModel : ObservableObject
             var batch = await _client.GetLogsAsync(_lastSequence);
             foreach (var entry in batch)
             {
-                Entries.Add(new LogEntryViewModel(entry));
+                var row = new LogEntryViewModel(entry);
+                Entries.Add(row);
+                if (IsShown(row))
+                {
+                    Shown.Add(row);
+                }
+
                 _lastSequence = entry.Sequence;
             }
 
@@ -115,6 +121,11 @@ public sealed class LogsViewModel : ObservableObject
 
         while (Entries.Count > MaxEntries)
         {
+            if (Shown.Count > 0 && ReferenceEquals(Shown[0], Entries[0]))
+            {
+                Shown.RemoveAt(0);
+            }
+
             Entries.RemoveAt(0);
         }
 
@@ -124,20 +135,15 @@ public sealed class LogsViewModel : ObservableObject
         }
     }
 
-    private void Copy()
+    private void Copy() => _desktop.CopyText(string.Join(Environment.NewLine, Shown.Select(entry => entry.FullText)));
+
+    private void Clear()
     {
-        var text = string.Join(Environment.NewLine, View.Cast<LogEntryViewModel>().Select(entry => entry.FullText));
-        try
-        {
-            Clipboard.SetText(text);
-        }
-        catch (COMException)
-        {
-            // Another application is holding the clipboard; the user can simply try again.
-        }
+        Shown.Clear();
+        Entries.Clear();
     }
 
-    private void Clear() => Entries.Clear();
+    private bool IsShown(LogEntryViewModel entry) => entry.Level >= _minimumLevel.Level;
 }
 
 public sealed record LevelOption(LogLevel Level, string Name)

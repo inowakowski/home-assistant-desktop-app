@@ -1,15 +1,15 @@
-using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
+using HADA.Core;
 using HADA.Core.Updates;
 using HADA.Ipc;
-using HADA.Tray.Localization;
-using HADA.Tray.Mvvm;
+using HADA.Presentation.Localization;
+using HADA.Presentation.Mvvm;
 
-namespace HADA.Tray.ViewModels;
+namespace HADA.Presentation.ViewModels;
 
 /// <summary>
 /// What the window knows about newer versions: shown as a notice on the Overview page and in full on the
@@ -22,6 +22,7 @@ public sealed class UpdateViewModel : ObservableObject
     private static readonly HttpClient Http = CreateHttpClient();
 
     private readonly ServiceControlClient _client;
+    private readonly IDesktop _desktop;
     private readonly AsyncCommand _installCommand;
     private readonly AsyncCommand _checkNowCommand;
     private readonly string _idleDetail;
@@ -38,9 +39,10 @@ public sealed class UpdateViewModel : ObservableObject
 
     /// <param name="isElevated">Whether this is the administrator copy of the window, opened with "Unlock editing".</param>
     /// <param name="isPortable">Whether this is a portable copy, which no installer can update.</param>
-    public UpdateViewModel(ServiceControlClient client, bool isElevated, bool isPortable = false)
+    public UpdateViewModel(ServiceControlClient client, IDesktop desktop, bool isElevated, bool isPortable = false)
     {
         _client = client;
+        _desktop = desktop;
         CanInstall = !isElevated && !isPortable;
         _idleDetail = Loc.Get(isPortable ? "Update_DetailPortable" : isElevated ? "Update_DetailElevated" : "Update_Detail");
         _detail = _idleDetail;
@@ -212,13 +214,13 @@ public sealed class UpdateViewModel : ObservableObject
                     HadaReleases.Downloads,
                     update.Version,
                     RuntimeInformation.OSArchitecture,
-                    Path.Combine(TrayPaths.DataFolder, "updates"),
+                    Path.Combine(AppFolders.UserData, "updates"),
                     progress);
                 _installerVersion = update.Version;
             }
 
             IsDownloading = false;
-            Process.Start(new ProcessStartInfo(_installer.Path) { UseShellExecute = true })?.Dispose();
+            _desktop.StartInstaller(_installer.Path);
             Detail = Loc.Get("Update_Started");
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or IOException or UnauthorizedAccessException
@@ -241,8 +243,7 @@ public sealed class UpdateViewModel : ObservableObject
 
         try
         {
-            // Through Explorer, so the browser runs as the user even when this window runs as administrator.
-            using var explorer = Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { page.AbsoluteUri }, UseShellExecute = false });
+            _desktop.OpenInBrowser(page);
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
