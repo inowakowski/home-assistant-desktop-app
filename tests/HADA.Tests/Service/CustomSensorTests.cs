@@ -116,8 +116,7 @@ public sealed class CustomSensorTests : IAsyncDisposable
         Assert.Null(CustomSensorRules.Validate(sensor with { Value = "VID_0BDA&PID_8153" }));
     }
 
-    [WindowsFact]
-    [SupportedOSPlatform("windows")]
+    [Fact]
     public async Task A_command_button_runs_its_command_when_pressed_and_only_then()
     {
         var marker = Path.Combine(Path.GetTempPath(), $"hada-button-{Guid.NewGuid():N}.txt");
@@ -125,7 +124,7 @@ public sealed class CustomSensorTests : IAsyncDisposable
         {
             Name = "Start backup",
             Type = CustomSensorType.CommandButton,
-            Value = $"Set-Content -LiteralPath '{marker}' -Value 'pressed'",
+            Value = OperatingSystem.IsWindows() ? $"Set-Content -LiteralPath '{marker}' -Value 'pressed'" : $"echo pressed > '{marker}'",
         }));
         await using var readings = _bus.Subscribe<TelemetryEvent>();
         await _host.StartAsync(CancellationToken.None);
@@ -292,22 +291,22 @@ public sealed class CustomSensorTests : IAsyncDisposable
         Assert.Equal("fine", Assert.Single(_registry.Entities).Id);
     }
 
-    [WindowsFact]
-    [SupportedOSPlatform("windows")]
-    public async Task PowerShell_output_is_returned_trimmed_with_non_ascii_text_intact()
+    [Fact]
+    public async Task Command_output_is_returned_trimmed_with_non_ascii_text_intact()
     {
-        var result = await PowerShellRunner.RunAsync("Write-Output ('zażółć ' + (20 + 22))", TimeSpan.FromSeconds(60), CancellationToken.None);
+        var command = OperatingSystem.IsWindows() ? "Write-Output ('zażółć ' + (20 + 22))" : "printf ' zażółć %s \\n' $((20 + 22))";
+        var result = await CommandRunner.RunAsync(command, TimeSpan.FromSeconds(60), CancellationToken.None);
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal("zażółć 42", result.Output);
     }
 
-    [WindowsFact]
-    [SupportedOSPlatform("windows")]
-    public async Task PowerShell_commands_that_hang_are_stopped()
+    [Fact]
+    public async Task Commands_that_hang_are_stopped()
     {
+        var command = OperatingSystem.IsWindows() ? "Start-Sleep -Seconds 120" : "sleep 120";
         await Assert.ThrowsAsync<TimeoutException>(
-            () => PowerShellRunner.RunAsync("Start-Sleep -Seconds 120", TimeSpan.FromSeconds(3), CancellationToken.None));
+            () => CommandRunner.RunAsync(command, TimeSpan.FromSeconds(3), CancellationToken.None));
     }
 
     [Fact]
