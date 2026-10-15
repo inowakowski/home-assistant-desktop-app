@@ -129,7 +129,8 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>Shows the window for <paramref name="viewModel"/>, at <paramref name="page"/> or the Overview.</summary>
-    public void Show(MainViewModel viewModel, string? page)
+    /// <param name="visible">False to keep it hidden until it is asked for, as the agent of Linux and macOS starts.</param>
+    public void Show(MainViewModel viewModel, string? page, bool visible = true)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         DataContext = viewModel;
@@ -137,9 +138,22 @@ public sealed partial class MainWindow : Window
         Title = viewModel.WindowTitle;
         TitleText.Text = viewModel.WindowTitle;
         viewModel.NavigationRequested += ShowPage;
-        Opened += async (_, _) => await viewModel.StartAsync();
+
+        // Once, the first time it is shown: hidden and shown again, it goes on where it was.
+        var started = false;
+        Opened += async (_, _) =>
+        {
+            if (!started)
+            {
+                started = true;
+                await viewModel.StartAsync();
+            }
+        };
         ShowPage(page ?? "overview");
-        Show();
+        if (visible)
+        {
+            Show();
+        }
     }
 
     /// <summary>The name of the page shown, as <c>--page</c> takes it.</summary>
@@ -148,6 +162,11 @@ public sealed partial class MainWindow : Window
     /// <summary>Shows the window in front of the others, also when it was minimized.</summary>
     public void BringToFront()
     {
+        if (!IsVisible)
+        {
+            Show();
+        }
+
         if (WindowState == WindowState.Minimized)
         {
             WindowState = WindowState.Normal;

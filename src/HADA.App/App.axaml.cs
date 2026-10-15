@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Markup.Xaml.Styling;
@@ -20,6 +21,9 @@ public sealed partial class App : Application
     private const string SettingsArgument = "--settings";
     private const string PageArgument = "--page";
 
+    /// <summary><c>--background</c>: on Linux and macOS, the agent alone, without the window, as when started at sign-in.</summary>
+    private const string BackgroundArgument = "--background";
+
     /// <summary><c>--theme light|dark</c>: one of the two whatever the system uses, for trying it out.</summary>
     private const string ThemeArgument = "--theme";
 
@@ -30,6 +34,8 @@ public sealed partial class App : Application
 
     private readonly string[] _args = Environment.GetCommandLineArgs().Skip(1).ToArray();
     private DesktopStyle _style;
+    private Agent? _agent;
+    private bool _exiting;
 
     public override void Initialize()
     {
@@ -83,19 +89,39 @@ public sealed partial class App : Application
             window.ApplyStyle(
                 _style, drawnFrame: _style == DesktopStyle.Gnome || _style != DesktopStyles.OfThisSystem() || snapshot is not null);
 
-            // The settings of a portable copy are its user's own; there is no administrator window to unlock.
-            var isElevated = Program.IsElevated && !AppInstance.IsPortable;
+            // The settings of a portable copy are its user's own, and so they are on Linux and macOS, where the
+            // service is the user's; there is no administrator window to unlock.
+            var usersOwn = AppInstance.IsPortable || !OperatingSystem.IsWindows();
+            var isElevated = Program.IsElevated && !usersOwn;
             var client = new ServiceControlClient(new IpcOptions { ClientName = $"ui:{Environment.UserName}" });
             var viewModel = new MainViewModel(
-                client, new AppDesktop(window), isElevated, AppInstance.IsPortable, () => RequestElevation(window.CurrentPage));
+                client, new AppDesktop(window), isElevated, usersOwn, () => RequestElevation(window.CurrentPage));
 
             // Let go of the service when the window closes. Not waited for on the window's thread, which the
             // view model's own continuations need: the process ends with the window either way.
             window.Closed += (_, _) => _ = viewModel.DisposeAsync().AsTask();
 
+            // With an agent, closing the window only hides it: the agent goes on in the system tray.
+            var withAgent = Agent.IsWanted && snapshot is null;
+            if (withAgent)
+            {
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                window.Closing += (_, e) =>
+                {
+                    if (!_exiting)
+                    {
+                        e.Cancel = true;
+                        window.Hide();
+                    }
+                };
+                _ = StartAgentAsync(desktop, window);
+            }
+
             // Started again, this window comes to the front. Closed when the tray app of this copy exits, which would
-            // leave the program's files in use otherwise.
-            Program.Role?.Serve(() => Dispatcher.UIThread.Post(window.BringToFront), () => Dispatcher.UIThread.Post(window.Close));
+            // leave the program's files in use otherwise; with an agent, that ends the app.
+            Program.Role?.Serve(
+                () => Dispatcher.UIThread.Post(window.BringToFront),
+                () => Dispatcher.UIThread.Post(withAgent ? () => Exit(desktop) : window.Close));
             if (snapshot is not null)
             {
                 window.Opened += async (_, _) =>
@@ -106,11 +132,42 @@ public sealed partial class App : Application
                 };
             }
 
-            window.Show(viewModel, page);
+            window.Show(viewModel, page, visible: !(withAgent && _args.Contains(BackgroundArgument)));
             desktop.MainWindow = window;
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private async Task StartAgentAsync(IClassicDesktopStyleApplicationLifetime desktop, MainWindow window)
+    {
+        _agent = await Agent.StartAsync(
+            this,
+            () => Dispatcher.UIThread.Post(window.BringToFront),
+            () => Dispatcher.UIThread.Post(() => Exit(desktop)));
+    }
+
+    /// <summary>Ends the app, its agent and the service the agent started.</summary>
+    private async void Exit(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        if (_exiting)
+        {
+            return;
+        }
+
+        _exiting = true;
+        try
+        {
+            if (_agent is { } agent)
+            {
+                await agent.DisposeAsync();
+            }
+        }
+        finally
+        {
+            desktop.MainWindow?.Close();
+            desktop.Shutdown();
+        }
     }
 
     /// <summary>What follows an argument such as <c>--page</c>: <c>--page logs</c> gives <c>logs</c>.</summary>

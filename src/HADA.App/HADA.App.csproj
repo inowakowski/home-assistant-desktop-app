@@ -21,11 +21,14 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
     <PackageReference Include="FluentIcons.Avalonia" Version="2.1.344" />
+    <!-- The agent of Linux and macOS runs the session's sensors as the tray app does on Windows. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\HADA.Core\HADA.Core.csproj" />
     <ProjectReference Include="..\HADA.Ipc\HADA.Ipc.csproj" />
+    <ProjectReference Include="..\HADA.Platform.Linux\HADA.Platform.Linux.csproj" />
     <ProjectReference Include="..\HADA.Platform.Windows\HADA.Platform.Windows.csproj" />
     <ProjectReference Include="..\HADA.Presentation\HADA.Presentation.csproj" />
   </ItemGroup>
