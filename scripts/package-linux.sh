@@ -64,7 +64,7 @@ Maintainer: Ignacy Nowakowski <15818597+inowakowski@users.noreply.github.com>
 Section: utils
 Priority: optional
 Installed-Size: $(du -sk "$stage" | cut -f1)
-Depends: libc6, libgcc-s1, libstdc++6, zlib1g, libssl3 | libssl1.1, libicu76 | libicu74 | libicu72 | libicu71 | libicu70 | libicu67, libfontconfig1, libx11-6, libice6, libsm6
+Depends: libc6, libgcc-s1, libstdc++6, zlib1g, libssl3 | libssl1.1, libicu78 | libicu77 | libicu76 | libicu74 | libicu72 | libicu71 | libicu70 | libicu67, libfontconfig1, libx11-6, libice6, libsm6
 Homepage: https://github.com/inowakowski/home-assistant-desktop-app
 Description: $summary
 $(sed 's/^/ /' <<< "$description")
@@ -82,7 +82,8 @@ Summary: $summary
 License: MIT
 URL: https://github.com/inowakowski/home-assistant-desktop-app
 AutoReqProv: no
-Requires: glibc, libgcc, libstdc++, zlib, openssl-libs, libicu, fontconfig, libX11, libICE, libSM
+# Only what Fedora and openSUSE name alike; ICU, OpenSSL and X11, named differently by each, every desktop has.
+Requires: glibc, fontconfig
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 
