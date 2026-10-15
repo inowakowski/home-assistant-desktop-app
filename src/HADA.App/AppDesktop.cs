@@ -55,7 +55,8 @@ internal sealed class AppDesktop(TopLevel window) : IDesktop
 
     public IReadOnlyList<UsbDeviceOption> ConnectedUsbDevices() => OperatingSystem.IsWindows() ? ConnectedWindowsDevices() : [];
 
-    public IReadOnlyList<string> ConnectedNetworks() => OperatingSystem.IsWindows() ? WindowsNetworkLocation.Read() : [];
+    public IReadOnlyList<string> ConnectedNetworks() =>
+        OperatingSystem.IsWindows() ? WindowsNetworkLocation.Read() : OperatingSystem.IsLinux() ? LinuxNetworkLocation.Read() : [];
 
     [SupportedOSPlatform("windows")]
     private static UsbDeviceOption[] ConnectedWindowsDevices() =>

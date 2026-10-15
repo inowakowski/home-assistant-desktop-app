@@ -13,6 +13,8 @@ public static class LinuxPlatform
     public static IServiceCollection AddLinuxServiceEntities(this IServiceCollection services)
     {
         services.AddSingleton<LoginSessions>(_ => new LoginSessions());
+        services.AddSingleton<LinuxNetwork>(_ => new LinuxNetwork());
+        services.AddSingleton<INetworkLocation, LinuxNetworkLocation>();
         services.AddSingleton<ISystemReadings, LinuxSystemReadings>();
         services.AddSingleton<IPowerControl, LinuxPowerControl>();
         services.AddSingleton<IScreenLock, LinuxScreenLock>();
@@ -22,7 +24,7 @@ public static class LinuxPlatform
 }
 
 /// <summary>What the service's sensors read, from Linux: <c>/proc</c>, <c>/sys</c> and systemd-logind.</summary>
-public sealed class LinuxSystemReadings(LoginSessions sessions) : ISystemReadings
+public sealed class LinuxSystemReadings(LoginSessions sessions, LinuxNetwork? network = null) : ISystemReadings
 {
     public CpuSample? ReadCpu() => Proc.ReadCpu();
 
@@ -49,6 +51,8 @@ public sealed class LinuxSystemReadings(LoginSessions sessions) : ISystemReading
     public string? ReadPendingRestart() => PendingRestart.Read();
 
     public IReadOnlyList<DiskUsage> ReadDisks() => MountedDisks.Read();
+
+    public WifiStatus ReadWifi() => (network ?? new LinuxNetwork()).ReadWifi();
 }
 
 /// <summary>
