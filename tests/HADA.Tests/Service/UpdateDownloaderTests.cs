@@ -13,7 +13,7 @@ public sealed class UpdateDownloaderTests : IAsyncLifetime
     private const string Version = "0.9.0";
     private const string InstallerName = "HADA-0.9.0-x64.msi";
 
-    private readonly HttpListener _listener = new();
+    private readonly HttpListener _listener;
     private readonly Dictionary<string, byte[]> _files = new(StringComparer.Ordinal);
     private readonly HttpClient _http = new();
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "HADA.Tests." + Guid.NewGuid().ToString("N"));
@@ -21,15 +21,10 @@ public sealed class UpdateDownloaderTests : IAsyncLifetime
     private readonly Uri _downloads;
     private Task _serving = Task.CompletedTask;
 
-    public UpdateDownloaderTests()
-    {
-        _downloads = new Uri($"http://localhost:{GetFreePort()}/releases/download/");
-        _listener.Prefixes.Add(_downloads.GetLeftPart(UriPartial.Authority) + "/");
-    }
+    public UpdateDownloaderTests() => (_listener, _downloads) = Listen();
 
     public Task InitializeAsync()
     {
-        _listener.Start();
         _serving = ServeAsync();
         return Task.CompletedTask;
     }
@@ -214,6 +209,29 @@ public sealed class UpdateDownloaderTests : IAsyncLifetime
         using var memory = new MemoryStream();
         stream.CopyTo(memory);
         return memory.ToArray();
+    }
+
+    /// <summary>
+    /// A port that was free a moment ago may have been taken since, by a test running alongside; then another
+    /// port is tried.
+    /// </summary>
+    private static (HttpListener Listener, Uri Downloads) Listen()
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            var downloads = new Uri($"http://localhost:{GetFreePort()}/releases/download/");
+            var listener = new HttpListener();
+            listener.Prefixes.Add(downloads.GetLeftPart(UriPartial.Authority) + "/");
+            try
+            {
+                listener.Start();
+                return (listener, downloads);
+            }
+            catch (HttpListenerException) when (attempt < 10)
+            {
+                listener.Close();
+            }
+        }
     }
 
     private static int GetFreePort()
