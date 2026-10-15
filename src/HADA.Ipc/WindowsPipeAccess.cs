@@ -31,11 +31,15 @@ internal sealed class WindowsPipeAccess : IPipeAccess
             pipeName, PipeDirection.InOut, maxInstances, PipeTransmissionMode.Byte, options, 0, 0, security);
     }
 
+    // Identification only: the service may check who the client is, but cannot act as it.
+    public NamedPipeClientStream CreateClientPipe(string pipeName) =>
+        new(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous, TokenImpersonationLevel.Identification);
+
     /// <summary>
     /// Refuses a pipe not created by SYSTEM, an administrator or the current user, so another account cannot
     /// create the pipe before the service starts and collect window titles.
     /// </summary>
-    public void EnsureTrustedServer(NamedPipeClientStream pipe)
+    public void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName)
     {
         var owner = pipe.GetAccessControl().GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier;
         using var identity = WindowsIdentity.GetCurrent();

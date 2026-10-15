@@ -11,15 +11,13 @@ using Microsoft.Extensions.Options;
 namespace HADA.Tests.Ipc;
 
 /// <summary>The settings window's control API over a real pipe, backed by a fake <see cref="IServiceControl"/>.</summary>
-// Tests of the session pipe, which only has Windows rules so far.
-[SupportedOSPlatform("windows")]
 public sealed class IpcControlTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
     private readonly IpcOptions _options = new()
     {
-        PipeName = "HADA.Tests." + Guid.NewGuid().ToString("N"),
+        PipeName = "HADA.T." + Guid.NewGuid().ToString("N")[..12],
         ClientName = "test-tray",
         MinReconnectDelay = TimeSpan.FromMilliseconds(50),
     };
@@ -46,7 +44,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         await _serviceBus.DisposeAsync();
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Status_lists_connected_trays_and_the_entities_they_own()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -64,7 +62,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         await tray.StopAsync(CancellationToken.None);
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Settings_and_logs_are_readable_without_elevation()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -78,7 +76,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         Assert.True(settings.Updates.IncludePrereleases);
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Looking_for_an_update_needs_no_elevation()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -89,7 +87,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         Assert.Equal("9.9.9", result.LatestVersion);
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Saving_settings_requires_an_elevated_administrator()
     {
         await _server.StartAsync(CancellationToken.None);
@@ -111,11 +109,11 @@ public sealed class IpcControlTests : IAsyncDisposable
         }
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task A_portable_copys_service_lets_its_own_user_save_settings_without_elevation()
     {
         // The service of a portable copy runs as the user; what its settings can make it do, that user can do anyway.
-        var options = new IpcOptions { PipeName = "HADA.Tests." + Guid.NewGuid().ToString("N"), ClientName = "ui", TrustSameUser = true };
+        var options = new IpcOptions { PipeName = "HADA.T." + Guid.NewGuid().ToString("N")[..12], ClientName = "ui", TrustSameUser = true };
         using var server = new IpcServer(_serviceBus, _serviceRegistry, Options.Create(options), NullLogger<IpcServer>.Instance, _control);
         await server.StartAsync(CancellationToken.None);
         await using var client = new ServiceControlClient(options);
@@ -130,13 +128,17 @@ public sealed class IpcControlTests : IAsyncDisposable
         await server.StopAsync(CancellationToken.None);
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Client_reports_when_the_service_is_not_running()
     {
         await Assert.ThrowsAsync<ServiceUnavailableException>(() => _client.GetStatusAsync());
     }
 
-    private static bool IsElevatedAdministrator()
+    // Only Windows has administrators who can save an installed service's settings.
+    private static bool IsElevatedAdministrator() => OperatingSystem.IsWindows() && IsWindowsAdministrator();
+
+    [SupportedOSPlatform("windows")]
+    private static bool IsWindowsAdministrator()
     {
         using var identity = WindowsIdentity.GetCurrent();
         return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);

@@ -40,22 +40,8 @@ public sealed class AppSignal : IDisposable
 
     public void Dispose() => _listener.Dispose();
 
-    /// <summary>
-    /// Where the sockets of other systems live: the user's runtime folder on Linux, which the system makes for each
-    /// signed-in user and nobody else can enter, and the user's own temporary folder on macOS.
-    /// </summary>
-    internal static string DefaultFolder()
-    {
-        var runtime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
-        if (!string.IsNullOrEmpty(runtime) && Directory.Exists(runtime))
-        {
-            return Path.Combine(runtime, "hada");
-        }
-
-        return OperatingSystem.IsMacOS()
-            ? Path.Combine(Path.GetTempPath(), "hada")
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache", "hada", "run");
-    }
+    /// <summary>Where the sockets of other systems live; see <see cref="AppFolders.Runtime"/>.</summary>
+    internal static string DefaultFolder() => AppFolders.Runtime;
 
     /// <summary>The socket for <paramref name="name"/> in <paramref name="folder"/>; the <c>Local\</c> of Windows names is left out.</summary>
     internal static string SocketPath(string folder, string name)

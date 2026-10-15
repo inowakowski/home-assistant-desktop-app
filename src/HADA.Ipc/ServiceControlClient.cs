@@ -104,13 +104,11 @@ public sealed class ServiceControlClient(IpcOptions? options = null) : IAsyncDis
                 return existing;
             }
 
-            // Identification only: the service may check who we are, but cannot act as us.
-            var pipe = new NamedPipeClientStream(
-                ".", _options.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous, TokenImpersonationLevel.Identification);
+            var pipe = PipeAccess.Current.CreateClientPipe(_options.PipeName);
             try
             {
                 await pipe.ConnectAsync((int)ConnectTimeout.TotalMilliseconds, cancellationToken).ConfigureAwait(false);
-                PipeAccess.Current.EnsureTrustedServer(pipe);
+                PipeAccess.Current.EnsureTrustedServer(pipe, _options.PipeName);
 
                 var stream = new IpcMessageStream(pipe);
                 await stream.WriteAsync(

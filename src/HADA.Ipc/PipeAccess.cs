@@ -12,9 +12,12 @@ public interface IPipeAccess
     /// <param name="isFirstInstance">Whether creating must fail when a pipe of this name already exists.</param>
     NamedPipeServerStream CreateServerPipe(string pipeName, int maxInstances, bool isFirstInstance);
 
+    /// <summary>Creates the client end, which the service may check the identity of but cannot act as.</summary>
+    NamedPipeClientStream CreateClientPipe(string pipeName);
+
     /// <summary>Refuses a pipe that somebody other than the service may have created to collect what the client sends.</summary>
     /// <exception cref="UnauthorizedAccessException">The pipe's creator is not trusted.</exception>
-    void EnsureTrustedServer(NamedPipeClientStream pipe);
+    void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName);
 
     /// <summary>Whether the client may change the settings of an installed service. False when it cannot be told.</summary>
     bool IsElevatedAdministrator(NamedPipeServerStream pipe);
@@ -26,8 +29,5 @@ public interface IPipeAccess
 public static class PipeAccess
 {
     /// <summary>The rules of the operating system this process runs on.</summary>
-    /// <exception cref="PlatformNotSupportedException">HADA has no pipe rules for this operating system yet.</exception>
-    public static IPipeAccess Current { get; } = OperatingSystem.IsWindows()
-        ? new WindowsPipeAccess()
-        : throw new PlatformNotSupportedException("HADA's session pipe is not available on this operating system yet.");
+    public static IPipeAccess Current { get; } = OperatingSystem.IsWindows() ? new WindowsPipeAccess() : new UnixPipeAccess();
 }
