@@ -1,24 +1,21 @@
 using System.Globalization;
-using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
-using HADA.Core.Actions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
 using HADA.Core.Models;
-using HADA.Platform.Windows.Sensors;
 using Microsoft.Extensions.Logging;
 
-namespace HADA.Platform.Windows.Actions;
+namespace HADA.Core.Actions;
 
 /// <summary>
 /// Lets Home Assistant set the volume of the default playback device and mute it or the default microphone.
-/// Runs in the tray app, because audio devices belong to the user's session.
+/// Runs in the user's session, to which audio devices belong.
 /// </summary>
 /// <remarks>
-/// These are the controls; <see cref="AudioVolumeSensor"/> and <see cref="MicrophoneMuteSensor"/> stay as the
-/// plain sensors automations may already use.
+/// These are the controls; the volume sensor and the microphone's stay as the plain sensors automations may
+/// already use.
 /// </remarks>
-public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry, ILogger<AudioControl> logger)
+public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry, ILogger<AudioControl> logger, IAudioDevices audio)
     : CommandHandler(bus, registry, logger), IDisposable
 {
     public const string VolumeEntityId = BuiltInEntityIds.VolumeLevel;
@@ -27,8 +24,6 @@ public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
 
-    private readonly DefaultAudioEndpoint _speakers = new();
-    private readonly DefaultAudioEndpoint _microphone = new(AudioDevice.Microphone);
     private readonly ChangeOnlyPublisher _publisher = new(bus);
 
     // The publisher is not thread-safe, and states are reported both on a timer and right after a command.
@@ -53,8 +48,6 @@ public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry
 
     public override void Dispose()
     {
-        _speakers.Dispose();
-        _microphone.Dispose();
         _reporting.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);
@@ -65,9 +58,9 @@ public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry
         var done = command.ActionId switch
         {
             VolumeEntityId => double.TryParse(command.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var percent)
-                && _speakers.TrySetVolume((int)Math.Round(percent)),
-            MuteEntityId => _speakers.TrySetMute(command.Value == BinaryState.On),
-            _ => _microphone.TrySetMute(command.Value == BinaryState.On),
+                && audio.TrySetVolume((int)Math.Round(percent)),
+            MuteEntityId => audio.TrySetMute(AudioEndpoint.Speakers, command.Value == BinaryState.On),
+            _ => audio.TrySetMute(AudioEndpoint.Microphone, command.Value == BinaryState.On),
         };
 
         if (!done)
@@ -101,22 +94,18 @@ public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry
         try
         {
             // Without a device there is nothing to report; the last state stays until one is connected again.
-            if (_speakers.TryRead() is { } speakers)
+            if (audio.Read(AudioEndpoint.Speakers) is { } speakers)
             {
                 await _publisher.PublishAsync(
                     VolumeEntityId, speakers.VolumePercent.ToString(CultureInfo.InvariantCulture), cancellationToken: cancellationToken);
                 await _publisher.PublishAsync(MuteEntityId, BinaryState.From(speakers.IsMuted), cancellationToken: cancellationToken);
             }
 
-            if (_microphone.TryRead() is { } microphone)
+            if (audio.Read(AudioEndpoint.Microphone) is { } microphone)
             {
                 await _publisher.PublishAsync(
                     MicrophoneMuteEntityId, BinaryState.From(microphone.IsMuted), cancellationToken: cancellationToken);
             }
-        }
-        catch (COMException ex)
-        {
-            LogReadFailed(Logger, ex);
         }
         finally
         {
@@ -126,7 +115,4 @@ public sealed partial class AudioControl(IEventBus bus, IEntityRegistry registry
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "'{EntityId}' could not be set: there is no such audio device, or it refused.")]
     private static partial void LogFailed(ILogger logger, string entityId);
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Reading the audio devices failed.")]
-    private static partial void LogReadFailed(ILogger logger, Exception exception);
 }
