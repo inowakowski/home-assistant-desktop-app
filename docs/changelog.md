@@ -2,6 +2,18 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.9.0 (pre-release)
+
+HADA for Linux, a first preview: packages for x64 and arm64 that nobody has tried on Linux by hand yet, which their names say. And a fix for all systems. A pre-release, so that it gets tried before a stable version carries it.
+
+- **HADA on Linux, untested.** An AppImage to run as it is, a .deb for Debian and Ubuntu, an .rpm for Fedora and openSUSE, each for x64 and arm64: `HADA-1.9.0-linux-x64-untested.AppImage` and so on. They were built and checked by machines only; once someone has tried them, the same packages come without `-untested`. GNOME and KDE are both meant.
+    - **The same window** as on Windows, and an icon in the system tray, from which the window is opened and HADA is ended. Closing the window leaves HADA running in the tray. On GNOME the icon needs the AppIndicator extension, which Ubuntu has.
+    - **The service runs as you**, started by the app when you sign in and ending when you sign out: turn on **Start when you sign in** on the Settings page. Your settings are your own; nothing needs unlocking. Saved passwords and tokens are sealed with a key only you can read.
+    - **What arrives in Home Assistant:** CPU load, memory, battery and charger, last boot, the signed-in user, whether the session is locked, whether a restart is due, the usage of each disk (`disk_root_usage`, `disk_home_usage`), whether you are active, whether the camera or the microphone records and for which app, the volume, and buttons to lock the screen, sleep, hibernate, shut down and restart (off until switched on). Volume, mute and the microphone's mute can be set from Home Assistant.
+    - **Notifications** from Home Assistant appear as the desktop's own, with a picture and buttons; a pressed button goes back to Home Assistant as on Windows.
+    - **Not yet on Linux:** the active window, media, the dashboard window, quick actions and their shortcuts, the network and Wi-Fi, the display and the lid, the external display, Do not disturb, the screen's brightness, the GPU. They come with later versions.
+- Fixed: right after connecting directly to Home Assistant, a sensor could be registered as an entity twice.
+
 ## 1.8.0 (pre-release)
 
 The new window takes over: it has every page now, and the tray icon opens it. A pre-release, so that it gets tried before a stable version carries it.
