@@ -76,3 +76,57 @@ jobs:
           cat "$log"
           grep -q "Application started" "$log"
           if grep -F -e "[ERR]" -e "[CRT]" "$log"; then exit 1; fi
+
+  # The Linux packages, built on Linux: an AppImage, a .deb and an .rpm for x64 and arm64. Nobody has tried them on
+  # Linux by hand yet, and their names say so. The x64 .deb is installed here and HADA started from it, as at
+  # sign-in, with nobody looking: the app must start the service and be heard by it.
+  linux-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Install the packaging tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq rpm xvfb dbus-x11
+          curl -fsSL -o "$RUNNER_TEMP/appimagetool" \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          sha256sum "$RUNNER_TEMP/appimagetool"
+          chmod +x "$RUNNER_TEMP/appimagetool"
+
+      - name: Build the packages
+        run: APPIMAGETOOL="$RUNNER_TEMP/appimagetool" scripts/package-linux.sh artifacts/linux
+
+      - name: Check the packages
+        run: |
+          cd artifacts/linux
+          dpkg-deb --info HADA-*-linux-x64-untested.deb
+          rpm -qip HADA-*-linux-arm64-untested.rpm
+          ./HADA-*-linux-x64-untested.AppImage --appimage-extract > /dev/null
+          test -x squashfs-root/AppRun -a -x squashfs-root/opt/hada/app/HADA.App -a -x squashfs-root/opt/hada/service/HADA.Service
+          rm -rf squashfs-root
+
+      - name: Install the .deb and start HADA from it
+        run: |
+          sudo apt-get install -yq ./artifacts/linux/HADA-*-linux-x64-untested.deb
+          dbus-run-session -- xvfb-run -a hada --background &
+          sleep 25
+          logs="$HOME/.local/state/hada/logs"
+          cat "$logs/app.log" "$logs/service.log"
+          pgrep -f /opt/hada/service/HADA.Service
+          grep -q "Started the service" "$logs/app.log"
+          grep -q "Connected to the service" "$logs/app.log"
+          if grep -F -e "[ERR]" -e "[CRT]" "$logs/app.log" "$logs/service.log"; then exit 1; fi
+          pkill -TERM -f /opt/hada/app/HADA.App
+          sleep 10
+          ! pgrep -f /opt/hada/service/HADA.Service
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: artifacts/linux/*
+          if-no-files-found: error
