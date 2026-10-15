@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -35,6 +36,8 @@ public sealed partial class App : Application
     private readonly string[] _args = Environment.GetCommandLineArgs().Skip(1).ToArray();
     private DesktopStyle _style;
     private Agent? _agent;
+    private MainWindow? _window;
+    private PosixSignalRegistration? _terminate;
     private bool _exiting;
 
     public override void Initialize()
@@ -132,8 +135,15 @@ public sealed partial class App : Application
                 };
             }
 
-            window.Show(viewModel, page, visible: !(withAgent && _args.Contains(BackgroundArgument)));
-            desktop.MainWindow = window;
+            var hidden = withAgent && _args.Contains(BackgroundArgument);
+            window.Show(viewModel, page, visible: !hidden);
+
+            // The desktop's lifetime shows its main window as it starts; one started in the background has none yet.
+            _window = window;
+            if (!hidden)
+            {
+                desktop.MainWindow = window;
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -141,6 +151,13 @@ public sealed partial class App : Application
 
     private async Task StartAgentAsync(IClassicDesktopStyleApplicationLifetime desktop, MainWindow window)
     {
+        // Asked to end, as when the user signs out: as tidily as from the icon's menu, the service told to stop.
+        _terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context =>
+        {
+            context.Cancel = true;
+            Dispatcher.UIThread.Post(() => Exit(desktop));
+        });
+
         _agent = await Agent.StartAsync(
             this,
             () => Dispatcher.UIThread.Post(window.BringToFront),
@@ -165,7 +182,8 @@ public sealed partial class App : Application
         }
         finally
         {
-            desktop.MainWindow?.Close();
+            _terminate?.Dispose();
+            _window?.Close();
             desktop.Shutdown();
         }
     }

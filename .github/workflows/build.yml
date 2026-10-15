@@ -110,20 +110,24 @@ jobs:
           test -x squashfs-root/AppRun -a -x squashfs-root/opt/hada/app/HADA.App -a -x squashfs-root/opt/hada/service/HADA.Service
           rm -rf squashfs-root
 
+      # Started in the background, as at sign-in: no window may open, so only the agent talks to the service.
+      # Asked to end as at signing out, it takes the service with it.
       - name: Install the .deb and start HADA from it
         run: |
           sudo apt-get install -yq ./artifacts/linux/HADA-*-linux-x64-untested.deb
-          dbus-run-session -- xvfb-run -a hada --background &
+          test "$(readlink -f "$(command -v hada)")" = /opt/hada/app/HADA.App
+          dbus-run-session -- xvfb-run -a /opt/hada/app/HADA.App --background &
           sleep 25
           logs="$HOME/.local/state/hada/logs"
           cat "$logs/app.log" "$logs/service.log"
           pgrep -f /opt/hada/service/HADA.Service
           grep -q "Started the service" "$logs/app.log"
           grep -q "Connected to the service" "$logs/app.log"
+          if grep -F "client 'ui:" "$logs/service.log"; then echo "The window opened in the background."; exit 1; fi
           if grep -F -e "[ERR]" -e "[CRT]" "$logs/app.log" "$logs/service.log"; then exit 1; fi
           pkill -TERM -f /opt/hada/app/HADA.App
           sleep 10
-          ! pgrep -f /opt/hada/service/HADA.Service
+          if pgrep -f /opt/hada/; then echo "HADA did not end."; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         with:
