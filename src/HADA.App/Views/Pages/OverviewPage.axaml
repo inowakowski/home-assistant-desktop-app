@@ -112,7 +112,10 @@
                         VerticalAlignment="Center"
                         Classes="subtitle"
                         Text="{l:Tr Nav_Connections}" />
-                    <Button Grid.Column="1" Command="{Binding Overview.ManageConnectionsCommand}">
+                    <Button
+                        Grid.Column="1"
+                        AutomationProperties.Name="{l:Tr Overview_Manage}"
+                        Command="{Binding Overview.ManageConnectionsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <TextBlock Text="{l:Tr Overview_Manage}" />
                             <fi:FluentIcon

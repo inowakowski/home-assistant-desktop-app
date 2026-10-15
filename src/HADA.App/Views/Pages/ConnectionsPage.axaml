@@ -2,6 +2,7 @@
     x:Class="HADA.App.Views.Pages.ConnectionsPage"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:HADA.App.Views.Controls"
     xmlns:fi="using:FluentIcons.Avalonia"
     xmlns:l="using:HADA.App.Localization"
     xmlns:v="using:HADA.App.Views"
@@ -9,21 +10,10 @@
     x:DataType="vm:MainViewModel">
 
     <DockPanel>
-        <!--  Changes are saved together, from any of the three screens.  -->
-        <Border
-            Padding="28,12"
-            BorderBrush="{DynamicResource HadaSeparatorBrush}"
-            BorderThickness="0,1,0,0"
-            DockPanel.Dock="Bottom"
-            IsVisible="{Binding Connections.ShowsSaveBar}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button
-                    Classes="accent"
-                    Command="{Binding Settings.SaveCommand}"
-                    Content="{l:Tr Common_Save}" />
-                <Button Command="{Binding Settings.RevertCommand}" Content="{l:Tr Common_Revert}" />
-            </StackPanel>
-        </Border>
+        <!--  Changes are saved together, from any of the three screens; adding a connection saves it itself.  -->
+        <Panel DockPanel.Dock="Bottom" IsVisible="{Binding Connections.ShowsSaveBar}">
+            <c:SaveBar DataContext="{Binding Settings}" />
+        </Panel>
 
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <StackPanel
@@ -31,36 +21,7 @@
                 Margin="{DynamicResource HadaPageMargin}"
                 Spacing="16">
 
-                <!--  Read only, until opened as administrator.  -->
-                <Border
-                    Background="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}}"
-                    BorderBrush="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
-                    Classes="message"
-                    IsVisible="{Binding Settings.IsLocked}">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel>
-                            <TextBlock Classes="strong" Text="{l:Tr Settings_LockedTitle}" />
-                            <TextBlock Classes="caption secondary" Text="{l:Tr Settings_LockedMessage}" />
-                        </StackPanel>
-                        <Button
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Command="{Binding UnlockCommand}"
-                            Content="{l:Tr Common_Unlock}" />
-                    </Grid>
-                </Border>
-
-                <!--  How saving went.  -->
-                <Border
-                    Background="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}}"
-                    BorderBrush="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
-                    Classes="message"
-                    IsVisible="{Binding Settings.Feedback.IsOpen}">
-                    <StackPanel>
-                        <TextBlock Classes="strong" Text="{Binding Settings.Feedback.Title}" />
-                        <TextBlock Text="{Binding Settings.Feedback.Message}" TextWrapping="Wrap" />
-                    </StackPanel>
-                </Border>
+                <c:SettingsNotices />
 
                 <StackPanel Spacing="16" DataContext="{Binding Connections}" x:DataType="vm:ConnectionsViewModel">
 
@@ -79,6 +40,7 @@
                                 Grid.Column="1"
                                 Margin="16,0,0,0"
                                 VerticalAlignment="Bottom"
+                                AutomationProperties.Name="{l:Tr Connections_Add}"
                                 Classes="accent"
                                 Command="{Binding AddCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">

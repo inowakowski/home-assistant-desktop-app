@@ -179,9 +179,12 @@ public sealed partial class MainWindow : Window
 
         PageHost.Content = item.Name switch
         {
-            "overview" => new OverviewPage(),
             "connections" => new ConnectionsPage(),
-            _ => new PendingPage(),
+            "entities" => new EntitiesPage(),
+            "custom" => new CustomSensorsPage(),
+            "settings" => new SettingsPage(),
+            "logs" => new LogsPage(),
+            _ => new OverviewPage(),
         };
     }
 

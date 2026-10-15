@@ -3,6 +3,7 @@ using Avalonia.Data.Converters;
 using Avalonia.Media;
 using HADA.Presentation;
 using HADA.Presentation.ViewModels;
+using Microsoft.Extensions.Logging;
 using FluentIconKind = FluentIcons.Common.Icon;
 
 namespace HADA.App.Views;
@@ -61,6 +62,25 @@ public sealed class SeverityBrushConverter : IValueConverter
             _ => edge ? InfoEdge : InfoFill,
         };
     }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
+/// <summary>The badge behind a log entry's level: neutral, then the colours of messages as the level rises.</summary>
+public sealed class LogLevelBrushConverter : IValueConverter
+{
+    private static readonly IBrush Neutral = new SolidColorBrush(Color.Parse("#26808080"));
+    private static readonly IBrush Information = new SolidColorBrush(Color.Parse("#334CC2FF"));
+    private static readonly IBrush Warning = new SolidColorBrush(Color.Parse("#40FCE100"));
+    private static readonly IBrush Error = new SolidColorBrush(Color.Parse("#40FF6B6B"));
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        LogLevel.Information => Information,
+        LogLevel.Warning => Warning,
+        LogLevel.Error or LogLevel.Critical => Error,
+        _ => Neutral,
+    };
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }

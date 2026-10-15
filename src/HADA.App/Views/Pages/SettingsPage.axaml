@@ -1,0 +1,334 @@
+<UserControl
+    x:Class="HADA.App.Views.Pages.SettingsPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:HADA.App.Views.Controls"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:MainViewModel">
+
+    <DockPanel>
+        <Panel DockPanel.Dock="Bottom" IsVisible="{Binding Settings.IsDirty}">
+            <c:SaveBar DataContext="{Binding Settings}" />
+        </Panel>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel
+                MaxWidth="1000"
+                Margin="{DynamicResource HadaPageMargin}"
+                Spacing="12">
+                <StackPanel Margin="0,0,0,4">
+                    <TextBlock Classes="title pageTitle" Text="{l:Tr Preferences_Title}" />
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        Classes="secondary"
+                        Text="{l:Tr Preferences_Subtitle}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!--  Updates: the service's to check, so its switches take an administrator.  -->
+                <TextBlock Classes="subtitle" Text="{l:Tr Preferences_Updates}" />
+                <Border Classes="card">
+                    <StackPanel>
+                        <Border
+                            Classes="settingRow"
+                            DataContext="{Binding Updates}"
+                            x:DataType="vm:UpdateViewModel">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Border VerticalAlignment="Center" Classes="iconTile">
+                                    <fi:FluentIcon
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="22"
+                                        Icon="ArrowSync" />
+                                </Border>
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="14,0,16,0"
+                                    VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{Binding InstalledVersionText}" />
+                                    <Grid Margin="0,4,0,0" ColumnDefinitions="Auto,*">
+                                        <Ellipse
+                                            Width="10"
+                                            Height="10"
+                                            Margin="0,4,8,0"
+                                            VerticalAlignment="Top"
+                                            Fill="{Binding CheckKind, Converter={StaticResource StatusBrush}}" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Classes="secondary"
+                                            Text="{Binding CheckStatus}"
+                                            TextWrapping="Wrap" />
+                                    </Grid>
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding CheckNowCommand}"
+                                    Content="{l:Tr Preferences_CheckNow}" />
+                            </Grid>
+                        </Border>
+
+                        <!--  The same notice as on the Overview page, when there is something to install.  -->
+                        <Border
+                            Classes="settingRow"
+                            DataContext="{Binding Updates}"
+                            IsVisible="{Binding IsAvailable}"
+                            x:DataType="vm:UpdateViewModel">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                <Border VerticalAlignment="Center" Classes="iconTile">
+                                    <fi:FluentIcon
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="22"
+                                        Foreground="{DynamicResource HadaAttentionBrush}"
+                                        Icon="ArrowDownload" />
+                                </Border>
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="14,0,16,0"
+                                    VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{Binding Title}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{Binding Detail}"
+                                        TextWrapping="Wrap" />
+                                    <ProgressBar
+                                        Height="4"
+                                        Margin="0,8,0,0"
+                                        IsVisible="{Binding IsDownloading}"
+                                        Maximum="1"
+                                        Value="{Binding Progress, Mode=OneWay}" />
+                                </StackPanel>
+                                <Button
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding OpenReleasePageCommand}"
+                                    Content="{l:Tr Update_Open}" />
+                                <Button
+                                    Grid.Column="3"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Classes="accent"
+                                    Command="{Binding InstallCommand}"
+                                    Content="{l:Tr Update_Install}"
+                                    IsVisible="{Binding CanInstall}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Classes="settingRow">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{l:Tr Preferences_AutoCheck}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{l:Tr Preferences_AutoCheckDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ToggleSwitch
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    IsChecked="{Binding Settings.CheckUpdatesAutomatically}"
+                                    IsEnabled="{Binding Settings.CanEdit}"
+                                    OffContent="{l:Tr Common_Off}"
+                                    OnContent="{l:Tr Common_On}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Classes="settingRow last">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{l:Tr Preferences_Prereleases}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{l:Tr Preferences_PrereleasesDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ToggleSwitch
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    IsChecked="{Binding Settings.IncludePrereleases}"
+                                    IsEnabled="{Binding Settings.CanEdit}"
+                                    OffContent="{l:Tr Common_Off}"
+                                    OnContent="{l:Tr Common_On}" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <c:SettingsNotices LockedText="{l:Tr Preferences_LockedMessage}" />
+
+                <!--  This user's own: kept for them, not in the service.  -->
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock Classes="subtitle" Text="{l:Tr Preferences_Personal}" />
+                    <TextBlock
+                        Margin="0,2,0,0"
+                        Classes="secondary"
+                        Text="{Binding Preferences.Note}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+                <Border
+                    Classes="card"
+                    DataContext="{Binding Preferences}"
+                    x:DataType="vm:PreferencesViewModel">
+                    <StackPanel IsEnabled="{Binding CanChange}">
+                        <Border Classes="settingRow">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{l:Tr Autostart_Title}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{Binding AutostartDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ToggleSwitch
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    IsChecked="{Binding StartWithWindows}"
+                                    OffContent="{l:Tr Common_Off}"
+                                    OnContent="{l:Tr Common_On}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Classes="settingRow">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{l:Tr Preferences_Language}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{l:Tr Preferences_LanguageDetail}"
+                                        TextWrapping="Wrap" />
+                                    <TextBlock
+                                        Margin="0,2,0,0"
+                                        Classes="caption"
+                                        Foreground="{DynamicResource HadaWarningIconBrush}"
+                                        IsVisible="{Binding IsLanguageChanged}"
+                                        Text="{l:Tr Preferences_LanguageRestart}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ComboBox
+                                    Grid.Column="1"
+                                    Width="200"
+                                    VerticalAlignment="Center"
+                                    ItemsSource="{Binding Languages}"
+                                    SelectedValue="{Binding Language}"
+                                    SelectedValueBinding="{ReflectionBinding Code}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:LanguageOption">
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Classes="settingRow">
+                            <StackPanel>
+                                <TextBlock Classes="strong" Text="{l:Tr Preferences_Dashboard}" />
+                                <TextBlock
+                                    Classes="caption secondary"
+                                    Text="{l:Tr Preferences_DashboardDetail}"
+                                    TextWrapping="Wrap" />
+
+                                <!--  One row for each Home Assistant connected to directly.  -->
+                                <ItemsControl
+                                    Margin="0,12,0,0"
+                                    IsVisible="{Binding HasDashboardServers}"
+                                    ItemsSource="{Binding DashboardServers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:DashboardServerViewModel">
+                                            <Grid Margin="0,0,0,8" ColumnDefinitions="Auto,*,Auto">
+                                                <ToggleSwitch
+                                                    VerticalAlignment="Center"
+                                                    AutomationProperties.Name="{Binding Name}"
+                                                    IsChecked="{Binding Show}"
+                                                    OffContent=""
+                                                    OnContent="" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Margin="12,0,16,0"
+                                                    VerticalAlignment="Center"
+                                                    Text="{Binding Name}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBox
+                                                    Grid.Column="2"
+                                                    Width="320"
+                                                    VerticalAlignment="Center"
+                                                    IsEnabled="{Binding Show}"
+                                                    PlaceholderText="{Binding Url}"
+                                                    Text="{Binding OwnUrl, UpdateSourceTrigger=LostFocus}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Grid Margin="0,4,0,0" ColumnDefinitions="*,Auto">
+                                    <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{l:Tr Preferences_DashboardOther}" />
+                                        <TextBlock
+                                            Classes="caption secondary"
+                                            Text="{l:Tr Preferences_DashboardOtherDetail}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <TextBox
+                                        Grid.Column="1"
+                                        Width="320"
+                                        VerticalAlignment="Center"
+                                        PlaceholderText="http://homeassistant.local:8123"
+                                        Text="{Binding DashboardUrl, UpdateSourceTrigger=LostFocus}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settingRow">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{l:Tr Preferences_Browser}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{l:Tr Preferences_BrowserDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ComboBox
+                                    Grid.Column="1"
+                                    Width="320"
+                                    VerticalAlignment="Center"
+                                    ItemsSource="{Binding Browsers}"
+                                    SelectedValue="{Binding NotificationBrowser}"
+                                    SelectedValueBinding="{ReflectionBinding Path}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:BrowserOption">
+                                            <TextBlock Text="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Classes="settingRow last">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{l:Tr Preferences_Idle}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{l:Tr Preferences_IdleDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <NumericUpDown
+                                    Grid.Column="1"
+                                    Width="200"
+                                    VerticalAlignment="Center"
+                                    FormatString="0"
+                                    Maximum="{Binding MaxIdleSeconds}"
+                                    Minimum="{Binding MinIdleSeconds}"
+                                    ShowButtonSpinner="False"
+                                    Value="{Binding IdleSeconds, UpdateSourceTrigger=LostFocus}" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

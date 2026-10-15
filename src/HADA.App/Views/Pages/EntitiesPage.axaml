@@ -1,0 +1,115 @@
+<UserControl
+    x:Class="HADA.App.Views.Pages.EntitiesPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:HADA.App.Views.Controls"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:MainViewModel">
+
+    <DockPanel>
+        <Panel DockPanel.Dock="Bottom" IsVisible="{Binding Settings.IsDirty}">
+            <c:SaveBar DataContext="{Binding Settings}" />
+        </Panel>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel
+                MaxWidth="1000"
+                Margin="{DynamicResource HadaPageMargin}"
+                Spacing="16">
+                <StackPanel>
+                    <TextBlock Classes="title pageTitle" Text="{l:Tr Entities_Title}" />
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        Classes="secondary"
+                        Text="{l:Tr Entities_Subtitle}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <c:SettingsNotices />
+
+                <!--  What the connections that are set up do not carry.  -->
+                <Border
+                    Padding="16,12"
+                    Classes="card"
+                    IsVisible="{Binding Entities.HasReachNotes}">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <fi:FluentIcon
+                            VerticalAlignment="Top"
+                            FontSize="22"
+                            Foreground="{DynamicResource HadaWarningIconBrush}"
+                            Icon="Info" />
+                        <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                            <TextBlock Classes="strong" Text="{l:Tr Reach_Title}" />
+                            <ItemsControl ItemsSource="{Binding Entities.ReachNotes}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ReachNote">
+                                        <TextBlock
+                                            Margin="0,6,0,0"
+                                            Classes="secondary"
+                                            TextWrapping="Wrap">
+                                            <!--  On one line: a line break between runs would show as a space.  -->
+                                            <Run FontWeight="SemiBold" Text="{Binding Connection}" /><Run Text=": " /><Run Text="{Binding Text}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <!--  The switches change the settings, so they wait for editing to be allowed.  -->
+                        <ItemsControl IsEnabled="{Binding Settings.CanEdit}" ItemsSource="{Binding Entities.Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:EntityToggleViewModel">
+                                    <Border Classes="entityRow">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <Border VerticalAlignment="Center" Classes="iconTile">
+                                                <fi:FluentIcon
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="20"
+                                                    Icon="{Binding Symbol, Converter={StaticResource Glyph}}" />
+                                            </Border>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Margin="14,0,16,0"
+                                                VerticalAlignment="Center">
+                                                <TextBlock Classes="strong" Text="{Binding Name}" />
+                                                <TextBlock
+                                                    Classes="caption secondary"
+                                                    Text="{Binding Caption}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Margin="0,2,0,0"
+                                                    Classes="caption tertiary"
+                                                    IsVisible="{Binding HasHint}"
+                                                    Text="{Binding Hint}"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch
+                                                Grid.Column="2"
+                                                VerticalAlignment="Center"
+                                                AutomationProperties.Name="{Binding Name}"
+                                                IsChecked="{Binding IsEnabled}"
+                                                OffContent="{l:Tr Common_Off}"
+                                                OnContent="{l:Tr Common_On}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock
+                            Margin="18,16"
+                            Classes="secondary"
+                            IsVisible="{Binding Entities.HasNoEntities}"
+                            Text="{l:Tr Entities_Empty}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

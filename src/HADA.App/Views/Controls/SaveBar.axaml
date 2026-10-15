@@ -1,0 +1,29 @@
+<!--
+    The foot of a page that edits settings, while something is not saved yet: Save and Discard. It sits below the
+    page's scroll viewer, so it stays in view however far the page is scrolled. Its DataContext is the settings.
+-->
+<UserControl
+    x:Class="HADA.App.Views.Controls.SaveBar"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:SettingsViewModel">
+    <Border
+        Padding="28,12"
+        BorderBrush="{DynamicResource HadaSeparatorBrush}"
+        BorderThickness="0,1,0,0">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button
+                Classes="accent"
+                Command="{Binding SaveCommand}"
+                Content="{l:Tr Common_Save}" />
+            <Button Command="{Binding RevertCommand}" Content="{l:Tr Common_Revert}" />
+            <TextBlock
+                Margin="8,0,0,0"
+                VerticalAlignment="Center"
+                Classes="secondary"
+                Text="{l:Tr Settings_Unsaved}" />
+        </StackPanel>
+    </Border>
+</UserControl>

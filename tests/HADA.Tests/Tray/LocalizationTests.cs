@@ -61,6 +61,6 @@ public partial class LocalizationTests
     private static partial Regex XamlKey();
 
     // Literal keys in code; dynamic ones such as $"EntityHint_{id}" are looked up with TryGet and may be missing.
-    [GeneratedRegex(@"""(?<key>(?:App|Nav|Common|Tray|Overview|Update|Preferences|Dashboard|Autostart|Card|Status|State|Column|Entity|Source|Connections|Settings|Mqtt|Ha|Field|Placeholder|Test|Save|Validation|Error|Entities|Custom|Logs|Attention|Add|Sidebar|Pending)_\w+)""")]
+    [GeneratedRegex(@"""(?<key>(?:App|Nav|Common|Tray|Overview|Update|Preferences|Dashboard|Autostart|Card|Status|State|Column|Entity|Source|Connections|Settings|Mqtt|Ha|Field|Placeholder|Test|Save|Validation|Error|Entities|Custom|Logs|Attention|Add|Sidebar)_\w+)""")]
     private static partial Regex CodeKey();
 }

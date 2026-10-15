@@ -1,0 +1,173 @@
+<UserControl
+    x:Class="HADA.App.Views.Pages.CustomSensorsPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:HADA.App.Views.Controls"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:MainViewModel">
+
+    <DockPanel>
+        <Panel DockPanel.Dock="Bottom" IsVisible="{Binding Settings.IsDirty}">
+            <c:SaveBar DataContext="{Binding Settings}" />
+        </Panel>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel
+                MaxWidth="1000"
+                Margin="{DynamicResource HadaPageMargin}"
+                Spacing="16">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel>
+                        <TextBlock Classes="title pageTitle" Text="{l:Tr Custom_Title}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Classes="secondary"
+                            Text="{l:Tr Custom_Subtitle}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        Margin="16,0,0,0"
+                        VerticalAlignment="Bottom"
+                        AutomationProperties.Name="{l:Tr Custom_Add}"
+                        Classes="accent"
+                        Command="{Binding Settings.AddCustomSensorCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <fi:FluentIcon
+                                VerticalAlignment="Center"
+                                FontSize="14"
+                                Icon="Add" />
+                            <TextBlock Text="{l:Tr Custom_Add}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <c:SettingsNotices />
+
+                <ItemsControl IsEnabled="{Binding Settings.CanEdit}" ItemsSource="{Binding Settings.CustomSensors}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="12" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:CustomSensorViewModel">
+                            <Border Padding="18" Classes="card">
+                                <StackPanel Spacing="14">
+                                    <Grid ColumnDefinitions="*,16,*,16,240,12,Auto">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="caption secondary" Text="{l:Tr Custom_Name}" />
+                                            <TextBox Text="{Binding Name}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Spacing="6">
+                                            <TextBlock Classes="caption secondary" Text="{l:Tr Custom_Id}" />
+                                            <TextBox PlaceholderText="{Binding IdPlaceholder}" Text="{Binding Id}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="4" Spacing="6">
+                                            <TextBlock Classes="caption secondary" Text="{l:Tr Custom_Type}" />
+                                            <ComboBox
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{x:Static vm:CustomSensorViewModel.TypeOptions}"
+                                                SelectedValue="{Binding Type}"
+                                                SelectedValueBinding="{ReflectionBinding Type}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:CustomSensorTypeOption">
+                                                        <TextBlock Text="{Binding Label}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <Button
+                                            Grid.Column="6"
+                                            VerticalAlignment="Bottom"
+                                            AutomationProperties.Name="{l:Tr Custom_Remove}"
+                                            Command="{Binding RemoveCommand}"
+                                            ToolTip.Tip="{l:Tr Custom_Remove}">
+                                            <fi:FluentIcon FontSize="16" Icon="Delete" />
+                                        </Button>
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="caption secondary" Text="{Binding ValueLabel}" />
+                                            <TextBox PlaceholderText="{Binding ValuePlaceholder}" Text="{Binding Value}" />
+                                        </StackPanel>
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            Width="130"
+                                            Margin="16,0,0,0"
+                                            IsVisible="{Binding ShowsUnit}"
+                                            Spacing="6">
+                                            <TextBlock Classes="caption secondary" Text="{l:Tr Custom_Unit}" />
+                                            <TextBox PlaceholderText="°C, %, MB…" Text="{Binding Unit}" />
+                                        </StackPanel>
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            Width="320"
+                                            Margin="16,0,0,0"
+                                            IsVisible="{Binding ShowsDevicePicker}"
+                                            Spacing="6">
+                                            <TextBlock Classes="caption secondary" Text="{l:Tr Custom_DevicePicker}" />
+                                            <ComboBox
+                                                HorizontalAlignment="Stretch"
+                                                DropDownOpened="OnDevicePickerOpened"
+                                                ItemsSource="{Binding ConnectedDevices}"
+                                                SelectedItem="{Binding SelectedDevice}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:UsbDeviceOption">
+                                                        <TextBlock Text="{Binding Label}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+                                        <StackPanel
+                                            Grid.Column="2"
+                                            Width="150"
+                                            Margin="16,0,0,0"
+                                            IsVisible="{Binding ShowsInterval}"
+                                            Spacing="6">
+                                            <TextBlock Classes="caption secondary" Text="{l:Tr Custom_Interval}" />
+                                            <NumericUpDown
+                                                FormatString="0"
+                                                Maximum="{Binding MaxInterval}"
+                                                Minimum="{Binding MinInterval}"
+                                                ShowButtonSpinner="False"
+                                                Value="{Binding IntervalSeconds}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border
+                    Padding="18,16"
+                    Classes="card"
+                    IsVisible="{Binding Settings.HasNoCustomSensors}">
+                    <TextBlock
+                        Classes="secondary"
+                        Text="{l:Tr Custom_Empty}"
+                        TextWrapping="Wrap" />
+                </Border>
+
+                <StackPanel Spacing="6">
+                    <TextBlock
+                        Classes="caption tertiary"
+                        Text="{l:Tr Custom_PowerShellNote}"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Classes="caption tertiary"
+                        Text="{l:Tr Custom_ButtonNote}"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Classes="caption tertiary"
+                        Text="{l:Tr Custom_QuickActionNote}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
