@@ -33,6 +33,9 @@ public interface ISystemReadings
 
     /// <summary>The computer's own disks: not removable ones, network shares or memory.</summary>
     IReadOnlyList<DiskUsage> ReadDisks();
+
+    /// <summary>The Wi-Fi network the computer is connected to; nothing where it has no Wi-Fi.</summary>
+    WifiStatus ReadWifi();
 }
 
 /// <summary>CPU time in the system's own units: the part spent busy, and all of it.</summary>
@@ -46,6 +49,11 @@ public readonly record struct CpuSample(long Busy, long Total)
         return total <= 0 ? 0 : Math.Clamp(100.0 * busy / total, 0, 100);
     }
 }
+
+/// <param name="HasAdapter">False on a computer without Wi-Fi.</param>
+/// <param name="Ssid">The network's name, or <see langword="null"/> when not connected, or when the system does not tell.</param>
+/// <param name="SignalPercent">Signal quality, 0-100.</param>
+public readonly record struct WifiStatus(bool HasAdapter, string? Ssid, int? SignalPercent);
 
 /// <param name="BatteryPercent"><see langword="null"/> when the system does not know the charge level.</param>
 public readonly record struct PowerStatus(bool HasBattery, int? BatteryPercent, bool IsCharging, bool IsPluggedIn);

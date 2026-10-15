@@ -30,4 +30,6 @@ public sealed class WindowsSystemReadings : ISystemReadings
     public string? ReadPendingRestart() => PendingRestart.TryRead();
 
     public IReadOnlyList<DiskUsage> ReadDisks() => Disks.Read();
+
+    public WifiStatus ReadWifi() => WifiNetwork.TryRead();
 }

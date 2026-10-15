@@ -18,6 +18,7 @@ public static class SystemEntities
         services.AddHostedService<SessionLockSensor>();
         services.AddHostedService<LastBootSensor>();
         services.AddHostedService<ActiveUserSensor>();
+        services.AddHostedService<NetworkSensor>();
         services.AddHostedService<DiskUsageSensor>();
         services.AddHostedService<RestartRequiredSensor>();
         services.AddHostedService<LockScreenAction>();
