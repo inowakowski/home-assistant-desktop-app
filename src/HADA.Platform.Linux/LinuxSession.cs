@@ -135,6 +135,18 @@ public static class LinuxSession
         // Whether the camera and the microphone record, and for whom.
         services.AddHostedService<MediaCaptureSensor>();
 
+        // The screens, the window in front, quiet hours, and the backlight.
+        services.AddSingleton<LinuxHardware>(_ => new LinuxHardware());
+        services.AddHostedService<ExternalDisplaySensor>();
+        services.AddHostedService<ActiveWindowSensor>();
+        services.AddHostedService(provider => new DoNotDisturbSensor(
+            provider.GetRequiredService<Core.Abstractions.IEventBus>(), provider.GetRequiredService<Core.Abstractions.IEntityRegistry>()));
+        services.AddHostedService(provider => new ScreenBrightnessControl(
+            provider.GetRequiredService<Core.Abstractions.IEventBus>(),
+            provider.GetRequiredService<Core.Abstractions.IEntityRegistry>(),
+            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ScreenBrightnessControl>>(),
+            provider.GetRequiredService<LinuxHardware>()));
+
         // Notifications, shown by the desktop once the agent has connected to it.
         services.AddSingleton<NotificationPresenter>();
         services.AddHostedService<NotificationAction>();

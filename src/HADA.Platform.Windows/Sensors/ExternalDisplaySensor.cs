@@ -89,14 +89,7 @@ public sealed class ExternalDisplaySensor(IEventBus bus, IEntityRegistry registr
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await registry.RegisterAsync(
-            new EntityDescriptor
-            {
-                Id = EntityId,
-                Name = "External display",
-                Kind = EntityKind.BinarySensor,
-                DeviceClass = "connectivity",
-                Icon = "mdi:monitor-multiple",
-            },
+            BuiltInDescriptors.ExternalDisplay,
             stoppingToken);
 
         var publisher = new ChangeOnlyPublisher(bus);
