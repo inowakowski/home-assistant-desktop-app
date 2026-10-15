@@ -38,8 +38,12 @@ public static class AppInstance
     /// <summary>The <see cref="Hosting.AppSignal"/> that asks the tray app of this copy to exit, set by starting it again with <c>--exit</c>.</summary>
     public static string TrayExitSignalName => @"Local\HADA.Tray.Exit" + Suffix;
 
-    /// <summary>The <see cref="Hosting.AppSignal"/> that asks the new window of this copy to close, set when its tray app exits.</summary>
-    public static string NewWindowCloseSignalName => @"Local\HADA.App.Close" + Suffix;
+    /// <summary>
+    /// What the window of this copy is known by, the old one and the new one alike: one window per user, and one
+    /// for the administrator copy opened with "Unlock editing". Its <see cref="Hosting.AppSignal"/>s add
+    /// <c>.Show</c> and <c>.Close</c>.
+    /// </summary>
+    public static string WindowRoleName(bool elevated) => (elevated ? @"Local\HADA.Window.Admin" : @"Local\HADA.Window") + Suffix;
 
     /// <summary>Where a portable copy keeps settings, logs and everything else it writes; <see langword="null"/> for the installed app.</summary>
     public static string? PortableDataFolder => PortableRoot is null ? null : Path.Combine(PortableRoot, "data");

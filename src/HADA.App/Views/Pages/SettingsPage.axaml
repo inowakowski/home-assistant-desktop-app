@@ -129,6 +129,7 @@
                                 <ToggleSwitch
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
+                                    AutomationProperties.Name="{l:Tr Preferences_AutoCheck}"
                                     IsChecked="{Binding Settings.CheckUpdatesAutomatically}"
                                     IsEnabled="{Binding Settings.CanEdit}"
                                     OffContent="{l:Tr Common_Off}"
@@ -148,6 +149,7 @@
                                 <ToggleSwitch
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
+                                    AutomationProperties.Name="{l:Tr Preferences_Prereleases}"
                                     IsChecked="{Binding Settings.IncludePrereleases}"
                                     IsEnabled="{Binding Settings.CanEdit}"
                                     OffContent="{l:Tr Common_Off}"
@@ -185,7 +187,27 @@
                                 <ToggleSwitch
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
+                                    AutomationProperties.Name="{l:Tr Autostart_Title}"
                                     IsChecked="{Binding StartWithWindows}"
+                                    OffContent="{l:Tr Common_Off}"
+                                    OnContent="{l:Tr Common_On}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Classes="settingRow" IsVisible="{Binding OffersWindowChoice}">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                                    <TextBlock Classes="strong" Text="{l:Tr Preferences_NewWindow}" />
+                                    <TextBlock
+                                        Classes="caption secondary"
+                                        Text="{l:Tr Preferences_NewWindowDetail}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ToggleSwitch
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.Name="{l:Tr Preferences_NewWindow}"
+                                    IsChecked="{Binding UsesNewWindow}"
                                     OffContent="{l:Tr Common_Off}"
                                     OnContent="{l:Tr Common_On}" />
                             </Grid>

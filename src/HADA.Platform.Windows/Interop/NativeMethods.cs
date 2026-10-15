@@ -30,6 +30,11 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial nint GetForegroundWindow();
 
+    /// <summary>With <c>-1</c>, any process may bring its window to the front once.</summary>
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool AllowSetForegroundWindow(int processId);
+
     /// <summary>Copies at most <paramref name="maxCount"/> - 1 characters plus a terminator; returns the copied length.</summary>
     [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW", SetLastError = true)]
     public static unsafe partial int GetWindowText(nint window, char* buffer, int maxCount);
