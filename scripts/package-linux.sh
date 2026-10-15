@@ -81,7 +81,6 @@ Release: 1
 Summary: $summary
 License: MIT
 URL: https://github.com/inowakowski/home-assistant-desktop-app
-BuildArch: $rpm_arch
 AutoReqProv: no
 Requires: glibc, libgcc, libstdc++, zlib, openssl-libs, libicu, fontconfig, libX11, libICE, libSM
 %global debug_package %{nil}
@@ -99,6 +98,8 @@ cp -a "$stage/." %{buildroot}/
 /usr/share/applications/hada.desktop
 /usr/share/icons/hicolor/256x256/apps/hada.png
 EOF
+    # No BuildArch in the spec: rpmbuild refuses one this machine cannot build for, while --target alone packs
+    # the files already built for it.
     rpmbuild --quiet --define "_topdir $rpmtop" --target "$rpm_arch" -bb "$rpmtop/SPECS/hada.spec"
     cp "$rpmtop/RPMS/$rpm_arch/"*.rpm "$out/$name.rpm"
 
