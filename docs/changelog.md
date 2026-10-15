@@ -2,6 +2,20 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.8.0 (pre-release)
+
+The new window takes over: it has every page now, and the tray icon opens it. A pre-release, so that it gets tried before a stable version carries it.
+
+- **The tray icon opens the new window,** and so do **HADA** in the Start menu and starting HADA again. As before, there is one window: started again, the open one comes to the front.
+- **Every page is in the new window.** Besides the Overview and Connections:
+    - **Entities**, each with its switch, and a note when the connections you use do not carry all of them.
+    - **Custom entities**: sensors, buttons and quick actions of your own.
+    - **Settings**: updates, and what is yours alone, such as the language and starting with Windows.
+    - **Logs**: the service's messages by level, to copy or clear, following the newest.
+- **Back to the previous window** with **New window (preview)** on the Settings page, for as long as both come with HADA. The new window stays at hand as **HADA (new window, preview)** in the Start menu.
+- **Unlock editing** opens the window as administrator at the page you were on.
+- Fixed: **Start with Windows**, turned on in the new window of a portable copy, registered the window instead of HADA itself to start when you sign in. Turn it off and on again if you turned it on in 1.7.0.
+
 ## 1.7.0 (pre-release)
 
 A first look at the new HADA window, which is to be the same on Windows, macOS and Linux. It comes beside the window you know, which stays as it is and is what the tray icon opens. A pre-release, so that it gets tried before a stable version carries it.
