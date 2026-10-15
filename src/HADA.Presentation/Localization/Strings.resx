@@ -74,6 +74,8 @@
 
 It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Windows 10 may lack.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="Autostart_TitleSignIn" xml:space="preserve"><value>Start when you sign in</value></data>
+  <data name="Autostart_DetailSession" xml:space="preserve"><value>Starts HADA in the background when you sign in: its icon in the system tray, the service, and the sensors of your session.</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Starts the tray app, and with it the session sensors and controls, when you sign in. The HADA service always starts with Windows.</value></data>
   <data name="Autostart_DetailPortable" xml:space="preserve"><value>Starts this portable copy of HADA when you sign in, by adding it to your startup programs. Turn it off before you move or delete the folder.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>HADA service</value></data>

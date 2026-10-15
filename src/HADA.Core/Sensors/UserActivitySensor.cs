@@ -2,13 +2,13 @@ using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Hosting;
 using HADA.Core.Messaging;
-using Microsoft.Extensions.Hosting;
+using HADA.Core.Models;
 
-namespace HADA.Platform.Windows.Sensors;
+namespace HADA.Core.Sensors;
 
 /// <summary>
 /// Publishes whether someone used the keyboard or mouse lately: within the last minute, unless the user chose
-/// another threshold. Must run in the user's session (the tray app).
+/// another threshold. Must run in the user's session. Left out where the system does not tell.
 /// </summary>
 /// <remarks>
 /// A short window keeps the sensor responsive; "idle for 10 minutes" can also be expressed in Home Assistant
@@ -18,7 +18,8 @@ namespace HADA.Platform.Windows.Sensors;
 /// How long after the last input the user still counts as active. Asked on every reading, so a changed setting
 /// takes effect at once.
 /// </param>
-public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, Func<TimeSpan>? activeWindow = null) : EagerBackgroundService
+public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, ISessionReadings session, Func<TimeSpan>? activeWindow = null)
+    : EagerBackgroundService
 {
     public const string EntityId = BuiltInEntityIds.UserActive;
 
@@ -28,6 +29,11 @@ public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (session.ReadIdleTime() is null)
+        {
+            return;
+        }
+
         await registry.RegisterAsync(
             new EntityDescriptor
             {
@@ -42,7 +48,7 @@ public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, 
         using var timer = new PeriodicTimer(PollInterval);
         do
         {
-            if (UserInput.TryReadIdleTime() is { } idle)
+            if (session.ReadIdleTime() is { } idle)
             {
                 await publisher.PublishAsync(
                     EntityId, BinaryState.From(idle < (activeWindow?.Invoke() ?? DefaultActiveWindow)), cancellationToken: stoppingToken);

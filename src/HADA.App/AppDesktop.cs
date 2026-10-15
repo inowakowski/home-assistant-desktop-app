@@ -3,6 +3,7 @@ using System.Runtime.Versioning;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using HADA.Core;
+using HADA.Platform.Linux;
 using HADA.Platform.Windows.Desktop;
 using HADA.Platform.Windows.Network;
 using HADA.Platform.Windows.Sensors;
@@ -19,12 +20,16 @@ internal sealed class AppDesktop(TopLevel window) : IDesktop
 {
     public bool StartsWithSystem
     {
-        get => OperatingSystem.IsWindows() && Autostart.IsEnabled;
+        get => OperatingSystem.IsWindows() ? Autostart.IsEnabled : OperatingSystem.IsLinux() && LinuxAutostart.IsEnabled;
         set
         {
             if (OperatingSystem.IsWindows())
             {
                 Autostart.IsEnabled = value;
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                LinuxAutostart.IsEnabled = value;
             }
         }
     }

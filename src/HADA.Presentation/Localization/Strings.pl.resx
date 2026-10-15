@@ -74,6 +74,8 @@
 
 Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 zawiera, a w Windows 10 może go brakować.</value></data>
   <data name="Autostart_Title" xml:space="preserve"><value>Uruchamiaj z systemem Windows</value></data>
+  <data name="Autostart_TitleSignIn" xml:space="preserve"><value>Uruchamiaj po zalogowaniu</value></data>
+  <data name="Autostart_DetailSession" xml:space="preserve"><value>Uruchamia HADA w tle po zalogowaniu: ikonę w zasobniku, usługę i sensory Twojej sesji.</value></data>
   <data name="Autostart_Detail" xml:space="preserve"><value>Uruchamia aplikację Tray, a z nią sensory i sterowanie sesji, po zalogowaniu. Usługa HADA zawsze startuje razem z Windows.</value></data>
   <data name="Autostart_DetailPortable" xml:space="preserve"><value>Uruchamia tę przenośną kopię HADA po zalogowaniu, dodając ją do programów startowych Twojego konta. Wyłącz to, zanim przeniesiesz lub usuniesz folder.</value></data>
   <data name="Card_Service" xml:space="preserve"><value>Usługa HADA</value></data>

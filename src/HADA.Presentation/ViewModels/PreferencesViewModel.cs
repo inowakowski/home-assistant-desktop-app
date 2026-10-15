@@ -76,7 +76,11 @@ public sealed class PreferencesViewModel(IDesktop desktop, bool isElevated, bool
 
     public string Note { get; } = Loc.Get(isElevated ? "Preferences_PersonalElevated" : "Preferences_PersonalDetail");
 
-    public string AutostartDetail { get; } = Loc.Get(isPortable ? "Autostart_DetailPortable" : "Autostart_Detail");
+    /// <summary>"Start with Windows" on Windows; elsewhere HADA starts when the user signs in.</summary>
+    public string AutostartTitle { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Autostart_Title" : "Autostart_TitleSignIn");
+
+    public string AutostartDetail { get; } = Loc.Get(
+        !OperatingSystem.IsWindows() ? "Autostart_DetailSession" : isPortable ? "Autostart_DetailPortable" : "Autostart_Detail");
 
     public IReadOnlyList<LanguageOption> Languages { get; } =
     [

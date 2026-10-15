@@ -1,17 +1,15 @@
 using System.Diagnostics;
-using System.IO;
-using HADA.Core;
-using HADA.Core.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace HADA.Tray;
+namespace HADA.Core.Hosting;
 
 /// <summary>
-/// Runs the service of a portable copy for as long as its tray app runs. Installed, the service is a Windows
-/// service that Windows looks after; here it is an ordinary process without a window, started from the copy's
-/// <c>service</c> folder, started again if it dies, and told to stop when the tray app exits.
+/// Runs the service for as long as the app that started it runs: the tray app of a portable copy on Windows, and
+/// the app in the user's session on Linux and macOS. Installed on Windows, the service is a Windows service that
+/// Windows looks after; here it is an ordinary process without a window, started from the <c>service</c> folder
+/// next to the app's, started again if it dies, and told to stop when the app exits.
 /// </summary>
-internal sealed partial class PortableService : IDisposable
+public sealed partial class ServiceProcess : IDisposable
 {
     private static readonly TimeSpan RestartDelay = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(8);
@@ -22,18 +20,19 @@ internal sealed partial class PortableService : IDisposable
     private readonly Lock _lock = new();
     private Process? _process;
 
-    public PortableService(string portableRoot, ILogger logger)
+    /// <param name="root">The folder with the <c>service</c> folder in it: a portable copy's, or where HADA was installed.</param>
+    public ServiceProcess(string root, ILogger logger)
     {
-        _executable = Path.Combine(portableRoot, "service", "HADA.Service.exe");
+        _executable = Path.Combine(root, "service", OperatingSystem.IsWindows() ? "HADA.Service.exe" : "HADA.Service");
         _logger = logger;
     }
 
-    /// <exception cref="FileNotFoundException">The copy has no service to start; it was unpacked only in part.</exception>
+    /// <exception cref="FileNotFoundException">There is no service to start; HADA was unpacked or installed only in part.</exception>
     public void Start()
     {
         if (!File.Exists(_executable))
         {
-            throw new FileNotFoundException($"This portable copy of HADA is incomplete: {_executable} is missing.", _executable);
+            throw new FileNotFoundException($"This copy of HADA is incomplete: {_executable} is missing.", _executable);
         }
 
         Launch();
@@ -117,7 +116,7 @@ internal sealed partial class PortableService : IDisposable
             }
             catch (OperationCanceledException)
             {
-                // The tray app is exiting.
+                // The app is exiting.
             }
             catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or ObjectDisposedException)
             {
@@ -126,7 +125,7 @@ internal sealed partial class PortableService : IDisposable
         });
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Started this portable copy's service (process {ProcessId}).")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Started the service (process {ProcessId}).")]
     private static partial void LogStarted(ILogger logger, int processId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The service ended by itself with exit code {ExitCode}; starting it again in {Delay}.")]

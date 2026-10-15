@@ -72,7 +72,7 @@ public partial class App : Application
     private IHost? _host;
     private TrayIcon? _trayIcon;
     private GlobalHotkeys? _hotkeys;
-    private PortableService? _portableService;
+    private ServiceProcess? _portableService;
     private AppSignal? _exitSignal;
     private MainWindow? _mainWindow;
     private Window? _roleWindow;
@@ -181,7 +181,7 @@ public partial class App : Application
         if (AppInstance.PortableRoot is { } portableRoot)
         {
             // Nobody installed a service for a portable copy; its tray app runs one for as long as it runs itself.
-            _portableService = new PortableService(portableRoot, _logger);
+            _portableService = new ServiceProcess(portableRoot, _logger);
             _portableService.Start();
         }
 

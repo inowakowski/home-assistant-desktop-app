@@ -178,7 +178,7 @@
                         <Border Classes="settingRow">
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
-                                    <TextBlock Classes="strong" Text="{l:Tr Autostart_Title}" />
+                                    <TextBlock Classes="strong" Text="{Binding AutostartTitle}" />
                                     <TextBlock
                                         Classes="caption secondary"
                                         Text="{Binding AutostartDetail}"
@@ -187,7 +187,7 @@
                                 <ToggleSwitch
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
-                                    AutomationProperties.Name="{l:Tr Autostart_Title}"
+                                    AutomationProperties.Name="{Binding AutostartTitle}"
                                     IsChecked="{Binding StartWithWindows}"
                                     OffContent="{l:Tr Common_Off}"
                                     OnContent="{l:Tr Common_On}" />

@@ -1,6 +1,7 @@
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
+using HADA.Core.Sensors;
 using HADA.Ipc;
 using HADA.Platform.Windows.Actions;
 using HADA.Platform.Windows.Sensors;
@@ -29,9 +30,11 @@ public static class SessionServices
         // What Home Assistant gets to know about this session.
         services.AddHostedService<ActiveWindowSensor>();
         services.AddHostedService<AudioVolumeSensor>();
+        services.AddSingleton<ISessionReadings, WindowsSessionReadings>();
         services.AddHostedService(provider => new UserActivitySensor(
             provider.GetRequiredService<IEventBus>(),
             provider.GetRequiredService<IEntityRegistry>(),
+            provider.GetRequiredService<ISessionReadings>(),
             () => TimeSpan.FromSeconds(UserPreferences.IdleSeconds)));
         services.AddHostedService<MediaCaptureSensor>();
         services.AddHostedService<MicrophoneMuteSensor>();
