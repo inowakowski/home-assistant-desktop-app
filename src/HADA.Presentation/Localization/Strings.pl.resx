@@ -540,4 +540,24 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="Add_Way_off_Result2" xml:space="preserve">
     <value>Encje dalej idą przez MQTT.</value>
   </data>
+  <data name="Preferences_DashboardDetailBrowser" xml:space="preserve"><value>Otwierany w przeglądarce z menu ikony HADA w zasobniku systemowym. Każdy Home Assistant, z którym HADA łączy się bezpośrednio, ma tu swój pulpit: wyłącz te, których nie chcesz, albo podaj własny adres, na przykład konkretnego pulpitu.</value></data>
+  <data name="Custom_SubtitleUnix" xml:space="preserve"><value>Własne sensory: stały tekst, informacja, czy program jest uruchomiony albo urządzenie podłączone, wynik polecenia powłoki. Własne przyciski do naciskania z Home Assistant: uruchomienie polecenia, programu albo naciśnięcie klawiszy. Oraz szybkie akcje: pozycje w menu ikony HADA w zasobniku systemowym, które uruchamiają automatyzację w Home Assistant.</value></data>
+  <data name="Custom_TypeShell" xml:space="preserve"><value>Sensor: polecenie powłoki</value></data>
+  <data name="Custom_TypeShellButton" xml:space="preserve"><value>Przycisk: polecenie powłoki</value></data>
+  <data name="Custom_ValueQuickActionUnix" xml:space="preserve"><value>Skrót klawiszowy (tylko Windows)</value></data>
+  <data name="Custom_ShellNote" xml:space="preserve"><value>Polecenia, zarówno sensorów, jak i przycisków, uruchamia przez sh usługa HADA, jako Ty i w Twojej sesji. Polecenie sensora, które kończy się błędem lub trwa dłużej niż 30 sekund, jest zgłaszane na stronie Logi; polecenie przycisku może trwać do 10 minut.</value></data>
+  <data name="Custom_ButtonNoteUnix" xml:space="preserve"><value>Program uruchamiany przyciskiem działa w Twojej sesji, z Twoimi uprawnieniami, dopóki HADA działa. Ścieżkę zawierającą spacje ujmij w cudzysłów. Klawisze są naciskane tylko w sesji X11: Wayland nie pozwala aplikacjom pisać w innych.</value></data>
+  <data name="Custom_QuickActionNoteUnix" xml:space="preserve"><value>Szybka akcja sama nic nie robi na tym komputerze. Pojawia się w menu ikony HADA w zasobniku systemowym oraz jako wyzwalacz tego urządzenia w Home Assistant; to, co robi, określasz automatyzacją opartą na tym wyzwalaczu. Skrót klawiszowy działa tylko na Windowsie.</value></data>
+  <data name="EntityHint_active_window_Unix" xml:space="preserve"><value>Wysyła tytuły okien, które mogą zawierać nazwy dokumentów, tematy e-maili lub tytuły stron. Tylko w sesji X11: Wayland nie mówi aplikacjom, które okno jest na wierzchu.</value></data>
+  <data name="EntityHint_session_locked_Unix" xml:space="preserve"><value>Włączony, gdy sesja jest zablokowana.</value></data>
+  <data name="EntityHint_microphone_muted_Unix" xml:space="preserve"><value>Włączony, gdy domyślny mikrofon jest wyciszony w ustawieniach dźwięku. Wyciszenie tylko w aplikacji do rozmów nie jest widoczne.</value></data>
+  <data name="EntityHint_ip_address_Unix" xml:space="preserve"><value>Adres połączenia, przez które komputer kieruje ruch. Jego nazwa i typ są atrybutami.</value></data>
+  <data name="EntityHint_wifi_network_Unix" xml:space="preserve"><value>Nazwa sieci Wi-Fi, z którą komputer jest połączony; siła sygnału jest atrybutem.</value></data>
+  <data name="EntityHint_do_not_disturb_Unix" xml:space="preserve"><value>Włączony, gdy pulpit wstrzymuje powiadomienia: Nie przeszkadzać w GNOME i KDE.</value></data>
+  <data name="EntityHint_gpu_load_Unix" xml:space="preserve"><value>Obciążenie procesora graficznego: karty AMD podają je same, karty NVIDIA przez nvidia-smi ze sterownika.</value></data>
+  <data name="EntityHint_media_play_pause_Unix" xml:space="preserve"><value>Każe odtwarzaczowi, którego pokazują sterowanie multimediami pulpitu, odtwarzać albo wstrzymać.</value></data>
+  <data name="EntityHint_microphone_mute_Unix" xml:space="preserve"><value>Pozwala Home Assistant wyciszać domyślny mikrofon.</value></data>
+  <data name="EntityHint_notification_Unix" xml:space="preserve"><value>Wiadomości wysłane do tej encji są pokazywane jako powiadomienia pulpitu, z obrazkiem i przyciskami, jeśli wiadomość je zawiera.</value></data>
+  <data name="EntityHint_restart_required_Unix" xml:space="preserve"><value>Włączony, gdy zaktualizowane pakiety albo nowe jądro czekają na restart, żeby zacząć działać.</value></data>
+  <data name="EntityHint_screen_brightness_Unix" xml:space="preserve"><value>Jasność wbudowanego ekranu, którą Home Assistant może też ustawić. Tylko na komputerach, których ekran ma podświetlenie.</value></data>
 </root>

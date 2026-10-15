@@ -50,8 +50,22 @@ jobs:
         with:
           global-json-file: global.json
 
+      # On Linux the tests have an X server and a D-Bus to talk to, as a desktop session has: those of the active
+      # window, of pressed keys and of media players run against the real thing.
+      - name: Prepare the desktop
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq xvfb libxtst6 dbus
+
       - name: Test
-        run: dotnet test tests/HADA.Tests -c Release
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            xvfb-run -a dotnet test tests/HADA.Tests -c Release
+          else
+            dotnet test tests/HADA.Tests -c Release
+          fi
 
       # The window drawn with Avalonia, which is to run on these systems too.
       - name: Build the window

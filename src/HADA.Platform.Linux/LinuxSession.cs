@@ -156,8 +156,20 @@ public static class LinuxSession
         {
             services.AddSingleton<IAudioDevices>(audio);
             services.AddHostedService<AudioVolumeSensor>();
+            services.AddHostedService<AudioDeviceSensor>();
+            services.AddHostedService<MicrophoneMuteSensor>();
             services.AddHostedService<AudioControl>();
         }
+
+        // Keys pressed for the service's buttons, where the session is an X11 one.
+        services.AddSingleton<IKeyboard>(_ => new X11Keyboard());
+        services.AddHostedService<KeyPressAction>();
+
+        // What plays, and the player to tell, through MPRIS on the session's bus.
+        services.AddSingleton<IMediaSessions>(_ => new LinuxMedia());
+        services.AddHostedService<MediaPlaybackSensor>();
+        services.AddHostedService<MediaButtons>();
+        services.AddHostedService<MediaPlayerControl>();
 
         return services;
     }

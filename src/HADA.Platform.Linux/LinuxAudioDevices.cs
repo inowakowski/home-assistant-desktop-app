@@ -49,6 +49,68 @@ public sealed class LinuxAudioDevices : IAudioDevices
         }
     }
 
+    public string? ReadName(AudioEndpoint endpoint)
+    {
+        if (_pipeWire)
+        {
+            return _run("wpctl", ["inspect", Device(endpoint)]) is { Succeeded: true } result ? ParseWpctlName(result.Output) : null;
+        }
+
+        var (defaultVerb, listVerb) = endpoint == AudioEndpoint.Microphone ? ("get-default-source", "sources") : ("get-default-sink", "sinks");
+        return _run("pactl", [defaultVerb]) is { Succeeded: true } device
+            && device.Output.Trim() is { Length: > 0 } name
+            && _run("pactl", ["list", listVerb]) is { Succeeded: true } list
+            ? ParsePactlName(list.Output, name)
+            : null;
+    }
+
+    /// <summary>
+    /// Reads the description out of <c>wpctl inspect</c>, whose lines are properties, those that identify the
+    /// device starred: <c>  * node.description = "Built-in Audio Analog Stereo"</c>.
+    /// </summary>
+    public static string? ParseWpctlName(string output)
+    {
+        foreach (var line in output.Split('\n'))
+        {
+            var property = line.Trim().TrimStart('*').TrimStart();
+            if (property.StartsWith("node.description", StringComparison.Ordinal) && property.IndexOf('=', StringComparison.Ordinal) is > 0 and var equals)
+            {
+                return property[(equals + 1)..].Trim().Trim('"') is { Length: > 0 } description ? description : null;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Finds the description of the device named <paramref name="device"/> in <c>pactl list sinks</c> or
+    /// <c>sources</c>: a block for each device, its <c>Name:</c> followed by its <c>Description:</c>. What records
+    /// what a sink plays, its <c>.monitor</c>, is no microphone.
+    /// </summary>
+    public static string? ParsePactlName(string output, string device)
+    {
+        if (device.EndsWith(".monitor", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var found = false;
+        foreach (var line in output.Split('\n'))
+        {
+            var text = line.Trim();
+            if (text.StartsWith("Name:", StringComparison.Ordinal))
+            {
+                found = text["Name:".Length..].Trim() == device;
+            }
+            else if (found && text.StartsWith("Description:", StringComparison.Ordinal))
+            {
+                return text["Description:".Length..].Trim() is { Length: > 0 } description ? description : null;
+            }
+        }
+
+        return null;
+    }
+
     public bool TrySetVolume(int percent)
     {
         var level = Math.Clamp(percent, 0, 100);

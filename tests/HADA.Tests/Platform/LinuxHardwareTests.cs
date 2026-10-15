@@ -92,7 +92,43 @@ public sealed class LinuxHardwareTests : IDisposable
         Assert.True(gnome.Read());
     }
 
+    [Fact]
+    public void Usb_devices_are_known_by_vendor_and_product_as_on_windows()
+    {
+        Usb("usb1", vendor: "1d6b", product: "0002", name: "xHCI Host Controller");
+        Usb("1-1", vendor: "0bda", product: "8153", name: "USB 10/100/1000 LAN", serial: "000001");
+        // An interface of the device, 1-1:1.0 in the kernel's words; Windows takes no colon in a folder's name.
+        File($"sys/bus/usb/devices/1-1{(OperatingSystem.IsWindows() ? '_' : ':')}1.0/bInterfaceClass", "ff\n");
+        Usb("1-2", vendor: "046d", product: "c52b", name: null, manufacturer: "Logitech");
+        var devices = new LinuxUsbDevices(_root);
+
+        Assert.True(devices.IsPresent("VID_0BDA&PID_8153"));
+        Assert.True(devices.IsPresent("vid_046d"));
+        Assert.True(devices.IsPresent(@"8153\000001"));
+        Assert.False(devices.IsPresent("VID_1D6B"));
+        Assert.False(devices.IsPresent(string.Empty));
+        Assert.Equal(
+            [
+                new LinuxUsbDevice("Logitech", "VID_046D&PID_C52B", @"USB\VID_046D&PID_C52B"),
+                new LinuxUsbDevice("USB 10/100/1000 LAN", "VID_0BDA&PID_8153", @"USB\VID_0BDA&PID_8153\000001"),
+            ],
+            devices.ConnectedModels());
+    }
+
     private LinuxHardware Hardware => new(_root);
+
+    private void Usb(string device, string vendor, string product, string? name, string? serial = null, string? manufacturer = null)
+    {
+        File($"sys/bus/usb/devices/{device}/idVendor", vendor + "\n");
+        File($"sys/bus/usb/devices/{device}/idProduct", product + "\n");
+        foreach (var (file, text) in new[] { ("product", name), ("serial", serial), ("manufacturer", manufacturer) })
+        {
+            if (text is not null)
+            {
+                File($"sys/bus/usb/devices/{device}/{file}", text + "\n");
+            }
+        }
+    }
 
     private void Backlight(string name, string type, int level, int max)
     {

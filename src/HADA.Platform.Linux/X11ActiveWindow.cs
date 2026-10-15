@@ -14,12 +14,9 @@ public readonly record struct ActiveWindowInfo(string Title, string? ProcessName
 [SupportedOSPlatform("linux")]
 public sealed partial class X11ActiveWindow : IDisposable
 {
-    private const string Library = "libX11.so.6";
+    private const string Library = X11Session.Library;
     private const ulong AnyPropertyType = 0;
     private const int Success = 0;
-
-    // An X error, such as asking about a window that closed a moment ago, ends the process unless handled.
-    private static readonly XErrorHandler IgnoreErrors = static (_, _) => 0;
 
     private readonly IntPtr _display;
     private readonly ulong _root;
@@ -38,37 +35,9 @@ public sealed partial class X11ActiveWindow : IDisposable
         _pid = XInternAtom(display, "_NET_WM_PID", false);
     }
 
-    private delegate int XErrorHandler(IntPtr display, IntPtr errorEvent);
-
     /// <summary>The X11 session's display, where this session is one; <see langword="null"/> on Wayland or without a display.</summary>
-    public static X11ActiveWindow? Open()
-    {
-        if (Environment.GetEnvironmentVariable("XDG_SESSION_TYPE") is { } type && type != "x11")
-        {
-            return null;
-        }
-
-        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")))
-        {
-            return null;
-        }
-
-        try
-        {
-            var display = XOpenDisplay(IntPtr.Zero);
-            if (display == IntPtr.Zero)
-            {
-                return null;
-            }
-
-            XSetErrorHandler(IgnoreErrors);
-            return new X11ActiveWindow(display);
-        }
-        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
-        {
-            return null;
-        }
-    }
+    public static X11ActiveWindow? Open() =>
+        X11Session.OpenDisplay() is var display && display != IntPtr.Zero ? new X11ActiveWindow(display) : null;
 
     /// <summary>The window in front; <see langword="null"/> while there is none, as on an empty desktop.</summary>
     public ActiveWindowInfo? Read()
@@ -95,7 +64,7 @@ public sealed partial class X11ActiveWindow : IDisposable
         return new ActiveWindowInfo(title, processName);
     }
 
-    public void Dispose() => _ = XCloseDisplay(_display);
+    public void Dispose() => _ = X11Session.XCloseDisplay(_display);
 
     private byte[]? ReadProperty(ulong window, ulong property)
     {
@@ -120,12 +89,6 @@ public sealed partial class X11ActiveWindow : IDisposable
     }
 
     [DllImport(Library)]
-    private static extern IntPtr XOpenDisplay(IntPtr name);
-
-    [DllImport(Library)]
-    private static extern int XCloseDisplay(IntPtr display);
-
-    [DllImport(Library)]
     private static extern ulong XDefaultRootWindow(IntPtr display);
 
     [DllImport(Library, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
@@ -148,7 +111,4 @@ public sealed partial class X11ActiveWindow : IDisposable
 
     [DllImport(Library)]
     private static extern int XFree(IntPtr data);
-
-    [DllImport(Library)]
-    private static extern IntPtr XSetErrorHandler(XErrorHandler handler);
 }

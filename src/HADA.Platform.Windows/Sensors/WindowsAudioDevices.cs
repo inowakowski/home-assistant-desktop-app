@@ -22,6 +22,9 @@ public sealed class WindowsAudioDevices : IAudioDevices, IDisposable
         }
     }
 
+    /// <exception cref="COMException">The device went away while being read.</exception>
+    public string? ReadName(AudioEndpoint endpoint) => Of(endpoint).TryReadName();
+
     public bool TrySetVolume(int percent) => _speakers.TrySetVolume(percent);
 
     public bool TrySetMute(AudioEndpoint endpoint, bool muted) => Of(endpoint).TrySetMute(muted);

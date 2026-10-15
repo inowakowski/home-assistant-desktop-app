@@ -43,6 +43,7 @@ public static class SessionServices
         services.AddHostedService<ExternalDisplaySensor>();
         services.AddHostedService<AudioDeviceSensor>();
         services.AddHostedService<DoNotDisturbSensor>();
+        services.AddSingleton<IMediaSessions, WindowsMediaSessions>();
         services.AddHostedService<MediaPlaybackSensor>();
 
         // What Home Assistant can do in it.
@@ -53,6 +54,7 @@ public static class SessionServices
         services.AddHostedService<DisplayActions>();
         services.AddHostedService<NotificationAction>();
         services.AddHostedService<LaunchAction>();
+        services.AddSingleton<IKeyboard, WindowsKeyboard>();
         services.AddHostedService<KeyPressAction>();
 
         // What the user can tell Home Assistant from here.

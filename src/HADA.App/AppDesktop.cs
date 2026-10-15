@@ -53,7 +53,10 @@ internal sealed class AppDesktop(TopLevel window) : IDesktop
 
     public IReadOnlyList<InstalledBrowser> InstalledBrowsers() => OperatingSystem.IsWindows() ? Browsers.Installed() : [];
 
-    public IReadOnlyList<UsbDeviceOption> ConnectedUsbDevices() => OperatingSystem.IsWindows() ? ConnectedWindowsDevices() : [];
+    public IReadOnlyList<UsbDeviceOption> ConnectedUsbDevices() =>
+        OperatingSystem.IsWindows() ? ConnectedWindowsDevices()
+        : OperatingSystem.IsLinux() ? [.. new LinuxUsbDevices().ConnectedModels().Select(device => new UsbDeviceOption(device.MatchId, device.Name))]
+        : [];
 
     public IReadOnlyList<string> ConnectedNetworks() =>
         OperatingSystem.IsWindows() ? WindowsNetworkLocation.Read() : OperatingSystem.IsLinux() ? LinuxNetworkLocation.Read() : [];

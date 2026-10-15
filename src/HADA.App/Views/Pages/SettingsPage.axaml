@@ -250,7 +250,7 @@
                                 <TextBlock Classes="strong" Text="{l:Tr Preferences_Dashboard}" />
                                 <TextBlock
                                     Classes="caption secondary"
-                                    Text="{l:Tr Preferences_DashboardDetail}"
+                                    Text="{Binding DashboardDetail}"
                                     TextWrapping="Wrap" />
 
                                 <!--  One row for each Home Assistant connected to directly.  -->

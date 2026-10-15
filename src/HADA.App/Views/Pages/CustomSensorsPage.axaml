@@ -24,7 +24,7 @@
                         <TextBlock
                             Margin="0,4,0,0"
                             Classes="secondary"
-                            Text="{l:Tr Custom_Subtitle}"
+                            Text="{x:Static vm:CustomSensorViewModel.Subtitle}"
                             TextWrapping="Wrap" />
                     </StackPanel>
                     <Button
@@ -156,15 +156,15 @@
                 <StackPanel Spacing="6">
                     <TextBlock
                         Classes="caption tertiary"
-                        Text="{l:Tr Custom_PowerShellNote}"
+                        Text="{x:Static vm:CustomSensorViewModel.CommandsNote}"
                         TextWrapping="Wrap" />
                     <TextBlock
                         Classes="caption tertiary"
-                        Text="{l:Tr Custom_ButtonNote}"
+                        Text="{x:Static vm:CustomSensorViewModel.ButtonsNote}"
                         TextWrapping="Wrap" />
                     <TextBlock
                         Classes="caption tertiary"
-                        Text="{l:Tr Custom_QuickActionNote}"
+                        Text="{x:Static vm:CustomSensorViewModel.QuickActionsNote}"
                         TextWrapping="Wrap" />
                 </StackPanel>
             </StackPanel>

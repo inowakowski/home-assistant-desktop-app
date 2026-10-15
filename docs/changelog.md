@@ -2,6 +2,22 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.10.0 (pre-release)
+
+Most of what HADA on Linux still lacked. The packages are still untested by hand, which their names say. On Windows nothing changes. A pre-release, so that it gets tried before a stable version carries it.
+
+- **New on Linux:**
+    - **Network:** the IP address of the connection in use, and the Wi-Fi network with its signal strength.
+    - **The lid, the screens and the brightness:** whether the lid is open and whether an external display is connected. Also the brightness of a laptop's screen, which Home Assistant can set as well.
+    - **Do not disturb** on GNOME and KDE, and the **GPU load** of AMD cards, and of NVIDIA's through their driver.
+    - The **active window** and its program, in an X11 session. Wayland does not tell apps which window is in front.
+    - **Media:** what plays in any player that the desktop's own media controls show, and the media player with its buttons, so Home Assistant can play, pause, skip, stop and set the volume.
+    - **The audio device** in use, and whether the microphone is muted.
+    - **Quick actions** in the menu of the tray icon, and the **Home Assistant dashboard**, which opens in the browser. Set the dashboard up on the Settings page.
+    - **Custom buttons** that start a program or press keys. Keys are pressed in an X11 session only, as Wayland does not let apps type into others. **Custom sensors** of a connected USB device. Commands of custom sensors and buttons run with `sh`, as you.
+    - **Not yet on Linux:** the display's sensor and the buttons that turn it off and on, and keyboard shortcuts for quick actions.
+- The window says what Linux does where it differs from Windows: on the Entities page, on the Custom entities page and in the dashboard's setting.
+
 ## 1.9.0 (pre-release)
 
 HADA for Linux, a first preview: packages for x64 and arm64 that nobody has tried on Linux by hand yet, which their names say. And a fix for all systems. A pre-release, so that it gets tried before a stable version carries it.

@@ -45,13 +45,23 @@ public sealed class CustomSensorViewModel : ObservableObject
     [
         new(CustomSensorType.Text, Loc.Get("Custom_TypeText")),
         new(CustomSensorType.ProcessRunning, Loc.Get("Custom_TypeProcess")),
-        new(CustomSensorType.PowerShell, Loc.Get("Custom_TypePowerShell")),
+        new(CustomSensorType.PowerShell, Loc.Get(OperatingSystem.IsWindows() ? "Custom_TypePowerShell" : "Custom_TypeShell")),
         new(CustomSensorType.DeviceConnected, Loc.Get("Custom_TypeDevice")),
-        new(CustomSensorType.CommandButton, Loc.Get("Custom_TypeCommandButton")),
+        new(CustomSensorType.CommandButton, Loc.Get(OperatingSystem.IsWindows() ? "Custom_TypeCommandButton" : "Custom_TypeShellButton")),
         new(CustomSensorType.LaunchButton, Loc.Get("Custom_TypeLaunchButton")),
         new(CustomSensorType.KeysButton, Loc.Get("Custom_TypeKeysButton")),
         new(CustomSensorType.QuickAction, Loc.Get("Custom_TypeQuickAction")),
     ];
+
+    /// <summary>What the page says about these: commands run by PowerShell on Windows, and by <c>sh</c> as the user elsewhere.</summary>
+    public static string Subtitle { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_Subtitle" : "Custom_SubtitleUnix");
+
+    public static string CommandsNote { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_PowerShellNote" : "Custom_ShellNote");
+
+    public static string ButtonsNote { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_ButtonNote" : "Custom_ButtonNoteUnix");
+
+    /// <summary>Shortcuts of quick actions are listened for on Windows only.</summary>
+    public static string QuickActionsNote { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_QuickActionNote" : "Custom_QuickActionNoteUnix");
 
     public double MinInterval => CustomSensorDefinition.MinIntervalSeconds;
 
@@ -162,19 +172,22 @@ public sealed class CustomSensorViewModel : ObservableObject
         CustomSensorType.CommandButton => "Custom_ValueCommandButton",
         CustomSensorType.LaunchButton => "Custom_ValueLaunchButton",
         CustomSensorType.KeysButton => "Custom_ValueKeysButton",
-        CustomSensorType.QuickAction => "Custom_ValueQuickAction",
+        CustomSensorType.QuickAction => OperatingSystem.IsWindows() ? "Custom_ValueQuickAction" : "Custom_ValueQuickActionUnix",
         _ => "Custom_ValueText",
     });
 
-    public string ValuePlaceholder => Type switch
+    public string ValuePlaceholder => (Type, OperatingSystem.IsWindows()) switch
     {
-        CustomSensorType.ProcessRunning => "chrome",
-        CustomSensorType.PowerShell => "(Get-Process).Count",
-        CustomSensorType.DeviceConnected => "VID_0BDA&PID_8153",
-        CustomSensorType.CommandButton => "Restart-Service Spooler",
-        CustomSensorType.KeysButton => "Ctrl+Shift+M",
-        CustomSensorType.QuickAction => "Ctrl+Alt+L",
-        CustomSensorType.LaunchButton => "\"C:\\Program Files\\App\\app.exe\" --option",
+        (CustomSensorType.ProcessRunning, _) => "chrome",
+        (CustomSensorType.PowerShell, true) => "(Get-Process).Count",
+        (CustomSensorType.PowerShell, false) => "ls ~/Downloads | wc -l",
+        (CustomSensorType.DeviceConnected, _) => "VID_0BDA&PID_8153",
+        (CustomSensorType.CommandButton, true) => "Restart-Service Spooler",
+        (CustomSensorType.CommandButton, false) => "systemctl --user restart pipewire",
+        (CustomSensorType.KeysButton, _) => "Ctrl+Shift+M",
+        (CustomSensorType.QuickAction, true) => "Ctrl+Alt+L",
+        (CustomSensorType.LaunchButton, true) => "\"C:\\Program Files\\App\\app.exe\" --option",
+        (CustomSensorType.LaunchButton, false) => "firefox https://www.home-assistant.io",
         _ => string.Empty,
     };
 
