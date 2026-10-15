@@ -69,6 +69,10 @@ public static class LinuxSession
             provider.GetRequiredService<ISessionReadings>(),
             activeWindow));
 
+        // Notifications, shown by the desktop once the agent has connected to it.
+        services.AddSingleton<NotificationPresenter>();
+        services.AddHostedService<NotificationAction>();
+
         // Sound, where the system has a sound server's tool to ask; without one there is nothing to control.
         if (LinuxAudioDevices.ForThisSystem() is { } audio)
         {

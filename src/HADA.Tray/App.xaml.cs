@@ -12,6 +12,7 @@ using HADA.Core.Hosting;
 using HADA.Core.Logging;
 using HADA.Core;
 using HADA.Core.Abstractions;
+using HADA.Core.Actions;
 using HADA.Core.Models;
 using HADA.Ipc;
 using HADA.Platform.Windows.Desktop;

@@ -1,11 +1,9 @@
 using HADA.Core.Abstractions;
-using HADA.Core.Actions;
 using HADA.Core.Entities;
 using HADA.Core.Models;
-using HADA.Platform.Windows.Actions;
 using Microsoft.Extensions.Logging;
 
-namespace HADA.Tray.Session;
+namespace HADA.Core.Actions;
 
 /// <summary>A notification to show: its texts, and optionally a picture and buttons.</summary>
 /// <param name="ImageUrl">An <c>http</c> or <c>https</c> address, or <see langword="null"/>.</param>
@@ -27,7 +25,7 @@ public sealed record NotificationRequest(
     bool Silent = false,
     bool Clear = false);
 
-/// <summary>Where notifications from Home Assistant are shown; the tray plugs itself in once it is ready.</summary>
+/// <summary>Where notifications from Home Assistant are shown; the tray app or the agent plugs itself in once it is ready.</summary>
 public sealed class NotificationPresenter
 {
     /// <summary>Shows a notification. May be called from any thread.</summary>
@@ -35,8 +33,8 @@ public sealed class NotificationPresenter
 }
 
 /// <summary>
-/// Exposes a notification entity: a message Home Assistant sends to it is shown to the signed-in user as a Windows
-/// notification. Lives in the tray app, which notifications come from.
+/// Exposes a notification entity: a message Home Assistant sends to it is shown to the signed-in user as a
+/// notification of the desktop. Runs in the user's session, which notifications are shown in.
 /// </summary>
 public sealed partial class NotificationAction(
     IEventBus bus, IEntityRegistry registry, ILogger<NotificationAction> logger, NotificationPresenter presenter)

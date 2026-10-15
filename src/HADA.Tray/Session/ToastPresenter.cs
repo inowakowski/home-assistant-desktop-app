@@ -1,6 +1,6 @@
 using System.IO;
-using System.Net.Http;
 using HADA.Core;
+using HADA.Core.Actions;
 using HADA.Core.Entities;
 using System.Security;
 using HADA.Platform.Windows.Desktop;
@@ -35,12 +35,6 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
     private const string AddressPrefix = "open:";
 
     private const int MaxKeptToasts = 20;
-    private const long MaxImageBytes = 5 * 1024 * 1024;
-
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(10) };
-
-    private static readonly string DataFolder = AppFolders.UserData;
-
     private readonly List<ToastNotification> _shown = [];
     private bool _isRegistered;
 
@@ -188,8 +182,8 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
         }
 
         // Windows wants the icon as a file; the one in this program's resources is written out once.
-        Directory.CreateDirectory(DataFolder);
-        var iconPath = Path.Combine(DataFolder, "hada.ico");
+        Directory.CreateDirectory(AppFolders.UserData);
+        var iconPath = Path.Combine(AppFolders.UserData, "hada.ico");
         if (!File.Exists(iconPath))
         {
             using var resource = System.Windows.Application.GetResourceStream(AppIcon.Uri)!.Stream;
@@ -203,69 +197,8 @@ public sealed partial class ToastPresenter(Action<string, string?> actionPressed
         _isRegistered = true;
     }
 
-    /// <summary>
-    /// Toasts of a program like this one can only show pictures that are files on this computer. Returns
-    /// <see langword="null"/> when the picture cannot be fetched; the notification is then shown without it.
-    /// </summary>
-    private async Task<string?> TryDownloadImageAsync(string url)
-    {
-        try
-        {
-            var folder = Path.Combine(DataFolder, "notifications");
-            Directory.CreateDirectory(folder);
-            foreach (var old in Directory.EnumerateFiles(folder))
-            {
-                if (File.GetLastWriteTimeUtc(old) < DateTime.UtcNow.AddHours(-1))
-                {
-                    File.Delete(old);
-                }
-            }
-
-            using var response = await Http.GetAsync(new Uri(url), HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-            var extension = response.Content.Headers.ContentType?.MediaType switch
-            {
-                "image/png" => ".png",
-                "image/jpeg" => ".jpg",
-                "image/gif" => ".gif",
-                "image/bmp" => ".bmp",
-                _ => null,
-            };
-            if (extension is null || response.Content.Headers.ContentLength > MaxImageBytes)
-            {
-                return null;
-            }
-
-            var path = Path.Combine(folder, Guid.NewGuid().ToString("N") + extension);
-            await using (var source = await response.Content.ReadAsStreamAsync())
-            await using (var target = File.Create(path))
-            {
-                var buffer = new byte[81920];
-                long total = 0;
-                int read;
-                while ((read = await source.ReadAsync(buffer)) > 0)
-                {
-                    // The server's word on the size is not relied on.
-                    total += read;
-                    if (total > MaxImageBytes)
-                    {
-                        target.Close();
-                        File.Delete(path);
-                        return null;
-                    }
-
-                    await target.WriteAsync(buffer.AsMemory(0, read));
-                }
-            }
-
-            return path;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException or UriFormatException)
-        {
-            LogImageFailed(logger, ex.Message);
-            return null;
-        }
-    }
+    /// <summary>Toasts of a program like this one can only show pictures that are files on this computer.</summary>
+    private Task<string?> TryDownloadImageAsync(string url) => NotificationImages.TryDownloadAsync(url, reason => LogImageFailed(logger, reason));
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A notification could not be shown as a toast ({Reason}); showing it the plain way.")]
     private static partial void LogToastFailed(ILogger logger, string reason);

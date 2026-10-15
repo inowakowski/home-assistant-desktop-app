@@ -1,13 +1,17 @@
+using System.Diagnostics;
+using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using HADA.Core;
 using HADA.Core.Abstractions;
+using HADA.Core.Actions;
 using HADA.Core.Entities;
 using HADA.Core.Hosting;
 using HADA.Core.Logging;
 using HADA.Core.Messaging;
+using HADA.Core.Models;
 using HADA.Ipc;
 using HADA.Platform.Linux;
 using HADA.Presentation;
@@ -33,8 +37,10 @@ internal sealed partial class Agent : IAsyncDisposable
     private readonly ServiceProcess? _service;
     private readonly TrayIcon _icon;
     private readonly DispatcherTimer _iconState;
+    private readonly IAsyncDisposable? _notifications;
 
-    private Agent(FileLoggerProvider log, ILogger logger, IHost host, ServiceProcess? service, TrayIcon icon, DispatcherTimer iconState)
+    private Agent(
+        FileLoggerProvider log, ILogger logger, IHost host, ServiceProcess? service, TrayIcon icon, DispatcherTimer iconState, IAsyncDisposable? notifications)
     {
         _log = log;
         _logger = logger;
@@ -42,6 +48,7 @@ internal sealed partial class Agent : IAsyncDisposable
         _service = service;
         _icon = icon;
         _iconState = iconState;
+        _notifications = notifications;
     }
 
     /// <summary>Whether this system has its agent in the app; Windows has the tray app for it.</summary>
@@ -77,11 +84,17 @@ internal sealed partial class Agent : IAsyncDisposable
 
         var ipc = host.Services.GetRequiredService<IpcClient>();
         var (icon, iconState) = CreateIcon(application, ipc, showWindow, exit);
-        return new Agent(log, logger, host, service, icon, iconState);
+        var notifications = OperatingSystem.IsLinux() ? await ShowNotificationsAsync(host, logger) : null;
+        return new Agent(log, logger, host, service, icon, iconState, notifications);
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (_notifications is not null)
+        {
+            await _notifications.DisposeAsync();
+        }
+
         _iconState.Stop();
         _icon.IsVisible = false;
         _icon.Dispose();
@@ -117,6 +130,27 @@ internal sealed partial class Agent : IAsyncDisposable
         }
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// Has the desktop show what Home Assistant sends, and reports a pressed button back as an event, to the Home
+    /// Assistant the notification came from.
+    /// </summary>
+    [SupportedOSPlatform("linux")]
+    private static async Task<IAsyncDisposable?> ShowNotificationsAsync(IHost host, ILogger logger)
+    {
+        var bus = host.Services.GetRequiredService<IEventBus>();
+        var notifications = new LinuxNotifications(
+            (action, origin) => _ = bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = action, Target = origin }).AsTask(),
+            address => Process.Start(new ProcessStartInfo(address) { UseShellExecute = true })?.Dispose(),
+            logger);
+        if (!await notifications.StartAsync())
+        {
+            return null;
+        }
+
+        host.Services.GetRequiredService<NotificationPresenter>().Show = request => _ = notifications.ShowAsync(request);
+        return notifications;
     }
 
     private static (TrayIcon Icon, DispatcherTimer State) CreateIcon(Application application, IpcClient ipc, Action showWindow, Action exit)
