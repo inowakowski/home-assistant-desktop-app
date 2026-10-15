@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
+using HADA.Core.Actions;
 using HADA.Core.Sensors;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -67,6 +68,15 @@ public static class LinuxSession
             provider.GetRequiredService<Core.Abstractions.IEntityRegistry>(),
             provider.GetRequiredService<ISessionReadings>(),
             activeWindow));
+
+        // Sound, where the system has a sound server's tool to ask; without one there is nothing to control.
+        if (LinuxAudioDevices.ForThisSystem() is { } audio)
+        {
+            services.AddSingleton<IAudioDevices>(audio);
+            services.AddHostedService<AudioVolumeSensor>();
+            services.AddHostedService<AudioControl>();
+        }
+
         return services;
     }
 }

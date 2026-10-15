@@ -109,7 +109,8 @@ public sealed class ActionTests : IAsyncDisposable
     [WindowsFact]
     public async Task Volume_and_mute_controls_are_registered_with_the_kinds_home_assistant_needs()
     {
-        using var audio = new AudioControl(_bus, _registry, NullLogger<AudioControl>.Instance);
+        using var devices = new WindowsAudioDevices();
+        using var audio = new AudioControl(_bus, _registry, NullLogger<AudioControl>.Instance, devices);
         await audio.StartAsync(CancellationToken.None);
 
         Assert.True(_registry.TryGet(AudioControl.VolumeEntityId, out var volume));

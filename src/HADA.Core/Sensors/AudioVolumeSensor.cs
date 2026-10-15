@@ -1,16 +1,13 @@
 using System.Globalization;
-using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Hosting;
 using HADA.Core.Models;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
-namespace HADA.Platform.Windows.Sensors;
+namespace HADA.Core.Sensors;
 
-/// <summary>Publishes the default playback device's volume, with mute state as an attribute. Runs in the tray app.</summary>
-public sealed partial class AudioVolumeSensor(IEventBus bus, IEntityRegistry registry, ILogger<AudioVolumeSensor> logger)
+/// <summary>Publishes the default playback device's volume, with mute state as an attribute. Runs in the user's session.</summary>
+public sealed class AudioVolumeSensor(IEventBus bus, IEntityRegistry registry, IAudioDevices audio)
     : EagerBackgroundService
 {
     public const string EntityId = BuiltInEntityIds.AudioVolume;
@@ -30,22 +27,11 @@ public sealed partial class AudioVolumeSensor(IEventBus bus, IEntityRegistry reg
             },
             stoppingToken);
 
-        using var endpoint = new DefaultAudioEndpoint();
-        AudioVolumeInfo? last = null;
+        AudioLevel? last = null;
         using var timer = new PeriodicTimer(PollInterval);
         do
         {
-            AudioVolumeInfo? current;
-            try
-            {
-                current = endpoint.TryRead();
-            }
-            catch (COMException ex)
-            {
-                LogReadFailed(logger, ex);
-                continue;
-            }
-
+            var current = audio.Read(AudioEndpoint.Speakers);
             if (current is not { } volume || current == last)
             {
                 continue;
@@ -63,7 +49,4 @@ public sealed partial class AudioVolumeSensor(IEventBus bus, IEntityRegistry reg
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Reading the audio endpoint volume failed.")]
-    private static partial void LogReadFailed(ILogger logger, Exception exception);
 }

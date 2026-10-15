@@ -1,4 +1,5 @@
 using HADA.Core.Abstractions;
+using HADA.Core.Actions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
 using HADA.Core.Sensors;
@@ -31,6 +32,7 @@ public static class SessionServices
         services.AddHostedService<ActiveWindowSensor>();
         services.AddHostedService<AudioVolumeSensor>();
         services.AddSingleton<ISessionReadings, WindowsSessionReadings>();
+        services.AddSingleton<IAudioDevices, WindowsAudioDevices>();
         services.AddHostedService(provider => new UserActivitySensor(
             provider.GetRequiredService<IEventBus>(),
             provider.GetRequiredService<IEntityRegistry>(),
