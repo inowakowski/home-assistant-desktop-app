@@ -5,7 +5,7 @@ using HADA.Core.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace HADA.Platform.Windows.Actions;
+namespace HADA.Core.Actions;
 
 /// <summary>
 /// Registers entities Home Assistant can send commands to, and hands every command for one of them to

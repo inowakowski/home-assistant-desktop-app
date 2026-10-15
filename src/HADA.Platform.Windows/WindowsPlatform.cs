@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
+using HADA.Core.Sensors;
 using HADA.Platform.Windows.Actions;
 using HADA.Platform.Windows.Network;
 using HADA.Platform.Windows.Sensors;
@@ -21,21 +22,16 @@ public static class WindowsPlatform
     {
         services.AddSingleton<IDeviceDirectory, WindowsDeviceDirectory>();
         services.AddSingleton<INetworkLocation, WindowsNetworkLocation>();
+        services.AddSingleton<ISystemReadings, WindowsSystemReadings>();
+        services.AddSingleton<IPowerControl, WindowsPowerControl>();
+        services.AddSingleton<IScreenLock, WindowsScreenLock>();
 
-        services.AddHostedService<CpuLoadSensor>();
-        services.AddHostedService<MemoryUsageSensor>();
-        services.AddHostedService<BatterySensor>();
+        // What every system has, then what Windows has besides.
+        services.AddSystemEntities();
         services.AddHostedService<PowerStateSensor>();
-        services.AddHostedService<SessionLockSensor>();
-        services.AddHostedService<LastBootSensor>();
-        services.AddHostedService<ActiveUserSensor>();
         services.AddHostedService<NetworkSensor>();
-        services.AddHostedService<DiskUsageSensor>();
         services.AddHostedService<GpuLoadSensor>();
-        services.AddHostedService<RestartRequiredSensor>();
         services.AddHostedService<ScreenBrightnessControl>();
-        services.AddHostedService<LockScreenAction>();
-        services.AddHostedService<PowerActions>();
         return services;
     }
 }

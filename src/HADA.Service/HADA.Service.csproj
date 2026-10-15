@@ -18,6 +18,7 @@
     <ProjectReference Include="..\HADA.Engine.Mqtt\HADA.Engine.Mqtt.csproj" />
     <ProjectReference Include="..\HADA.Engine.WebSocket\HADA.Engine.WebSocket.csproj" />
     <ProjectReference Include="..\HADA.Ipc\HADA.Ipc.csproj" />
+    <ProjectReference Include="..\HADA.Platform.Linux\HADA.Platform.Linux.csproj" />
     <ProjectReference Include="..\HADA.Platform.Windows\HADA.Platform.Windows.csproj" />
   </ItemGroup>
 </Project>

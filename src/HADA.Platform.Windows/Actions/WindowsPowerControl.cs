@@ -1,89 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
-using HADA.Core.Entities;
-using HADA.Core.Models;
 using HADA.Platform.Windows.Interop;
-using Microsoft.Extensions.Logging;
 
 namespace HADA.Platform.Windows.Actions;
-
-public enum PowerCommand
-{
-    Sleep,
-    Hibernate,
-    Shutdown,
-    Restart,
-}
-
-/// <summary>Carries out a <see cref="PowerCommand"/>; replaced in tests, which must not switch the computer off.</summary>
-public interface IPowerControl
-{
-    /// <summary>Returns <see langword="null"/> when the command was accepted, otherwise why it was not.</summary>
-    string? Execute(PowerCommand command);
-}
-
-/// <summary>
-/// Exposes "Sleep", "Hibernate", "Shut down" and "Restart" buttons. Runs in the service, which may do all four
-/// whether or not anybody is signed in.
-/// </summary>
-/// <remarks>
-/// The buttons are off until switched on in settings (<see cref="EntityDescriptor.EnabledByDefault"/>): whoever can
-/// press them in Home Assistant can switch this computer off.
-/// </remarks>
-public sealed partial class PowerActions(
-    IEventBus bus, IEntityRegistry registry, ILogger<PowerActions> logger, IPowerControl? power = null)
-    : CommandHandler(bus, registry, logger)
-{
-    public const string SleepEntityId = BuiltInEntityIds.Sleep;
-    public const string HibernateEntityId = BuiltInEntityIds.Hibernate;
-    public const string ShutdownEntityId = BuiltInEntityIds.Shutdown;
-    public const string RestartEntityId = BuiltInEntityIds.Restart;
-
-    private readonly IPowerControl _power = power ?? new WindowsPowerControl();
-
-    protected override IReadOnlyList<EntityDescriptor> Entities { get; } =
-    [
-        Button(SleepEntityId, "Sleep", "mdi:power-sleep"),
-        Button(HibernateEntityId, "Hibernate", "mdi:power-sleep"),
-        Button(ShutdownEntityId, "Shut down", "mdi:power"),
-        Button(RestartEntityId, "Restart", "mdi:restart"),
-    ];
-
-    protected override ValueTask HandleAsync(ActionCommand command, CancellationToken cancellationToken)
-    {
-        var power = command.ActionId switch
-        {
-            SleepEntityId => PowerCommand.Sleep,
-            HibernateEntityId => PowerCommand.Hibernate,
-            ShutdownEntityId => PowerCommand.Shutdown,
-            _ => PowerCommand.Restart,
-        };
-
-        LogRequested(Logger, power, command.Origin);
-
-        // On its own thread: putting the computer to sleep returns only after it woke up again.
-        _ = Task.Run(
-            () =>
-            {
-                if (_power.Execute(power) is { } error)
-                {
-                    LogFailed(Logger, power, error);
-                }
-            },
-            CancellationToken.None);
-        return ValueTask.CompletedTask;
-    }
-
-    private static EntityDescriptor Button(string id, string name, string icon) =>
-        new() { Id = id, Name = name, Kind = EntityKind.Button, Icon = icon, EnabledByDefault = false };
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "{Command} requested via {Origin}.")]
-    private static partial void LogRequested(ILogger logger, PowerCommand command, string? origin);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "{Command} failed: {Reason}")]
-    private static partial void LogFailed(ILogger logger, PowerCommand command, string reason);
-}
 
 /// <summary>
 /// Sleep goes through <c>SetSuspendState</c>; the rest through Windows' own <c>shutdown.exe</c>, which asks open

@@ -8,6 +8,7 @@ using HADA.Core.Messaging;
 using HADA.Engine.Mqtt;
 using HADA.Engine.WebSocket;
 using HADA.Ipc;
+using HADA.Platform.Linux;
 using HADA.Platform.Windows;
 using HADA.Service.CustomSensors;
 using HADA.Service.Logging;
@@ -145,6 +146,10 @@ public static class ServiceHost
         if (OperatingSystem.IsWindows())
         {
             builder.Services.AddWindowsServiceEntities();
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            builder.Services.AddLinuxServiceEntities();
         }
 
         builder.Services.AddHostedService(services => services.GetRequiredService<UpdateChecker>());

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Threading.Channels;
+using HADA.Core.Sensors;
 using HADA.Platform.Windows.Interop;
 using HADA.Platform.Windows.Sensors;
 
@@ -160,12 +161,12 @@ public class SystemReaderTests
     {
         var disks = Disks.Read();
 
-        Assert.Contains(disks, disk => disk.Letter == char.ToLowerInvariant(Environment.SystemDirectory[0]));
+        Assert.Contains(disks, disk => disk.Key == char.ToLowerInvariant(Environment.SystemDirectory[0]).ToString());
         Assert.All(disks, disk =>
         {
             Assert.InRange(disk.UsedPercent, 0, 100);
             Assert.InRange(disk.FreeGigabytes, 0, disk.TotalGigabytes);
-            Assert.True(DiskUsageSensor.IsEntityId(DiskUsageSensor.EntityIdFor(disk.Letter)));
+            Assert.True(DiskUsageSensor.IsEntityId(DiskUsageSensor.EntityIdFor(disk.Key)));
         });
         Assert.False(DiskUsageSensor.IsEntityId("disk_usage"));
         Assert.False(DiskUsageSensor.IsEntityId("disk_1_usage"));

@@ -53,6 +53,8 @@ public static class BuiltInEntityIds
 
     private const string DiskPrefix = "disk_";
     private const string DiskSuffix = "_usage";
+    private static readonly System.Buffers.SearchValues<char> DiskKeyCharacters =
+        System.Buffers.SearchValues.Create("abcdefghijklmnopqrstuvwxyz0123456789_");
 
     /// <summary>Every fixed id, including those of entities absent on this computer.</summary>
     public static FrozenSet<string> All { get; } = new[]
@@ -98,17 +100,26 @@ public static class BuiltInEntityIds
         UpdateAvailable,
     }.ToFrozenSet(StringComparer.Ordinal);
 
-    /// <summary>The id of a drive's usage sensor, e.g. <c>disk_c_usage</c>.</summary>
-    public static string DiskUsage(char drive) => $"{DiskPrefix}{char.ToLowerInvariant(drive)}{DiskSuffix}";
+    /// <summary>
+    /// The id of a disk's usage sensor, from its key: a drive letter on Windows, <c>disk_c_usage</c>; a name made of
+    /// the mount point elsewhere, <c>disk_root_usage</c>, <c>disk_home_usage</c>.
+    /// </summary>
+    public static string DiskUsage(string key) => $"{DiskPrefix}{key.ToLowerInvariant()}{DiskSuffix}";
 
-    /// <summary>Whether an id is that of a drive's usage sensor, which have no fixed list.</summary>
+    /// <summary>Whether an id is that of a disk's usage sensor, which have no fixed list.</summary>
     public static bool IsDiskUsage(string id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        return id.Length == DiskPrefix.Length + 1 + DiskSuffix.Length
-            && id.StartsWith(DiskPrefix, StringComparison.Ordinal)
-            && id.EndsWith(DiskSuffix, StringComparison.Ordinal)
-            && id[DiskPrefix.Length] is >= 'a' and <= 'z';
+        if (id.Length <= DiskPrefix.Length + DiskSuffix.Length
+            || !id.StartsWith(DiskPrefix, StringComparison.Ordinal)
+            || !id.EndsWith(DiskSuffix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // A key starts with a letter and has letters, digits and underscores after it.
+        var key = id.AsSpan(DiskPrefix.Length, id.Length - DiskPrefix.Length - DiskSuffix.Length);
+        return key[0] is >= 'a' and <= 'z' && !key.ContainsAnyExcept(DiskKeyCharacters);
     }
 
     /// <summary>Whether an id belongs to a built-in entity, so nothing the user defines may take it.</summary>
