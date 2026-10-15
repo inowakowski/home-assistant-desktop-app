@@ -18,6 +18,7 @@ public static class LinuxPlatform
         services.AddSingleton<ISystemReadings, LinuxSystemReadings>();
         services.AddSingleton<IPowerControl, LinuxPowerControl>();
         services.AddSingleton<IScreenLock, LinuxScreenLock>();
+        services.AddSingleton<IDeviceDirectory>(_ => new LinuxUsbDevices());
         services.AddSingleton<LinuxHardware>(_ => new LinuxHardware());
         services.AddSystemEntities();
         services.AddHostedService<LidSensor>();

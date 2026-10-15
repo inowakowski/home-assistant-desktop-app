@@ -540,4 +540,24 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Add_Way_off_Result2" xml:space="preserve">
     <value>The entities keep going through MQTT.</value>
   </data>
+  <data name="Preferences_DashboardDetailBrowser" xml:space="preserve"><value>Opened in your browser from the menu of HADA's icon in the system tray. Each Home Assistant that HADA connects to directly has its dashboard here: switch off the ones you do not want, or give an address of your own, a particular dashboard for instance.</value></data>
+  <data name="Custom_SubtitleUnix" xml:space="preserve"><value>Your own sensors: a fixed text, whether a program is running or a device is connected, the result of a shell command. Your own buttons for Home Assistant to press: run a command, start a program, press keys. And quick actions: entries in the menu of HADA's icon in the system tray that start an automation in Home Assistant.</value></data>
+  <data name="Custom_TypeShell" xml:space="preserve"><value>Sensor: shell command</value></data>
+  <data name="Custom_TypeShellButton" xml:space="preserve"><value>Button: shell command</value></data>
+  <data name="Custom_ValueQuickActionUnix" xml:space="preserve"><value>Keyboard shortcut (Windows only)</value></data>
+  <data name="Custom_ShellNote" xml:space="preserve"><value>Commands, of sensors and of buttons, are run with sh by the HADA service, as you and in your session. A sensor's command that fails or takes longer than 30 seconds is reported on the Logs page; a button's command may take up to 10 minutes.</value></data>
+  <data name="Custom_ButtonNoteUnix" xml:space="preserve"><value>A program a button starts runs in your session, with your rights, while HADA is running. Put a path that contains spaces in quotes. Keys are pressed in an X11 session only: Wayland does not let apps type into others.</value></data>
+  <data name="Custom_QuickActionNoteUnix" xml:space="preserve"><value>A quick action does nothing on this computer by itself. It appears in the menu of HADA's icon in the system tray and as a trigger of this device in Home Assistant; build an automation on that trigger to say what it does. Its keyboard shortcut works on Windows only.</value></data>
+  <data name="EntityHint_active_window_Unix" xml:space="preserve"><value>Sends window titles, which can contain document names, e-mail subjects or web page titles. Only in an X11 session: Wayland does not tell apps which window is in front.</value></data>
+  <data name="EntityHint_session_locked_Unix" xml:space="preserve"><value>On while the session is locked.</value></data>
+  <data name="EntityHint_microphone_muted_Unix" xml:space="preserve"><value>On while the default microphone is muted in the sound settings. Muting inside a call app only is not seen.</value></data>
+  <data name="EntityHint_ip_address_Unix" xml:space="preserve"><value>The address of the connection the computer routes through. Its name and type are attributes.</value></data>
+  <data name="EntityHint_wifi_network_Unix" xml:space="preserve"><value>The name of the connected Wi-Fi network, with the signal strength as an attribute.</value></data>
+  <data name="EntityHint_do_not_disturb_Unix" xml:space="preserve"><value>On while the desktop holds notifications back: Do not disturb on GNOME and KDE.</value></data>
+  <data name="EntityHint_gpu_load_Unix" xml:space="preserve"><value>How busy the graphics processor is: AMD's cards say so themselves, NVIDIA's through their driver's nvidia-smi.</value></data>
+  <data name="EntityHint_media_play_pause_Unix" xml:space="preserve"><value>Tells the player that the desktop's media controls show to play or pause.</value></data>
+  <data name="EntityHint_microphone_mute_Unix" xml:space="preserve"><value>Lets Home Assistant mute and unmute the default microphone.</value></data>
+  <data name="EntityHint_notification_Unix" xml:space="preserve"><value>Messages sent to this entity are shown as the desktop's notifications, with a picture and buttons if the message has them.</value></data>
+  <data name="EntityHint_restart_required_Unix" xml:space="preserve"><value>On while updated packages or a new kernel wait for a restart to take effect.</value></data>
+  <data name="EntityHint_screen_brightness_Unix" xml:space="preserve"><value>The brightness of the built-in screen, which Home Assistant can also set. Only on computers whose screen has a backlight.</value></data>
 </root>

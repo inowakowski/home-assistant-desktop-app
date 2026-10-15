@@ -22,6 +22,13 @@ public interface IAudioDevices
     /// <summary>Returns <see langword="null"/> when there is no such device, e.g. no microphone is connected.</summary>
     AudioLevel? Read(AudioEndpoint endpoint);
 
+    /// <summary>
+    /// The device's name as the system shows it, e.g. <c>Speakers (Realtek Audio)</c> on Windows; <see langword="null"/>
+    /// when there is no such device.
+    /// </summary>
+    /// <exception cref="Exception">The device cannot be asked right now, e.g. while it is being switched.</exception>
+    string? ReadName(AudioEndpoint endpoint);
+
     /// <summary>Sets the speakers' volume, 0 to 100. Returns <see langword="false"/> when there is no such device or it refuses.</summary>
     bool TrySetVolume(int percent);
 

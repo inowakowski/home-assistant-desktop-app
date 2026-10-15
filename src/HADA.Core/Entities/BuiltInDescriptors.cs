@@ -61,4 +61,52 @@ public static class BuiltInDescriptors
         Max = 100,
         Step = 1,
     };
+
+    public static EntityDescriptor MediaPlayback { get; } = new()
+    {
+        Id = BuiltInEntityIds.MediaPlayback,
+        Name = "Media playback",
+        Kind = EntityKind.Sensor,
+        Icon = "mdi:music-circle",
+    };
+
+    public static EntityDescriptor MediaPlayer { get; } = new()
+    {
+        Id = BuiltInEntityIds.MediaPlayer,
+        Name = "Media player",
+        Kind = EntityKind.MediaPlayer,
+        Icon = "mdi:play-box-outline",
+    };
+
+    public static EntityDescriptor MediaPlayPause { get; } = new()
+    {
+        Id = BuiltInEntityIds.MediaPlayPause,
+        Name = "Media play/pause",
+        Kind = EntityKind.Button,
+        Icon = "mdi:play-pause",
+    };
+
+    public static EntityDescriptor MediaNext { get; } = new()
+    {
+        Id = BuiltInEntityIds.MediaNext,
+        Name = "Media next",
+        Kind = EntityKind.Button,
+        Icon = "mdi:skip-next",
+    };
+
+    public static EntityDescriptor MediaPrevious { get; } = new()
+    {
+        Id = BuiltInEntityIds.MediaPrevious,
+        Name = "Media previous",
+        Kind = EntityKind.Button,
+        Icon = "mdi:skip-previous",
+    };
+
+    public static EntityDescriptor MediaStop { get; } = new()
+    {
+        Id = BuiltInEntityIds.MediaStop,
+        Name = "Media stop",
+        Kind = EntityKind.Button,
+        Icon = "mdi:stop",
+    };
 }

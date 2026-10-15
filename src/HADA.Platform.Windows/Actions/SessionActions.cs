@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Actions;
@@ -79,10 +78,10 @@ public sealed partial class MediaKeyActions(IEventBus bus, IEntityRegistry regis
 
     protected override IReadOnlyList<EntityDescriptor> Entities { get; } =
     [
-        new() { Id = PlayPauseEntityId, Name = "Media play/pause", Kind = EntityKind.Button, Icon = "mdi:play-pause" },
-        new() { Id = NextEntityId, Name = "Media next", Kind = EntityKind.Button, Icon = "mdi:skip-next" },
-        new() { Id = PreviousEntityId, Name = "Media previous", Kind = EntityKind.Button, Icon = "mdi:skip-previous" },
-        new() { Id = StopEntityId, Name = "Media stop", Kind = EntityKind.Button, Icon = "mdi:stop" },
+        BuiltInDescriptors.MediaPlayPause,
+        BuiltInDescriptors.MediaNext,
+        BuiltInDescriptors.MediaPrevious,
+        BuiltInDescriptors.MediaStop,
     ];
 
     protected override ValueTask HandleAsync(ActionCommand command, CancellationToken cancellationToken)
@@ -107,109 +106,9 @@ public sealed partial class MediaKeyActions(IEventBus bus, IEntityRegistry regis
     private static partial void LogFailed(ILogger logger, MediaKey key, int error);
 }
 
-/// <summary>
-/// Starts programs for the service in the user's session: the service itself runs where nothing it starts could
-/// be seen. Runs in the tray app and has no entity of its own; the buttons belong to the service, which sends
-/// <see cref="SessionCommands.Launch"/> with what the administrator configured for the button that was pressed.
-/// </summary>
-public sealed partial class LaunchAction(IEventBus bus, ILogger<LaunchAction> logger) : EagerBackgroundService
+/// <summary>The keyboard of the user's desktop, through <c>SendInput</c>.</summary>
+public sealed class WindowsKeyboard : IKeyboard
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await using var commands = bus.Subscribe<ActionCommand>();
-        try
-        {
-            await foreach (var command in commands.ReadAllAsync(stoppingToken))
-            {
-                if (command.ActionId != SessionCommands.Launch || string.IsNullOrWhiteSpace(command.Value))
-                {
-                    continue;
-                }
-
-                var (file, arguments) = Split(command.Value);
-                try
-                {
-                    // Through the shell, so documents, folders and addresses such as https://… work as well.
-                    Process.Start(new ProcessStartInfo(file, arguments) { UseShellExecute = true })?.Dispose();
-                    LogStarted(logger, file);
-                }
-                catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
-                {
-                    LogFailed(logger, file, ex.Message);
-                }
-            }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Splits a command line into what to start and its arguments: <c>"C:\Program Files\App\app.exe" --flag</c>,
-    /// <c>notepad notes.txt</c> or just <c>https://example.com</c>. A path containing spaces must be quoted, unless
-    /// it is all there is.
-    /// </summary>
-    public static (string File, string Arguments) Split(string commandLine)
-    {
-        ArgumentNullException.ThrowIfNull(commandLine);
-
-        var text = commandLine.Trim();
-        if (text.StartsWith('"'))
-        {
-            var closing = text.IndexOf('"', 1);
-            return closing < 0 ? (text[1..], string.Empty) : (text[1..closing], text[(closing + 1)..].TrimStart());
-        }
-
-        var space = text.IndexOf(' ', StringComparison.Ordinal);
-        return space < 0 || File.Exists(text) || Directory.Exists(text)
-            ? (text, string.Empty)
-            : (text[..space], text[(space + 1)..].TrimStart());
-    }
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Started '{File}' for the service.")]
-    private static partial void LogStarted(ILogger logger, string file);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Starting '{File}' failed: {Reason}")]
-    private static partial void LogFailed(ILogger logger, string file, string reason);
-}
-
-/// <summary>
-/// Presses key combinations for the service on the user's desktop. Like <see cref="LaunchAction"/> it runs in the
-/// tray app and has no entity of its own: the service sends <see cref="SessionCommands.PressKeys"/> with the
-/// combination the administrator configured for the button that was pressed.
-/// </summary>
-public sealed partial class KeyPressAction(IEventBus bus, ILogger<KeyPressAction> logger) : EagerBackgroundService
-{
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await using var commands = bus.Subscribe<ActionCommand>();
-        try
-        {
-            await foreach (var command in commands.ReadAllAsync(stoppingToken))
-            {
-                if (command.ActionId != SessionCommands.PressKeys)
-                {
-                    continue;
-                }
-
-                if (!KeyCombination.TryParse(command.Value, out var combination))
-                {
-                    LogNotACombination(logger, command.Value);
-                }
-                else if (!InputSimulator.Press(combination))
-                {
-                    LogFailed(logger, combination.ToString(), Marshal.GetLastPInvokeError());
-                }
-            }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-        }
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "'{Text}' is not a key combination; nothing was pressed.")]
-    private static partial void LogNotACombination(ILogger logger, string? text);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Pressing {Combination} failed with error {Error}.")]
-    private static partial void LogFailed(ILogger logger, string combination, int error);
+    public string? Press(KeyCombination combination) =>
+        InputSimulator.Press(combination) ? null : $"error {Marshal.GetLastPInvokeError()}";
 }

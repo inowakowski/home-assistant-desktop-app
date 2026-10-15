@@ -83,7 +83,7 @@ internal sealed partial class Agent : IAsyncDisposable
         await host.StartAsync();
 
         var ipc = host.Services.GetRequiredService<IpcClient>();
-        var (icon, iconState) = CreateIcon(application, ipc, showWindow, exit);
+        var (icon, iconState) = CreateIcon(application, ipc, host.Services.GetRequiredService<QuickActions>(), logger, showWindow, exit);
         var notifications = OperatingSystem.IsLinux() ? await ShowNotificationsAsync(host, logger) : null;
         return new Agent(log, logger, host, service, icon, iconState, notifications);
     }
@@ -124,6 +124,11 @@ internal sealed partial class Agent : IAsyncDisposable
         // The IPC client starts first so it is subscribed before the sensors publish anything.
         builder.Services.AddSingleton<IpcClient>();
         builder.Services.AddHostedService(provider => provider.GetRequiredService<IpcClient>());
+
+        // Programs the service's buttons start, and the quick actions of the icon's menu.
+        builder.Services.AddHostedService<LaunchAction>();
+        builder.Services.AddSingleton<QuickActions>();
+        builder.Services.AddHostedService(provider => provider.GetRequiredService<QuickActions>());
         if (OperatingSystem.IsLinux())
         {
             builder.Services.AddLinuxSessionEntities(() => TimeSpan.FromSeconds(UserPreferences.IdleSeconds));
@@ -142,7 +147,7 @@ internal sealed partial class Agent : IAsyncDisposable
         var bus = host.Services.GetRequiredService<IEventBus>();
         var notifications = new LinuxNotifications(
             (action, origin) => _ = bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = action, Target = origin }).AsTask(),
-            address => Process.Start(new ProcessStartInfo(address) { UseShellExecute = true })?.Dispose(),
+            address => OpenInBrowser(address, logger),
             logger);
         if (!await notifications.StartAsync())
         {
@@ -153,30 +158,102 @@ internal sealed partial class Agent : IAsyncDisposable
         return notifications;
     }
 
-    private static (TrayIcon Icon, DispatcherTimer State) CreateIcon(Application application, IpcClient ipc, Action showWindow, Action exit)
+    /// <summary>
+    /// The icon in the system tray. Its menu has the quick actions, the window, a Home Assistant dashboard for each
+    /// there is, which opens in the browser, and the way to end the app.
+    /// </summary>
+    private static (TrayIcon Icon, DispatcherTimer State) CreateIcon(
+        Application application, IpcClient ipc, QuickActions quickActions, ILogger logger, Action showWindow, Action exit)
     {
-        var open = new NativeMenuItem(Loc.Get("Tray_Open"));
-        open.Click += (_, _) => showWindow();
-        var quit = new NativeMenuItem(Loc.Get("Tray_Exit"));
-        quit.Click += (_, _) => exit();
+        var menu = new NativeMenu();
+        string? shown = null;
+        void Update()
+        {
+            // Built again only when something in it changed: the service sends the quick actions, and the window
+            // keeps the dashboards.
+            var actions = quickActions.Current;
+            var dashboards = UserPreferences.AllDashboards;
+            var content = string.Join(
+                '\n',
+                actions.Select(action => $"{action.Id}\t{action.Name}")
+                    .Concat(dashboards.Select(dashboard => $"{dashboard.Id}\t{dashboard.Name}\t{dashboard.Address}")));
+            if (content == shown)
+            {
+                return;
+            }
+
+            shown = content;
+            menu.Items.Clear();
+            foreach (var action in actions)
+            {
+                // Shortcuts are not offered here: Linux has no way for an app to listen for one everywhere.
+                var item = new NativeMenuItem(action.Name);
+                item.Click += (_, _) => quickActions.Choose(action);
+                menu.Items.Add(item);
+            }
+
+            if (actions.Count > 0)
+            {
+                menu.Items.Add(new NativeMenuItemSeparator());
+            }
+
+            var open = new NativeMenuItem(Loc.Get("Tray_Open"));
+            open.Click += (_, _) => showWindow();
+            menu.Items.Add(open);
+
+            // One dashboard needs no name; several are told apart by the Home Assistant each shows.
+            foreach (var dashboard in dashboards)
+            {
+                var item = new NativeMenuItem(dashboards.Count == 1 ? Loc.Get("Tray_Dashboard") : Loc.Format("Tray_DashboardNamed", dashboard.Name));
+                item.Click += (_, _) => OpenInBrowser(dashboard.Address.AbsoluteUri, logger);
+                menu.Items.Add(item);
+            }
+
+            var quit = new NativeMenuItem(Loc.Get("Tray_Exit"));
+            quit.Click += (_, _) => exit();
+            menu.Items.Add(new NativeMenuItemSeparator());
+            menu.Items.Add(quit);
+        }
+
+        Update();
+        quickActions.Changed += _ => Dispatcher.UIThread.Post(Update);
 
         using var image = AssetLoader.Open(new Uri("avares://HADA.App/Assets/hada.ico"));
         var icon = new TrayIcon
         {
             Icon = new WindowIcon(image),
             ToolTipText = Loc.Get("Tray_Waiting"),
-            Menu = new NativeMenu { Items = { open, new NativeMenuItemSeparator(), quit } },
+            Menu = menu,
         };
         icon.Clicked += (_, _) => showWindow();
         TrayIcon.SetIcons(application, [icon]);
 
-        // The tooltip says whether the service hears this session.
+        // The tooltip says whether the service hears this session; the menu follows the settings.
         var state = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, (_, _) =>
-            icon.ToolTipText = Loc.Get(ipc.IsConnected ? "Tray_Connected" : "Tray_Waiting"));
+        {
+            icon.ToolTipText = Loc.Get(ipc.IsConnected ? "Tray_Connected" : "Tray_Waiting");
+            Update();
+        });
         state.Start();
         return (icon, state);
     }
 
+    /// <summary>Opens an <c>http</c> or <c>https</c> address in the user's browser.</summary>
+    private static void OpenInBrowser(string address, ILogger logger)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(address) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            LogNotOpened(logger, address, ex.Message);
+        }
+    }
+
     [LoggerMessage(Level = LogLevel.Error, Message = "The service could not be started: {Reason}")]
     private static partial void LogServiceNotStarted(ILogger logger, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "'{Address}' could not be opened in the browser: {Reason}")]
+    private static partial void LogNotOpened(ILogger logger, string address, string reason);
 }

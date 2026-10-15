@@ -25,6 +25,25 @@ public sealed class LinuxAudioTests
     }
 
     [Fact]
+    public void Wpctl_names_the_device_in_its_description()
+    {
+        const string output = "id 52, type PipeWire:Interface:Node\n    alsa.card = \"0\"\n  * node.description = \"Built-in Audio Analog Stereo\"\n  * node.name = \"alsa_output.pci-0000_00_1f.3.analog-stereo\"\n";
+
+        Assert.Equal("Built-in Audio Analog Stereo", LinuxAudioDevices.ParseWpctlName(output));
+        Assert.Null(LinuxAudioDevices.ParseWpctlName("id 52, type PipeWire:Interface:Node\n"));
+    }
+
+    [Fact]
+    public void Pactl_names_the_default_device_among_all_and_a_monitor_is_no_microphone()
+    {
+        const string sources = "Source #0\n\tState: SUSPENDED\n\tName: alsa_output.analog-stereo.monitor\n\tDescription: Monitor of Built-in Audio\n\nSource #1\n\tState: RUNNING\n\tName: alsa_input.analog-stereo\n\tDescription: Built-in Audio Analog Stereo\n";
+
+        Assert.Equal("Built-in Audio Analog Stereo", LinuxAudioDevices.ParsePactlName(sources, "alsa_input.analog-stereo"));
+        Assert.Null(LinuxAudioDevices.ParsePactlName(sources, "alsa_output.analog-stereo.monitor"));
+        Assert.Null(LinuxAudioDevices.ParsePactlName(sources, "bluez_input.headset"));
+    }
+
+    [Fact]
     public void A_reading_serves_the_sensor_and_the_controls_until_something_is_set()
     {
         var calls = new List<string>();
