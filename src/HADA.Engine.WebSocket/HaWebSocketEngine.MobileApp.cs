@@ -48,6 +48,10 @@ public sealed partial class HaWebSocketEngine
     // The sensors registered as entities since the connection was made; the others are registered before they are updated.
     private readonly ConcurrentDictionary<string, byte> _sensorEntities = new(StringComparer.Ordinal);
 
+    // New readings and the replay of the last ones on connecting are written one after the other: written at once,
+    // both would find a sensor not registered yet, and register it twice.
+    private readonly SemaphoreSlim _sensorEntityWrites = new(1, 1);
+
     // Requests sent over the socket whose answers are awaited, by their ids.
     private readonly ConcurrentDictionary<int, TaskCompletionSource<JsonElement>> _pendingRequests = new();
 
@@ -462,6 +466,19 @@ public sealed partial class HaWebSocketEngine
     /// of all the sensors in one request.
     /// </summary>
     private async Task SetSensorEntitiesAsync(IReadOnlyList<SensorReading> readings, CancellationToken cancellationToken)
+    {
+        await _sensorEntityWrites.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await WriteSensorEntitiesAsync(readings, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _sensorEntityWrites.Release();
+        }
+    }
+
+    private async Task WriteSensorEntitiesAsync(IReadOnlyList<SensorReading> readings, CancellationToken cancellationToken)
     {
         if (_registration is not { } registration || readings.Count == 0)
         {

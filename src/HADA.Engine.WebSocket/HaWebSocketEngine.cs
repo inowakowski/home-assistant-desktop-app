@@ -273,6 +273,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
         _http.Dispose();
         _integrationSignal.Dispose();
         _accessGate.Dispose();
+        _sensorEntityWrites.Dispose();
     }
 
     private async Task MaintainConnectionAsync(CancellationToken cancellationToken)
