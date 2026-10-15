@@ -256,14 +256,15 @@ public partial class App : Application
         Shutdown();
     }
 
-    /// <summary>Asks the windows of this copy, the settings window and the dashboard, to close.</summary>
+    /// <summary>Asks the windows of this copy, the settings window, the dashboard and the new window, to close.</summary>
     private static void CloseWindows()
     {
-        foreach (var role in (string[])[WindowRole, AdminWindowRole, DashboardRole])
+        string[] signals = [.. ((string[])[WindowRole, AdminWindowRole, DashboardRole]).Select(role => role + AppInstance.Suffix + ".Close"), AppInstance.NewWindowCloseSignalName];
+        foreach (var signal in signals)
         {
             try
             {
-                AppSignal.TrySet(role + AppInstance.Suffix + ".Close");
+                AppSignal.TrySet(signal);
             }
             catch (UnauthorizedAccessException)
             {

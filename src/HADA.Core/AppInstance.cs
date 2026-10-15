@@ -38,6 +38,9 @@ public static class AppInstance
     /// <summary>The <see cref="Hosting.AppSignal"/> that asks the tray app of this copy to exit, set by starting it again with <c>--exit</c>.</summary>
     public static string TrayExitSignalName => @"Local\HADA.Tray.Exit" + Suffix;
 
+    /// <summary>The <see cref="Hosting.AppSignal"/> that asks the new window of this copy to close, set when its tray app exits.</summary>
+    public static string NewWindowCloseSignalName => @"Local\HADA.App.Close" + Suffix;
+
     /// <summary>Where a portable copy keeps settings, logs and everything else it writes; <see langword="null"/> for the installed app.</summary>
     public static string? PortableDataFolder => PortableRoot is null ? null : Path.Combine(PortableRoot, "data");
 

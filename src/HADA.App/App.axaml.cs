@@ -1,13 +1,16 @@
+using System.Net.Sockets;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.Themes.Fluent;
 using HADA.App.Styling;
 using HADA.App.Views;
 using HADA.Core;
+using HADA.Core.Hosting;
 using HADA.Ipc;
 using HADA.Platform.Windows.Desktop;
 using HADA.Presentation.ViewModels;
@@ -90,6 +93,10 @@ public sealed partial class App : Application
             // Let go of the service when the window closes. Not waited for on the window's thread, which the
             // view model's own continuations need: the process ends with the window either way.
             window.Closed += (_, _) => _ = viewModel.DisposeAsync().AsTask();
+
+            // Closed when the tray app of this copy exits, which would leave the program's files in use otherwise.
+            var closeSignal = ListenForClose(window);
+            window.Closed += (_, _) => closeSignal?.Dispose();
             if (snapshot is not null)
             {
                 window.Opened += async (_, _) =>
@@ -105,6 +112,19 @@ public sealed partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static AppSignal? ListenForClose(MainWindow window)
+    {
+        try
+        {
+            return AppSignal.Listen(AppInstance.NewWindowCloseSignalName, () => Dispatcher.UIThread.Post(window.Close), once: true);
+        }
+        catch (Exception ex) when (ex is IOException or SocketException or UnauthorizedAccessException)
+        {
+            // Another of these windows listens already; the first one closes.
+            return null;
+        }
     }
 
     /// <summary>What follows an argument such as <c>--page</c>: <c>--page logs</c> gives <c>logs</c>.</summary>
