@@ -4,13 +4,13 @@ using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using Microsoft.Extensions.Hosting;
 
-namespace HADA.Platform.Windows.Sensors;
+namespace HADA.Core.Sensors;
 
 /// <summary>
 /// Publishes whether the microphone and the camera are in use, with the apps using them as an attribute.
-/// Runs in the tray app, because the usage history is kept per user.
+/// Runs in the user's session. Left out where the system does not tell.
 /// </summary>
-public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
+public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry, ISessionReadings session) : EagerBackgroundService
 {
     public const string MicrophoneEntityId = BuiltInEntityIds.MicrophoneInUse;
     public const string CameraEntityId = BuiltInEntityIds.CameraInUse;
@@ -19,6 +19,11 @@ public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry) 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (session.AppsUsing(CaptureDevice.Microphone) is null && session.AppsUsing(CaptureDevice.Camera) is null)
+        {
+            return;
+        }
+
         await registry.RegisterAsync(
             new EntityDescriptor
             {
@@ -42,15 +47,19 @@ public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry) 
         using var timer = new PeriodicTimer(PollInterval);
         do
         {
-            await PublishAsync(publisher, MicrophoneEntityId, MediaCapture.Microphone, stoppingToken);
-            await PublishAsync(publisher, CameraEntityId, MediaCapture.Camera, stoppingToken);
+            await PublishAsync(publisher, MicrophoneEntityId, CaptureDevice.Microphone, stoppingToken);
+            await PublishAsync(publisher, CameraEntityId, CaptureDevice.Camera, stoppingToken);
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
-    private static ValueTask PublishAsync(ChangeOnlyPublisher publisher, string entityId, string capability, CancellationToken cancellationToken)
+    private ValueTask PublishAsync(ChangeOnlyPublisher publisher, string entityId, CaptureDevice device, CancellationToken cancellationToken)
     {
-        var apps = MediaCapture.AppsUsing(capability);
+        if (session.AppsUsing(device) is not { } apps)
+        {
+            return ValueTask.CompletedTask;
+        }
+
         return publisher.PublishAsync(
             entityId,
             BinaryState.From(apps.Count > 0),

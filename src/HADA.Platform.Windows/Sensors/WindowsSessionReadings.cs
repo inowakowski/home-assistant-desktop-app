@@ -6,4 +6,7 @@ namespace HADA.Platform.Windows.Sensors;
 public sealed class WindowsSessionReadings : ISessionReadings
 {
     public TimeSpan? ReadIdleTime() => UserInput.TryReadIdleTime();
+
+    public IReadOnlyList<string>? AppsUsing(CaptureDevice device) =>
+        MediaCapture.AppsUsing(device == CaptureDevice.Camera ? MediaCapture.Camera : MediaCapture.Microphone);
 }

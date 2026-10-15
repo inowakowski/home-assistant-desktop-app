@@ -41,6 +41,69 @@ public sealed class LinuxSessionReadings(Func<string, string[], ToolResult?>? ru
         return null;
     }
 
+    public IReadOnlyList<string>? AppsUsing(CaptureDevice device) => device == CaptureDevice.Camera
+        ? AppsWithOpen("/proc", path => path.StartsWith("/dev/video", StringComparison.Ordinal))
+        : _run("pactl", ["list", "source-outputs"]) is { Succeeded: true } result ? ParseRecordingApps(result.Output) : null;
+
+    /// <summary>
+    /// The apps that have a file open, by the name of their program: what the kernel lists in <c>/proc</c> for
+    /// each process, the user's own processes being the ones it shows. <see langword="null"/> where there is no
+    /// <c>/proc</c>.
+    /// </summary>
+    public static IReadOnlyList<string>? AppsWithOpen(string procRoot, Func<string, bool> isWanted)
+    {
+        if (!Directory.Exists(procRoot))
+        {
+            return null;
+        }
+
+        var apps = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var process in Directory.EnumerateDirectories(procRoot))
+        {
+            if (!int.TryParse(Path.GetFileName(process), NumberStyles.None, CultureInfo.InvariantCulture, out _))
+            {
+                continue;
+            }
+
+            try
+            {
+                foreach (var descriptor in Directory.EnumerateFileSystemEntries(Path.Combine(process, "fd")))
+                {
+                    if (new FileInfo(descriptor).LinkTarget is { } target && isWanted(target))
+                    {
+                        apps.Add(Proc.ReadText(Path.Combine(process, "comm"))?.Trim() is { Length: > 0 } name ? name : Path.GetFileName(process));
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Another user's process, or one that ended while being looked at.
+            }
+        }
+
+        return [.. apps];
+    }
+
+    /// <summary>
+    /// The apps recording, from <c>pactl list source-outputs</c>: a block for each stream that records, its
+    /// <c>application.name</c> among the properties.
+    /// </summary>
+    public static IReadOnlyList<string> ParseRecordingApps(string output)
+    {
+        var apps = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var line in output.Split('\n', StringSplitOptions.TrimEntries))
+        {
+            const string Name = "application.name = ";
+            if (line.StartsWith(Name, StringComparison.Ordinal))
+            {
+                apps.Add(line[Name.Length..].Trim('"'));
+            }
+        }
+
+        return [.. apps];
+    }
+
     /// <summary>Reads <c>busctl</c>'s answer, a type letter and a number of milliseconds: <c>t 1234</c> or <c>u 1234</c>.</summary>
     public static TimeSpan? ParseIdle(string output)
     {
@@ -68,6 +131,9 @@ public static class LinuxSession
             provider.GetRequiredService<Core.Abstractions.IEntityRegistry>(),
             provider.GetRequiredService<ISessionReadings>(),
             activeWindow));
+
+        // Whether the camera and the microphone record, and for whom.
+        services.AddHostedService<MediaCaptureSensor>();
 
         // Notifications, shown by the desktop once the agent has connected to it.
         services.AddSingleton<NotificationPresenter>();
