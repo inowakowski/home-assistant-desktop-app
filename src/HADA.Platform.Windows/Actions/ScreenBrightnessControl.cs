@@ -90,17 +90,7 @@ public sealed partial class ScreenBrightnessControl(IEventBus bus, IEntityRegist
         ? []
         :
         [
-            new()
-            {
-                Id = EntityId,
-                Name = "Screen brightness",
-                Kind = EntityKind.Number,
-                Icon = "mdi:brightness-6",
-                UnitOfMeasurement = "%",
-                Min = 0,
-                Max = 100,
-                Step = 1,
-            },
+            BuiltInDescriptors.ScreenBrightness,
         ];
 
     public override void Dispose()

@@ -21,13 +21,7 @@ public sealed class ActiveWindowSensor(IEventBus bus, IEntityRegistry registry) 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await registry.RegisterAsync(
-            new EntityDescriptor
-            {
-                Id = EntityId,
-                Name = "Active window",
-                Kind = EntityKind.Sensor,
-                Icon = "mdi:application-outline",
-            },
+            BuiltInDescriptors.ActiveWindow,
             stoppingToken);
 
         ForegroundWindowInfo? last = null;

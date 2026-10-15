@@ -18,7 +18,11 @@ public static class LinuxPlatform
         services.AddSingleton<ISystemReadings, LinuxSystemReadings>();
         services.AddSingleton<IPowerControl, LinuxPowerControl>();
         services.AddSingleton<IScreenLock, LinuxScreenLock>();
+        services.AddSingleton<LinuxHardware>(_ => new LinuxHardware());
         services.AddSystemEntities();
+        services.AddHostedService<LidSensor>();
+        services.AddHostedService(provider => new GpuLoadSensor(
+            provider.GetRequiredService<IEventBus>(), provider.GetRequiredService<IEntityRegistry>(), provider.GetRequiredService<LinuxHardware>()));
         return services;
     }
 }

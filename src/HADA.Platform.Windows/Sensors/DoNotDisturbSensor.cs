@@ -74,7 +74,7 @@ public sealed class DoNotDisturbSensor(IEventBus bus, IEntityRegistry registry) 
             {
                 registered = true;
                 await registry.RegisterAsync(
-                    new EntityDescriptor { Id = EntityId, Name = "Do not disturb", Kind = EntityKind.BinarySensor, Icon = "mdi:bell-off" },
+                    BuiltInDescriptors.DoNotDisturb,
                     stoppingToken);
             }
 

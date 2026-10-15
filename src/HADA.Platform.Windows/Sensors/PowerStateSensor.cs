@@ -47,14 +47,7 @@ public sealed partial class PowerStateSensor(IEventBus bus, IEntityRegistry regi
             if (listener.TryRegister(PowerSettingListener.LidSwitchState, out error))
             {
                 await registry.RegisterAsync(
-                    new EntityDescriptor
-                    {
-                        Id = LidEntityId,
-                        Name = "Lid",
-                        Kind = EntityKind.BinarySensor,
-                        DeviceClass = "opening",
-                        Icon = "mdi:laptop",
-                    },
+                    BuiltInDescriptors.Lid,
                     stoppingToken);
             }
             else

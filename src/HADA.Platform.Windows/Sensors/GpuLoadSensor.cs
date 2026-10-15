@@ -158,15 +158,7 @@ public sealed class GpuLoadSensor(IEventBus bus, IEntityRegistry registry) : Eag
             {
                 registered = true;
                 await registry.RegisterAsync(
-                    new EntityDescriptor
-                    {
-                        Id = EntityId,
-                        Name = "GPU load",
-                        Kind = EntityKind.Sensor,
-                        Icon = "mdi:expansion-card",
-                        UnitOfMeasurement = "%",
-                        StateClass = "measurement",
-                    },
+                    BuiltInDescriptors.GpuLoad,
                     stoppingToken);
             }
 
