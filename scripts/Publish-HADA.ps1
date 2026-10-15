@@ -48,7 +48,8 @@ foreach ($arch in $Platform) {
         Remove-Item $publishRoot -Recurse -Force
     }
 
-    foreach ($app in 'Service', 'Tray') {
+    # App is the new window, drawn with Avalonia: a preview beside the tray's own window.
+    foreach ($app in 'Service', 'Tray', 'App') {
         Write-Host "Publishing HADA.$app for $rid..." -ForegroundColor Cyan
         dotnet publish (Join-Path $repoRoot "src\HADA.$app") -c Release -r $rid --self-contained `
             -o (Join-Path $publishRoot $app.ToLowerInvariant()) --nologo -v quiet
@@ -74,9 +75,11 @@ foreach ($arch in $Platform) {
     New-Item $portableRoot -ItemType Directory -Force | Out-Null
     Copy-Item (Join-Path $publishRoot 'service') $portableRoot -Recurse
     Copy-Item (Join-Path $publishRoot 'tray') $portableRoot -Recurse
+    Copy-Item (Join-Path $publishRoot 'app') $portableRoot -Recurse
     Set-Content (Join-Path $portableRoot 'HADA.portable') $portableMarker -Encoding UTF8
     Set-Content (Join-Path $portableRoot 'Start HADA.cmd') "@echo off`r`nstart `"`" `"%~dp0tray\HADA.Tray.exe`"" -Encoding ASCII
     Set-Content (Join-Path $portableRoot 'Stop HADA.cmd') "@echo off`r`n`"%~dp0tray\HADA.Tray.exe`" --exit" -Encoding ASCII
+    Set-Content (Join-Path $portableRoot 'New window (preview).cmd') "@echo off`r`nstart `"`" `"%~dp0app\HADA.App.exe`"" -Encoding ASCII
 
     $installerFolder = Join-Path $artifacts 'installer'
     New-Item $installerFolder -ItemType Directory -Force | Out-Null

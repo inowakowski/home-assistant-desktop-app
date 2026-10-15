@@ -2,6 +2,18 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.7.0 (pre-release)
+
+A first look at the new HADA window, which is to be the same on Windows, macOS and Linux. It comes beside the window you know, which stays as it is and is what the tray icon opens. A pre-release, so that it gets tried before a stable version carries it.
+
+- **The new window, a preview.** Open it with **HADA (new window, preview)** in the Start menu, or **New window (preview).cmd** in a portable copy. It has the Overview and Connections pages so far; the other pages say they are still to come, and are in the window you know.
+    - The **Overview** has a card for each way of connecting that you use, MQTT or directly, with a row for each server and its state. A notice says when a connection needs attention; close it, and it comes back with the next problem. **Manage** leads to the Connections page, and a server's row to that server.
+    - **Connections** lists your servers by the way they connect. A server opens with its state and all of its settings, to test, change or remove. **Add a connection** takes three steps: the way to connect, with what each gives and needs, the address and signing in, and a check that saves it and says what the connection does now.
+    - The sidebar can be folded to its icons, and stays so.
+    - On Windows it looks like a Windows 11 app, in the light or dark colours and the accent colour you chose.
+- Both windows now say in your language, before saving, that two servers are the same broker or the same Home Assistant as the same device, which would make them throw each other off. Before, saving was refused with an English message from the service.
+- Stopping a portable copy closes the new window too.
+
 ## 1.6.0 (pre-release)
 
 Little to see: this version changes how HADA is built inside. The settings window, the tray app and the service work as before. A pre-release, so that it gets tried before a stable version carries the change.

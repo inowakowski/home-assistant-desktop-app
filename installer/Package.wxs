@@ -30,6 +30,7 @@
             <Directory Id="INSTALLFOLDER" Name="HADA">
                 <Directory Id="ServiceFolder" Name="service" />
                 <Directory Id="TrayFolder" Name="tray" />
+                <Directory Id="AppFolder" Name="app" />
             </Directory>
         </StandardDirectory>
         <StandardDirectory Id="ProgramMenuFolder" />
@@ -37,6 +38,7 @@
         <Feature Id="Main" Title="HADA">
             <ComponentGroupRef Id="ServiceFiles" />
             <ComponentGroupRef Id="TrayFiles" />
+            <ComponentGroupRef Id="AppFiles" />
         </Feature>
 
         <ComponentGroup Id="ServiceFiles" Directory="ServiceFolder">
@@ -105,10 +107,36 @@
             </Files>
         </ComponentGroup>
 
-        <!-- The tray app and its settings window hold files open; close them before files are replaced or removed. -->
+        <!-- The new window, drawn with Avalonia: a preview beside the tray's own window, with a shortcut of its own. -->
+        <ComponentGroup Id="AppFiles" Directory="AppFolder">
+            <Component Id="AppExe">
+                <File Id="AppExeFile" Source="$(var.AppDir)\HADA.App.exe" KeyPath="yes">
+                    <Shortcut
+                        Id="AppStartMenuShortcut"
+                        Directory="ProgramMenuFolder"
+                        Name="HADA (new window, preview)"
+                        Description="The new HADA window, a preview"
+                        WorkingDirectory="AppFolder"
+                        Icon="HadaIcon.exe"
+                        Advertise="yes" />
+                </File>
+            </Component>
+
+            <Files Include="$(var.AppDir)\**">
+                <Exclude Files="$(var.AppDir)\HADA.App.exe" />
+            </Files>
+        </ComponentGroup>
+
+        <!-- The tray app and the windows hold files open; close them before files are replaced or removed. -->
         <util:CloseApplication
             Id="CloseTray"
             Target="HADA.Tray.exe"
+            CloseMessage="no"
+            RebootPrompt="no"
+            TerminateProcess="0" />
+        <util:CloseApplication
+            Id="CloseApp"
+            Target="HADA.App.exe"
             CloseMessage="no"
             RebootPrompt="no"
             TerminateProcess="0" />

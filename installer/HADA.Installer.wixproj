@@ -13,7 +13,7 @@
     <OutputPath>$(MSBuildThisFileDirectory)..\artifacts\installer\</OutputPath>
     <IntermediateOutputPath>obj\$(InstallerPlatform)\</IntermediateOutputPath>
     <Cultures>en-US</Cultures>
-    <DefineConstants>ProductVersion=$(Version);ServiceDir=$(PublishRoot)service;TrayDir=$(PublishRoot)tray;IconFile=$(MSBuildThisFileDirectory)..\assets\hada.ico</DefineConstants>
+    <DefineConstants>ProductVersion=$(Version);ServiceDir=$(PublishRoot)service;TrayDir=$(PublishRoot)tray;AppDir=$(PublishRoot)app;IconFile=$(MSBuildThisFileDirectory)..\assets\hada.ico</DefineConstants>
 
     <!-- Windows Installer's own validation reports advisory findings as warnings; they must not fail the build. -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
