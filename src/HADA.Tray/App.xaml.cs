@@ -60,11 +60,9 @@ public partial class App : Application
     private const string ExitArgument = "--exit";
     private const string PageArgument = "--page";
 
-    // What the windows are known by, each a process of its own; a portable copy's suffix is added to these.
-    private const string WindowRole = @"Local\HADA.Window";
-    private const string AdminWindowRole = @"Local\HADA.Window.Admin";
+    // What the dashboard window is known by, a process of its own; a portable copy's suffix is added to it. The
+    // main window's names, which the new window shares, are AppInstance.WindowRoleName.
     private const string DashboardRole = @"Local\HADA.Dashboard";
-    private const int AnyProcess = -1;
 
     private Mutex? _singleInstance;
     private AppSignal? _showWindowSignal;
@@ -256,15 +254,14 @@ public partial class App : Application
         Shutdown();
     }
 
-    /// <summary>Asks the windows of this copy, the settings window, the dashboard and the new window, to close.</summary>
+    /// <summary>Asks the windows of this copy, the settings window, old or new, and the dashboard, to close.</summary>
     private static void CloseWindows()
     {
-        string[] signals = [.. ((string[])[WindowRole, AdminWindowRole, DashboardRole]).Select(role => role + AppInstance.Suffix + ".Close"), AppInstance.NewWindowCloseSignalName];
-        foreach (var signal in signals)
+        foreach (var role in (string[])[AppInstance.WindowRoleName(elevated: false), AppInstance.WindowRoleName(elevated: true), DashboardRole + AppInstance.Suffix])
         {
             try
             {
-                AppSignal.TrySet(signal);
+                AppSignal.TrySet(role + ".Close");
             }
             catch (UnauthorizedAccessException)
             {
@@ -273,18 +270,25 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Starts the window as its own process; if one is open already, that process brings it to the front instead.</summary>
+    /// <summary>
+    /// Starts the window as its own process; if one is open already, that process brings it to the front instead.
+    /// The new window where it came with this copy, unless its user went back to the previous one.
+    /// </summary>
     private void OpenWindow(string? page)
     {
-        if (page is null)
+        string[] pageArguments = page is null ? [] : [PageArgument, page];
+        if (!UserPreferences.UsesPreviousWindow && File.Exists(NewWindowPath))
         {
-            StartCopy(SettingsArgument);
+            Start(NewWindowPath, pageArguments);
         }
         else
         {
-            StartCopy(SettingsArgument, PageArgument, page);
+            Start(Environment.ProcessPath!, [SettingsArgument, .. pageArguments]);
         }
     }
+
+    /// <summary>The new window, beside the tray app's folder.</summary>
+    private static string NewWindowPath => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "app", "HADA.App.exe"));
 
     /// <summary>
     /// Opens the dashboard window at the dashboard chosen in the menu. The window is another process, and may be
@@ -293,15 +297,15 @@ public partial class App : Application
     private void OpenDashboard(string id)
     {
         UserPreferences.DashboardSelected = id;
-        StartCopy(DashboardArgument);
+        Start(Environment.ProcessPath!, [DashboardArgument]);
     }
 
-    /// <summary>Starts this program again in another of its roles: the settings window or the dashboard window.</summary>
-    private void StartCopy(params string[] arguments)
+    /// <summary>Starts a window: this program again in another of its roles, or the new window.</summary>
+    private void Start(string program, string[] arguments)
     {
         try
         {
-            var start = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+            var start = new ProcessStartInfo(program) { UseShellExecute = false };
             foreach (var argument in arguments)
             {
                 start.ArgumentList.Add(argument);
@@ -341,9 +345,8 @@ public partial class App : Application
         _singleInstance = new Mutex(initiallyOwned: true, name, out var isFirstInstance);
         if (!isFirstInstance)
         {
-            // This process was started by the user and may take the foreground; pass that right on, or Windows
-            // would only flash the existing window's taskbar button.
-            AllowSetForegroundWindow(AnyProcess);
+            // This process was started by the user and may take the foreground; pass that right on.
+            Shell.LetAnotherComeToFront();
             AppSignal.TrySet(name + ".Show");
 
             return false;
@@ -360,7 +363,7 @@ public partial class App : Application
     {
         // One window per user and privilege level: the administrator copy opened with "Unlock editing" may run
         // next to the normal one for a moment, while that one is closing.
-        if (!TakeWindowRole((Elevation.IsElevated ? AdminWindowRole : WindowRole) + AppInstance.Suffix))
+        if (!TakeWindowRole(AppInstance.WindowRoleName(Elevation.IsElevated)))
         {
             Shutdown();
             return;
@@ -467,10 +470,6 @@ public partial class App : Application
             _isShowingError = false;
         }
     }
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool AllowSetForegroundWindow(int processId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Notifications could not be registered with Windows: {Reason}")]
     private static partial void LogToastRegistrationFailed(ILogger logger, string reason);

@@ -31,6 +31,7 @@ public static class UserPreferences
     private const string DashboardSelectedValue = "DashboardSelected";
     private const string BrowserValue = "NotificationBrowser";
     private const string SidebarValue = "SidebarCollapsed";
+    private const string PreviousWindowValue = "PreviousWindow";
 
     private static readonly IPreferenceStore Store = OperatingSystem.IsWindows() && !AppInstance.IsPortable
         ? new RegistryPreferenceStore()
@@ -99,6 +100,13 @@ public static class UserPreferences
     {
         get => Store.ReadNumber(SidebarValue) is 1;
         set => Store.Write(SidebarValue, value ? 1 : null);
+    }
+
+    /// <summary>Whether the tray icon opens the previous window rather than the new one, while both come with HADA.</summary>
+    public static bool UsesPreviousWindow
+    {
+        get => Store.ReadNumber(PreviousWindowValue) is 1;
+        set => Store.Write(PreviousWindowValue, value ? 1 : null);
     }
 
     /// <summary>

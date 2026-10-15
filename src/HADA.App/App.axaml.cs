@@ -1,4 +1,3 @@
-using System.Net.Sockets;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -10,7 +9,6 @@ using Avalonia.Themes.Fluent;
 using HADA.App.Styling;
 using HADA.App.Views;
 using HADA.Core;
-using HADA.Core.Hosting;
 using HADA.Ipc;
 using HADA.Platform.Windows.Desktop;
 using HADA.Presentation.ViewModels;
@@ -86,17 +84,18 @@ public sealed partial class App : Application
                 _style, drawnFrame: _style == DesktopStyle.Gnome || _style != DesktopStyles.OfThisSystem() || snapshot is not null);
 
             // The settings of a portable copy are its user's own; there is no administrator window to unlock.
-            var isElevated = OperatingSystem.IsWindows() && Elevation.IsElevated && !AppInstance.IsPortable;
+            var isElevated = Program.IsElevated && !AppInstance.IsPortable;
             var client = new ServiceControlClient(new IpcOptions { ClientName = $"ui:{Environment.UserName}" });
-            var viewModel = new MainViewModel(client, new AppDesktop(window), isElevated, AppInstance.IsPortable, () => RequestElevation(page));
+            var viewModel = new MainViewModel(
+                client, new AppDesktop(window), isElevated, AppInstance.IsPortable, () => RequestElevation(window.CurrentPage));
 
             // Let go of the service when the window closes. Not waited for on the window's thread, which the
             // view model's own continuations need: the process ends with the window either way.
             window.Closed += (_, _) => _ = viewModel.DisposeAsync().AsTask();
 
-            // Closed when the tray app of this copy exits, which would leave the program's files in use otherwise.
-            var closeSignal = ListenForClose(window);
-            window.Closed += (_, _) => closeSignal?.Dispose();
+            // Started again, this window comes to the front. Closed when the tray app of this copy exits, which would
+            // leave the program's files in use otherwise.
+            Program.Role?.Serve(() => Dispatcher.UIThread.Post(window.BringToFront), () => Dispatcher.UIThread.Post(window.Close));
             if (snapshot is not null)
             {
                 window.Opened += async (_, _) =>
@@ -114,19 +113,6 @@ public sealed partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static AppSignal? ListenForClose(MainWindow window)
-    {
-        try
-        {
-            return AppSignal.Listen(AppInstance.NewWindowCloseSignalName, () => Dispatcher.UIThread.Post(window.Close), once: true);
-        }
-        catch (Exception ex) when (ex is IOException or SocketException or UnauthorizedAccessException)
-        {
-            // Another of these windows listens already; the first one closes.
-            return null;
-        }
-    }
-
     /// <summary>What follows an argument such as <c>--page</c>: <c>--page logs</c> gives <c>logs</c>.</summary>
     private string? ValueOf(string argument)
     {
@@ -135,9 +121,9 @@ public sealed partial class App : Application
     }
 
     /// <summary>Starts the window again as administrator, where the system has such a thing, and closes this one.</summary>
-    private bool RequestElevation(string? page)
+    private bool RequestElevation(string page)
     {
-        if (!OperatingSystem.IsWindows() || !Elevation.TryRelaunchElevated($"{SettingsArgument} {PageArgument} {page ?? "overview"}"))
+        if (!OperatingSystem.IsWindows() || !Elevation.TryRelaunchElevated($"{SettingsArgument} {PageArgument} {page}"))
         {
             return false;
         }

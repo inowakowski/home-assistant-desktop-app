@@ -142,6 +142,20 @@ public sealed partial class MainWindow : Window
         Show();
     }
 
+    /// <summary>The name of the page shown, as <c>--page</c> takes it.</summary>
+    public string CurrentPage { get; private set; } = "overview";
+
+    /// <summary>Shows the window in front of the others, also when it was minimized.</summary>
+    public void BringToFront()
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Activate();
+    }
+
     /// <summary>Draws the window into a PNG file, as it is now, for pictures of it.</summary>
     public void SaveSnapshot(string path)
     {
@@ -168,6 +182,7 @@ public sealed partial class MainWindow : Window
         _choosing = false;
 
         HeaderTitle.Text = item.Title;
+        CurrentPage = item.Name;
         if (item.Name == "connections")
         {
             _viewModel?.Connections.Show(parts.Length > 1 ? parts[1] : null);

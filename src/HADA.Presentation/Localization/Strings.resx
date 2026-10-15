@@ -59,6 +59,8 @@
   <data name="Preferences_Personal" xml:space="preserve"><value>For you</value></data>
   <data name="Preferences_PersonalDetail" xml:space="preserve"><value>These apply to your account only, take effect at once and need no administrator rights.</value></data>
   <data name="Preferences_PersonalElevated" xml:space="preserve"><value>These are your personal settings. Change them in the HADA window opened from the tray icon, not in this administrator window.</value></data>
+  <data name="Preferences_NewWindow" xml:space="preserve"><value>New window (preview)</value></data>
+  <data name="Preferences_NewWindowDetail" xml:space="preserve"><value>The tray icon opens this window. Turn it off to have it open the previous one. This window is still at hand as "HADA (new window, preview)" in the Start menu, or as "New window (preview).cmd" in a portable copy.</value></data>
   <data name="Preferences_Language" xml:space="preserve"><value>Language</value></data>
   <data name="Preferences_LanguageDetail" xml:space="preserve"><value>Of this window and the tray icon's menu.</value></data>
   <data name="Preferences_LanguageRestart" xml:space="preserve"><value>The window shows the new language when it is opened again; the tray icon's menu after the tray app is restarted.</value></data>

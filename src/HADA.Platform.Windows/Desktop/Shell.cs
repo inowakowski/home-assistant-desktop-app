@@ -1,10 +1,16 @@
 using System.Diagnostics;
+using HADA.Platform.Windows.Interop;
 
 namespace HADA.Platform.Windows.Desktop;
 
 /// <summary>Starting things on the desktop of the signed-in user.</summary>
 public static class Shell
 {
+    /// <summary>
+    /// Passes the right to come to the front on, to the process whose window is to be shown. Without it, Windows
+    /// only flashes that window's taskbar button, as the user started this process and not that one.
+    /// </summary>
+    public static void LetAnotherComeToFront() => NativeMethods.AllowSetForegroundWindow(-1);
     /// <summary>
     /// Opens an address in the user's default browser. From the administrator copy of the window that is left to
     /// the desktop's own Explorer, so that the browser runs as the signed-in user, where their Home Assistant

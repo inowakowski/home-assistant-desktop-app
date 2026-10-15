@@ -48,7 +48,7 @@ public static class Autostart
                 using var run = Registry.CurrentUser.CreateSubKey(RunKeyPath);
                 if (value)
                 {
-                    run.SetValue(PortableRunValue, $"\"{Environment.ProcessPath}\" --background", RegistryValueKind.String);
+                    run.SetValue(PortableRunValue, PortableCommand(AppInstance.PortableRoot!), RegistryValueKind.String);
                 }
                 else
                 {
@@ -62,4 +62,11 @@ public static class Autostart
             key.SetValue(ValueName, value ? 1 : 0, RegistryValueKind.DWord);
         }
     }
+
+    /// <summary>
+    /// What starts the portable copy in <paramref name="portableRoot"/> at sign-in: its tray app, which runs in the
+    /// background, also when the switch is turned on in the new window.
+    /// </summary>
+    public static string PortableCommand(string portableRoot) =>
+        $"\"{Path.Combine(portableRoot, "tray", "HADA.Tray.exe")}\" --background";
 }

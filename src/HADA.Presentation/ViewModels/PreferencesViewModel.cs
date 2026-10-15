@@ -119,6 +119,23 @@ public sealed class PreferencesViewModel(IDesktop desktop, bool isElevated, bool
         }
     }
 
+    /// <summary>
+    /// Whether to offer going back to the previous window: on Windows, where the tray icon opens one of the two,
+    /// while both come with HADA.
+    /// </summary>
+    public bool OffersWindowChoice { get; } = OperatingSystem.IsWindows();
+
+    /// <summary>Whether the tray icon opens the new window; off, it opens the previous one.</summary>
+    public bool UsesNewWindow
+    {
+        get => !UserPreferences.UsesPreviousWindow;
+        set
+        {
+            UserPreferences.UsesPreviousWindow = !value;
+            OnPropertyChanged();
+        }
+    }
+
     public string Language
     {
         get => UserPreferences.Language;
