@@ -56,3 +56,23 @@ jobs:
       # The window drawn with Avalonia, which is to run on these systems too.
       - name: Build the window
         run: dotnet build src/HADA.App -c Release
+
+      # The service itself, as Linux runs it: a process of the user, started, left running, and stopped. Nobody is
+      # signed in on the runner, so the sensors of the session say so; nothing may fail.
+      - name: Run the service
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          root="$RUNNER_TEMP/hada"
+          dotnet publish src/HADA.Service -c Release -o "$root/service" --nologo -v quiet
+          touch "$root/HADA.portable"
+          "$root/service/HADA.Service" &
+          pid=$!
+          sleep 20
+          kill -0 "$pid"
+          kill -TERM "$pid"
+          wait "$pid"
+          log="$root/data/logs/service.log"
+          cat "$log"
+          grep -q "Application started" "$log"
+          if grep -F -e "[ERR]" -e "[CRT]" "$log"; then exit 1; fi
