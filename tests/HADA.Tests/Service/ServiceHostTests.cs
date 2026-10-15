@@ -1,4 +1,6 @@
 using System.Runtime.Versioning;
+using HADA.Core.Actions;
+using HADA.Core.Sensors;
 using HADA.Ipc;
 using HADA.Platform.Windows.Actions;
 using HADA.Platform.Windows.Sensors;

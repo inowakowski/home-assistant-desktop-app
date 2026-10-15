@@ -1,12 +1,10 @@
 using System.Runtime.InteropServices;
 using System.Security;
+using HADA.Core.Abstractions;
 using HADA.Platform.Windows.Interop;
 using Microsoft.Win32;
 
 namespace HADA.Platform.Windows.Sensors;
-
-/// <param name="BatteryPercent"><see langword="null"/> when Windows does not know the charge level.</param>
-public readonly record struct PowerStatus(bool HasBattery, int? BatteryPercent, bool IsCharging, bool IsPluggedIn);
 
 public static class SystemPower
 {

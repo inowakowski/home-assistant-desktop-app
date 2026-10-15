@@ -1,9 +1,4 @@
 using System.Security;
-using HADA.Core.Abstractions;
-using HADA.Core.Entities;
-using HADA.Core.Hosting;
-using HADA.Core.Messaging;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Win32;
 
 namespace HADA.Platform.Windows.Sensors;
@@ -47,44 +42,5 @@ public static class PendingRestart
     {
         using var key = machine.OpenSubKey(path);
         return key is not null;
-    }
-}
-
-/// <summary>
-/// Publishes whether Windows wants a restart, for updates that are installed but not finished. Runs in the
-/// service, so it is reported with nobody signed in.
-/// </summary>
-public sealed class RestartRequiredSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
-{
-    public const string EntityId = BuiltInEntityIds.RestartRequired;
-
-    // Updates finish installing at their own pace; nobody waits on this by the second.
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMinutes(2);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (PendingRestart.TryRead() is null)
-        {
-            return;
-        }
-
-        await registry.RegisterAsync(
-            new EntityDescriptor { Id = EntityId, Name = "Restart required", Kind = EntityKind.BinarySensor, Icon = "mdi:restart-alert" },
-            stoppingToken);
-
-        var publisher = new ChangeOnlyPublisher(bus);
-        using var timer = new PeriodicTimer(PollInterval);
-        do
-        {
-            if (PendingRestart.TryRead() is { } reasons)
-            {
-                await publisher.PublishAsync(
-                    EntityId,
-                    BinaryState.From(reasons.Length > 0),
-                    new Dictionary<string, object?> { ["reason"] = reasons.Length > 0 ? reasons : null },
-                    stoppingToken);
-            }
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }

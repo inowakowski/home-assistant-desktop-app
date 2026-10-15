@@ -29,6 +29,18 @@ public sealed class WindowsTheoryAttribute : TheoryAttribute
     }
 }
 
+/// <summary>A test of something only Linux has, such as <c>/proc</c>; skipped elsewhere.</summary>
+public sealed class LinuxFactAttribute : FactAttribute
+{
+    public LinuxFactAttribute()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Skip = "Needs Linux.";
+        }
+    }
+}
+
 internal static class TestSetup
 {
     /// <summary>
