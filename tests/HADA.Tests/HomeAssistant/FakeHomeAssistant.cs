@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace HADA.Tests.HomeAssistant;
 
@@ -229,6 +230,21 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// What Home Assistant does with an update of a sensor: the state, attributes and icon it brings replace those
+    /// registered, and the rest, such as the name, stays.
+    /// </summary>
+    private static JsonElement Merge(JsonElement registered, JsonElement update)
+    {
+        var merged = JsonNode.Parse(registered.GetRawText())!.AsObject();
+        foreach (var property in update.EnumerateObject())
+        {
+            merged[property.Name] = JsonNode.Parse(property.Value.GetRawText());
+        }
+
+        return JsonSerializer.SerializeToElement(merged);
+    }
+
     /// <summary>As when the entity is deleted in Home Assistant.</summary>
     public void DeleteSensorEntity(string uniqueId)
     {
@@ -434,9 +450,9 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                             foreach (var update in body.GetProperty("data").EnumerateArray())
                             {
                                 var id = update.GetProperty("unique_id").GetString()!;
-                                if (_sensors.ContainsKey(id))
+                                if (_sensors.TryGetValue(id, out var registered))
                                 {
-                                    _sensors[id] = update.Clone();
+                                    _sensors[id] = Merge(registered, update);
                                     results[id] = new { success = true };
                                 }
                                 else
