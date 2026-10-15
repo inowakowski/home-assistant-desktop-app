@@ -11,11 +11,11 @@ namespace HADA.App;
 /// </summary>
 internal sealed class WindowRole : IDisposable
 {
-    private readonly Mutex _mutex;
+    private readonly Mutex? _mutex;
     private readonly string _name;
     private readonly List<AppSignal> _signals = [];
 
-    private WindowRole(Mutex mutex, string name)
+    private WindowRole(Mutex? mutex, string name)
     {
         _mutex = mutex;
         _name = name;
@@ -28,6 +28,13 @@ internal sealed class WindowRole : IDisposable
     public static WindowRole? Take(bool elevated)
     {
         var name = AppInstance.WindowRoleName(elevated);
+        if (!OperatingSystem.IsWindows())
+        {
+            // A socket in the user's own runtime folder: whoever listens on it is this user's HADA already, however
+            // it was started. A named mutex there would be one per terminal session, not per user.
+            return Signal(name + ".Show") ? null : new WindowRole(mutex: null, name);
+        }
+
         var mutex = new Mutex(initiallyOwned: true, name, out var isFirst);
         if (isFirst)
         {
@@ -35,21 +42,10 @@ internal sealed class WindowRole : IDisposable
         }
 
         mutex.Dispose();
-        if (OperatingSystem.IsWindows())
-        {
-            // This process was started by the user and may take the foreground; it passes that right on.
-            Shell.LetAnotherComeToFront();
-        }
 
-        try
-        {
-            AppSignal.TrySet(name + ".Show");
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // The window open is the administrator's, which this process may not signal.
-        }
-
+        // This process was started by the user and may take the foreground; it passes that right on.
+        Shell.LetAnotherComeToFront();
+        Signal(name + ".Show");
         return null;
     }
 
@@ -69,7 +65,21 @@ internal sealed class WindowRole : IDisposable
             signal.Dispose();
         }
 
-        _mutex.Dispose();
+        _mutex?.Dispose();
+    }
+
+    /// <summary>Whether somebody listens for <paramref name="signal"/>, who is now told.</summary>
+    private static bool Signal(string signal)
+    {
+        try
+        {
+            return AppSignal.TrySet(signal);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // The window open is the administrator's, which this process may not signal.
+            return true;
+        }
     }
 
     private void Listen(string what, Action onSignal, bool once)
