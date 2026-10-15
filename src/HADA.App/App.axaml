@@ -15,5 +15,6 @@
         <views:StatusBrushConverter x:Key="StatusBrush" />
         <views:SeverityBrushConverter x:Key="SeverityBrush" />
         <views:EqualsConverter x:Key="Equals" />
+        <views:LogLevelBrushConverter x:Key="LogLevelBrush" />
     </Application.Resources>
 </Application>

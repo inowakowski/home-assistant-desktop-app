@@ -1,0 +1,143 @@
+<UserControl
+    x:Class="HADA.App.Views.Pages.LogsPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:MainViewModel">
+    <Grid
+        MaxWidth="1200"
+        Margin="{DynamicResource HadaPageMargin}"
+        RowDefinitions="Auto,Auto,*">
+        <StackPanel Margin="0,0,0,16">
+            <TextBlock Classes="title pageTitle" Text="{l:Tr Logs_Title}" />
+            <TextBlock
+                Margin="0,4,0,0"
+                Classes="secondary"
+                Text="{l:Tr Logs_Subtitle}"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid
+            Grid.Row="1"
+            Margin="0,0,0,12"
+            ColumnDefinitions="Auto,Auto,*,Auto,Auto"
+            DataContext="{Binding Logs}"
+            x:DataType="vm:LogsViewModel">
+            <TextBlock
+                VerticalAlignment="Center"
+                Classes="secondary"
+                Text="{l:Tr Logs_Level}" />
+            <ComboBox
+                Grid.Column="1"
+                MinWidth="170"
+                Margin="12,0,0,0"
+                ItemsSource="{Binding LevelOptions}"
+                SelectedItem="{Binding MinimumLevel}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:LevelOption">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <CheckBox
+                Grid.Column="3"
+                Margin="0,0,16,0"
+                VerticalAlignment="Center"
+                Content="{l:Tr Logs_AutoScroll}"
+                IsChecked="{Binding AutoScroll}" />
+            <StackPanel
+                Grid.Column="4"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    AutomationProperties.Name="{l:Tr Logs_Copy}"
+                    Command="{Binding CopyCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <fi:FluentIcon
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Icon="Copy" />
+                        <TextBlock Text="{l:Tr Logs_Copy}" />
+                    </StackPanel>
+                </Button>
+                <Button
+                    AutomationProperties.Name="{l:Tr Logs_Clear}"
+                    Command="{Binding ClearCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <fi:FluentIcon
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Icon="Delete" />
+                        <TextBlock Text="{l:Tr Logs_Clear}" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Border
+            Grid.Row="2"
+            Classes="card"
+            DataContext="{Binding Logs}"
+            x:DataType="vm:LogsViewModel">
+            <Panel>
+                <ScrollViewer x:Name="LogScroll" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl Padding="0,6" ItemsSource="{Binding Shown}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LogEntryViewModel">
+                                <Grid Margin="16,6" ColumnDefinitions="72,64,160,*">
+                                    <!--  Smaller than the message: monospaced digits look heavier than the text font at the same size.  -->
+                                    <TextBlock
+                                        Margin="0,2,0,0"
+                                        Classes="secondary mono"
+                                        FontSize="12"
+                                        Text="{Binding Time}" />
+                                    <Border
+                                        Grid.Column="1"
+                                        Padding="6,1"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        Background="{Binding Level, Converter={StaticResource LogLevelBrush}}"
+                                        CornerRadius="4">
+                                        <TextBlock
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            Text="{Binding LevelText}" />
+                                    </Border>
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Margin="0,0,12,0"
+                                        Classes="secondary"
+                                        Text="{Binding Category}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip.Tip="{Binding FullCategory}" />
+                                    <StackPanel Grid.Column="3">
+                                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                                        <TextBlock
+                                            Margin="0,4,0,0"
+                                            Classes="tertiary mono"
+                                            FontSize="11"
+                                            IsVisible="{Binding HasException}"
+                                            Text="{Binding ExceptionText}"
+                                            TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <TextBlock
+                    Margin="18,16"
+                    Classes="secondary"
+                    IsVisible="{Binding HasNoEntries}"
+                    Text="{l:Tr Logs_Empty}" />
+            </Panel>
+        </Border>
+    </Grid>
+</UserControl>

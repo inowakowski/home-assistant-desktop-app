@@ -1,0 +1,61 @@
+<!--
+    The top of a page that edits settings: that they can only be read until unlocked, and how saving went.
+    Takes no room while there is nothing to say. Its DataContext is the window's view model.
+-->
+<UserControl
+    x:Class="HADA.App.Views.Controls.SettingsNotices"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:HADA.App.Views.Controls"
+    xmlns:fi="using:FluentIcons.Avalonia"
+    xmlns:l="using:HADA.App.Localization"
+    xmlns:vm="using:HADA.Presentation.ViewModels"
+    x:DataType="vm:MainViewModel">
+    <UserControl.IsVisible>
+        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+            <Binding Path="Settings.IsLocked" />
+            <Binding Path="Settings.Feedback.IsOpen" />
+        </MultiBinding>
+    </UserControl.IsVisible>
+    <StackPanel Spacing="12">
+        <Border
+            Padding="16,12"
+            Classes="card"
+            IsVisible="{Binding Settings.IsLocked}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <fi:FluentIcon
+                    VerticalAlignment="Center"
+                    FontSize="24"
+                    Foreground="{DynamicResource HadaWarningIconBrush}"
+                    Icon="ShieldLock" />
+                <StackPanel
+                    Grid.Column="1"
+                    Margin="14,0,16,0"
+                    VerticalAlignment="Center">
+                    <TextBlock Classes="strong" Text="{l:Tr Settings_LockedTitle}" />
+                    <TextBlock
+                        Classes="caption secondary"
+                        Text="{Binding $parent[c:SettingsNotices].LockedText}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+                <Button
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Classes="accent"
+                    Command="{Binding UnlockCommand}"
+                    Content="{l:Tr Common_Unlock}" />
+            </Grid>
+        </Border>
+
+        <Border
+            Background="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}}"
+            BorderBrush="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+            Classes="message"
+            IsVisible="{Binding Settings.Feedback.IsOpen}">
+            <StackPanel>
+                <TextBlock Classes="strong" Text="{Binding Settings.Feedback.Title}" />
+                <TextBlock Text="{Binding Settings.Feedback.Message}" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

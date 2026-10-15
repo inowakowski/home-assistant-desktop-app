@@ -320,12 +320,6 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="SignIn_BrowserClose" xml:space="preserve"><value>Możesz zamknąć tę kartę i wrócić do HADA.</value></data>
   <data name="Placeholder_SignedIn" xml:space="preserve"><value>Zalogowano przez Home Assistant – zostaw puste, aby zachować</value></data>
   <data name="Issue_sign_in_expired" xml:space="preserve"><value>Home Assistant nie przyjmuje już tego logowania: zostało tam usunięte albo wygasło. Zaloguj się ponownie na stronie Połączenia.</value></data>
-  <data name="Pending_Title" xml:space="preserve">
-    <value>Jeszcze nie tutaj</value>
-  </data>
-  <data name="Pending_Detail" xml:space="preserve">
-    <value>Tej strony nie ma jeszcze w nowym oknie. Do tego czasu otwórz ustawienia z ikony w zasobniku.</value>
-  </data>
   <data name="Connections_GroupMqtt" xml:space="preserve">
     <value>Przez MQTT</value>
   </data>

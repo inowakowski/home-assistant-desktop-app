@@ -51,6 +51,10 @@
     <Style Selector="TextBlock.tertiary">
         <Setter Property="Foreground" Value="{DynamicResource HadaTertiaryTextBrush}" />
     </Style>
+    <!--  Times and traces in the logs: the system's monospaced font.  -->
+    <Style Selector="TextBlock.mono">
+        <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, SF Mono, DejaVu Sans Mono, Noto Sans Mono, monospace" />
+    </Style>
     <Style Selector="TextBlock.error">
         <Setter Property="Foreground" Value="{DynamicResource HadaErrorTextBrush}" />
     </Style>
@@ -191,6 +195,26 @@
     </Style>
     <Style Selector="Border.tableRow.disabled">
         <Setter Property="Opacity" Value="0.55" />
+    </Style>
+
+    <!--  One setting: what it is on the left, its control on the right, a line between it and the next.  -->
+    <Style Selector="Border.settingRow">
+        <Setter Property="Padding" Value="18,14" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaSeparatorBrush}" />
+    </Style>
+    <Style Selector="Border.settingRow.last">
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <!--  A row of the list of entities, with a line between rows.  -->
+    <Style Selector="Border.entityRow">
+        <Setter Property="Padding" Value="18,12" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HadaSeparatorBrush}" />
+    </Style>
+    <Style Selector="ContentPresenter:nth-last-child(1) > Border.entityRow">
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 
     <!--  The computer at the top of the sidebar.  -->
