@@ -245,7 +245,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Classes="settingRow">
+                        <Border Classes="settingRow" IsVisible="{Binding OffersDashboard}">
                             <StackPanel>
                                 <TextBlock Classes="strong" Text="{l:Tr Preferences_Dashboard}" />
                                 <TextBlock
@@ -303,7 +303,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="settingRow">
+                        <Border Classes="settingRow" IsVisible="{Binding OffersBrowserChoice}">
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
                                     <TextBlock Classes="strong" Text="{l:Tr Preferences_Browser}" />

@@ -129,6 +129,12 @@ public sealed class PreferencesViewModel(IDesktop desktop, bool isElevated, bool
     /// </summary>
     public bool OffersWindowChoice { get; } = OperatingSystem.IsWindows();
 
+    /// <summary>Whether there is a dashboard window to set up: opened from the tray app's menu, which Windows has.</summary>
+    public bool OffersDashboard { get; } = OperatingSystem.IsWindows();
+
+    /// <summary>Whether the browser for notifications can be chosen: from those Windows lists as installed.</summary>
+    public bool OffersBrowserChoice { get; } = OperatingSystem.IsWindows();
+
     /// <summary>Whether the tray icon opens the new window; off, it opens the previous one.</summary>
     public bool UsesNewWindow
     {
