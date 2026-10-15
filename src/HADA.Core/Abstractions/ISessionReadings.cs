@@ -8,4 +8,17 @@ public interface ISessionReadings
 {
     /// <summary>Time since the last keyboard or mouse input in this session; <see langword="null"/> where it cannot be read.</summary>
     TimeSpan? ReadIdleTime();
+
+    /// <summary>
+    /// The apps recording from <paramref name="device"/> now, by name; empty when none is. <see langword="null"/>
+    /// where it cannot be told, and the sensor is left out.
+    /// </summary>
+    IReadOnlyList<string>? AppsUsing(CaptureDevice device);
+}
+
+/// <summary>What records the user: the microphone, the camera.</summary>
+public enum CaptureDevice
+{
+    Microphone,
+    Camera,
 }
