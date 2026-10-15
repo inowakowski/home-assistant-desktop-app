@@ -13,15 +13,13 @@ using Microsoft.Extensions.Options;
 namespace HADA.Tests.Ipc;
 
 /// <summary>Service-side server and tray-side client talking over a real named pipe with a unique name.</summary>
-// Tests of the session pipe, which only has Windows rules so far.
-[SupportedOSPlatform("windows")]
 public sealed class IpcEndToEndTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
     private readonly IpcOptions _options = new()
     {
-        PipeName = "HADA.Tests." + Guid.NewGuid().ToString("N"),
+        PipeName = "HADA.T." + Guid.NewGuid().ToString("N")[..12],
         ClientName = "test-tray",
         MinReconnectDelay = TimeSpan.FromMilliseconds(50),
     };
@@ -49,7 +47,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         await _trayBus.DisposeAsync();
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Tray_entities_and_readings_reach_the_service()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -75,7 +73,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.Equal(Sensor("audio_volume"), entity);
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Entities_of_a_tray_that_went_away_become_unavailable_until_it_reconnects()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -93,7 +91,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         await WaitUntilAsync(() => serviceRegistry.IsAvailable("user_active"));
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task A_service_that_finds_the_pipe_taken_takes_it_over_once_it_is_free()
     {
         _options.PipeRetryDelay = TimeSpan.FromMilliseconds(100);
@@ -115,7 +113,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         await WaitUntilAsync(() => secondRegistry.TryGet("audio_volume", out _));
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Client_replays_entities_and_latest_reading_after_service_restart()
     {
         var (firstBus, firstRegistry) = CreateServiceSide();
@@ -138,7 +136,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.True(secondRegistry.TryGet("active_window", out _));
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Commands_for_a_tray_entity_reach_the_tray_and_those_for_service_entities_do_not()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -166,7 +164,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.False(trayCommands.TryRead(out _));
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task The_service_can_ask_the_tray_to_start_a_program_without_any_entity()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -183,7 +181,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.Equal("notepad", command.Value);
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task What_the_user_does_in_the_tray_reaches_the_service()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -201,7 +199,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.False(serviceEvents.TryRead(out _));
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task A_tray_that_connects_later_is_told_the_quick_actions_as_they_are_now()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -224,7 +222,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.Empty(QuickActionInfo.Deserialize((await ReadAsync(trayCommands)).Value));
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task With_several_users_signed_in_only_the_one_at_the_computer_is_reported()
     {
         var sessions = new FakeSessions { ConsoleSessionId = 1 };
@@ -270,7 +268,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.True(serviceRegistry.IsAvailable("active_window"));
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Service_rejects_foreign_entities_and_unregistered_readings()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -300,7 +298,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
         Assert.Equal("CPU load", cpu.Name);
     }
 
-    [WindowsFact]
+    [Fact]
     public async Task Service_drops_clients_speaking_another_protocol_version()
     {
         var (serviceBus, serviceRegistry) = CreateServiceSide();
@@ -341,7 +339,7 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
 
     private async Task<NamedPipeClientStream> ConnectRawClientAsync()
     {
-        var pipe = new NamedPipeClientStream(".", _options.PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        var pipe = PipeAccess.Current.CreateClientPipe(_options.PipeName);
         using var timeout = new CancellationTokenSource(Timeout);
         await pipe.ConnectAsync(timeout.Token);
         return pipe;

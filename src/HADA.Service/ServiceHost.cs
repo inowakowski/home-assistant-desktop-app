@@ -75,7 +75,16 @@ public static class ServiceHost
             // Everything stays in the copy's own folder, and belongs to the user running it: secrets only that
             // user can read, settings that user may change, and a service that ends with the tray app.
             settingsStore ??= new SettingsStore(AppInstance.PortableDataFolder, protectFolder: false);
-            SettingsStore.Secrets = SecretProtector.ForThisSystem(currentUserOnly: true);
+            if (OperatingSystem.IsWindows())
+            {
+                SettingsStore.Secrets = SecretProtector.ForThisSystem(currentUserOnly: true);
+            }
+        }
+
+        // On Linux and macOS the service is always the user's, as a portable copy's is on Windows: started by the
+        // app in the user's session, ending with it. Its secrets are the user's own wherever it is.
+        if (AppInstance.IsPortable || !OperatingSystem.IsWindows())
+        {
             builder.Services.Configure<IpcOptions>(options => options.TrustSameUser = true);
             builder.Services.AddHostedService<PortableLifetime>();
         }

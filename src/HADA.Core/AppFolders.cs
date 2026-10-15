@@ -44,6 +44,27 @@ public static class AppFolders
         linux: SharedLogs,
         macOS: SharedLogs);
 
+    /// <summary>
+    /// Where the processes of one user find each other on Linux and macOS, through sockets: the user's runtime
+    /// folder on Linux, which the system makes for each signed-in user and nobody else can enter, and the user's
+    /// own temporary folder on macOS. Not used on Windows, which has named pipes and events of its own.
+    /// </summary>
+    public static string Runtime
+    {
+        get
+        {
+            var runtime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+            if (!string.IsNullOrEmpty(runtime) && Directory.Exists(runtime))
+            {
+                return Path.Combine(runtime, "hada");
+            }
+
+            return OperatingSystem.IsMacOS()
+                ? Path.Combine(Path.GetTempPath(), "hada")
+                : Path.Combine(Home(), ".cache", "hada", "run");
+        }
+    }
+
     /// <summary>Makes a folder that only the user running HADA may enter; on Windows its permissions are inherited.</summary>
     public static DirectoryInfo CreatePrivate(string path)
     {
