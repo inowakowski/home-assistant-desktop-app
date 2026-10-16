@@ -15,6 +15,7 @@ HADA for macOS, a first preview: disk images for Apple silicon and Intel that no
     - **Notifications** from Home Assistant appear in Notification Center, with their title and text. Their pictures and buttons do not, yet.
     - The first time Home Assistant shuts the Mac down or restarts it, macOS asks whether HADA may control the login window.
     - **Not yet on macOS:** whether the camera or the microphone records, media, buttons that press keys, Do not disturb, the screen's brightness, turning the display off and on, and keyboard shortcuts for quick actions. A Mac cannot hibernate on demand, so it has no such button.
+- Fixed: on Windows, a signal between HADA's own processes could, for a moment after it was closed, still be reached.
 
 ## 1.10.0 (pre-release)
 
