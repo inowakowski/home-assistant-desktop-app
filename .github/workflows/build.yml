@@ -71,10 +71,9 @@ jobs:
       - name: Build the window
         run: dotnet build src/HADA.App -c Release
 
-      # The service itself, as Linux runs it: a process of the user, started, left running, and stopped. Nobody is
-      # signed in on the runner, so the sensors of the session say so; nothing may fail.
+      # The service itself, as Linux and macOS run it: a process of the user, started, left running, and stopped. Its
+      # sensors read the runner for real; nothing may fail.
       - name: Run the service
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           root="$RUNNER_TEMP/hada"
@@ -150,4 +149,51 @@ jobs:
         with:
           name: linux-packages
           path: artifacts/linux/*
+          if-no-files-found: error
+
+  # The Mac's disk images, built on a Mac: HADA.app for Apple silicon and for Intel. Nobody has tried them on a Mac by
+  # hand yet, and their names say so. The Apple silicon app is taken out of its image, as a user drags it out, and
+  # started as at sign-in, with nobody looking: it must start the service and be heard by it.
+  macos-packages:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build the packages
+        run: scripts/package-macos.sh artifacts/macos
+
+      - name: Take HADA out of its image and start it
+        timeout-minutes: 5
+        run: |
+          hdiutil attach -nobrowse -readonly -mountpoint "$RUNNER_TEMP/image" artifacts/macos/HADA-*-macos-arm64-untested.dmg
+          test -L "$RUNNER_TEMP/image/Applications"
+          app="$RUNNER_TEMP/HADA.app"
+          cp -R "$RUNNER_TEMP/image/HADA.app" "$app"
+          hdiutil detach "$RUNNER_TEMP/image"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          plutil -lint "$app/Contents/Info.plist"
+          test -x "$app/Contents/MacOS/HADA.App" -a -x "$app/Contents/MacOS/service/HADA.Service"
+          # Its output to a file: a process left running must not keep the step waiting for it.
+          "$app/Contents/MacOS/HADA.App" --background > "$RUNNER_TEMP/hada-output.log" 2>&1 &
+          sleep 25
+          logs="$HOME/Library/Logs/HADA"
+          cat "$logs/app.log" "$logs/service.log"
+          pgrep -f "$app/Contents/MacOS/service/HADA.Service"
+          grep -q "Started the service" "$logs/app.log"
+          grep -q "Connected to the service" "$logs/app.log"
+          if grep -F "client 'ui:" "$logs/service.log"; then echo "The window opened in the background."; exit 1; fi
+          if grep -F -e "[ERR]" -e "[CRT]" "$logs/app.log" "$logs/service.log"; then exit 1; fi
+          pkill -TERM -f "$app/Contents/MacOS/HADA.App"
+          for second in $(seq 1 20); do pgrep -f "$app/" > /dev/null || break; sleep 1; done
+          cat "$RUNNER_TEMP/hada-output.log"
+          if pgrep -fl "$app/"; then echo "HADA did not end."; pkill -KILL -f "$app/"; exit 1; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-packages
+          path: artifacts/macos/*.dmg
           if-no-files-found: error

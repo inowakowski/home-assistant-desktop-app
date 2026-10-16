@@ -560,4 +560,11 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="EntityHint_notification_Unix" xml:space="preserve"><value>Wiadomości wysłane do tej encji są pokazywane jako powiadomienia pulpitu, z obrazkiem i przyciskami, jeśli wiadomość je zawiera.</value></data>
   <data name="EntityHint_restart_required_Unix" xml:space="preserve"><value>Włączony, gdy zaktualizowane pakiety albo nowe jądro czekają na restart, żeby zacząć działać.</value></data>
   <data name="EntityHint_screen_brightness_Unix" xml:space="preserve"><value>Jasność wbudowanego ekranu, którą Home Assistant może też ustawić. Tylko na komputerach, których ekran ma podświetlenie.</value></data>
+  <data name="EntityHint_active_window_MacOS" xml:space="preserve"><value>Aplikacja na wierzchu, z nazwy. macOS pokazuje tytuły okien innych aplikacji tylko aplikacjom, które mogą nagrywać ekran.</value></data>
+  <data name="EntityHint_gpu_load_MacOS" xml:space="preserve"><value>Obciążenie procesora graficznego, tak jak pokazuje je Historia GPU w Monitorze aktywności.</value></data>
+  <data name="EntityHint_wifi_network_MacOS" xml:space="preserve"><value>Nazwa sieci Wi-Fi, z którą komputer jest połączony; „connected”, gdy macOS zachowuje nazwę dla siebie, jak przed aplikacjami bez dostępu do lokalizacji.</value></data>
+  <data name="EntityHint_notification_MacOS" xml:space="preserve"><value>Wiadomości wysłane do tej encji są pokazywane w Centrum powiadomień: ich tytuł i tekst, bez obrazków i przycisków.</value></data>
+  <data name="EntityHint_microphone_muted_MacOS" xml:space="preserve"><value>Włączony, gdy głośność wejściowa domyślnego mikrofonu jest na zerze; tak też wycisza go HADA.</value></data>
+  <data name="EntityHint_microphone_mute_MacOS" xml:space="preserve"><value>Pozwala Home Assistant wyciszać domyślny mikrofon, ustawiając jego głośność wejściową na zero i z powrotem.</value></data>
+  <data name="Custom_ButtonNoteMacOS" xml:space="preserve"><value>Program uruchamiany przyciskiem działa w Twojej sesji, z Twoimi uprawnieniami, dopóki HADA działa. Ścieżkę zawierającą spacje ujmij w cudzysłów. Przyciski naciskające klawisze nie działają jeszcze na macOS.</value></data>
 </root>

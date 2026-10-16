@@ -1,11 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
+using HADA.Core.Abstractions;
 
 namespace HADA.Platform.Linux;
-
-/// <summary>The window in front: its title, and the program it belongs to.</summary>
-public readonly record struct ActiveWindowInfo(string Title, string? ProcessName);
 
 /// <summary>
 /// The window in front, as an X11 session's window manager tells every client through the root window's

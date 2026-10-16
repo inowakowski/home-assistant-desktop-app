@@ -29,7 +29,7 @@ public static class WindowsPlatform
         // What every system has, then what Windows has besides.
         services.AddSystemEntities();
         services.AddHostedService<PowerStateSensor>();
-        services.AddHostedService<GpuLoadSensor>();
+        services.AddHostedService<Sensors.GpuLoadSensor>();
         services.AddHostedService<ScreenBrightnessControl>();
         return services;
     }

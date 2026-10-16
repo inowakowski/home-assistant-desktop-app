@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
 using HADA.Core.Sensors;
+using HADA.Core.Unix;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HADA.Platform.Linux;
@@ -20,10 +21,9 @@ public static class LinuxPlatform
         services.AddSingleton<IScreenLock, LinuxScreenLock>();
         services.AddSingleton<IDeviceDirectory>(_ => new LinuxUsbDevices());
         services.AddSingleton<LinuxHardware>(_ => new LinuxHardware());
+        services.AddSingleton<IHardwareReadings>(provider => provider.GetRequiredService<LinuxHardware>());
         services.AddSystemEntities();
-        services.AddHostedService<LidSensor>();
-        services.AddHostedService(provider => new GpuLoadSensor(
-            provider.GetRequiredService<IEventBus>(), provider.GetRequiredService<IEntityRegistry>(), provider.GetRequiredService<LinuxHardware>()));
+        services.AddHardwareEntities();
         return services;
     }
 }

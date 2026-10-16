@@ -53,7 +53,8 @@ public readonly record struct CpuSample(long Busy, long Total)
 /// <param name="HasAdapter">False on a computer without Wi-Fi.</param>
 /// <param name="Ssid">The network's name, or <see langword="null"/> when not connected, or when the system does not tell.</param>
 /// <param name="SignalPercent">Signal quality, 0-100.</param>
-public readonly record struct WifiStatus(bool HasAdapter, string? Ssid, int? SignalPercent);
+/// <param name="IsConnectedUnnamed">Connected to a network whose name the system keeps to itself, as recent versions of macOS do.</param>
+public readonly record struct WifiStatus(bool HasAdapter, string? Ssid, int? SignalPercent, bool IsConnectedUnnamed = false);
 
 /// <param name="BatteryPercent"><see langword="null"/> when the system does not know the charge level.</param>
 public readonly record struct PowerStatus(bool HasBattery, int? BatteryPercent, bool IsCharging, bool IsPluggedIn);

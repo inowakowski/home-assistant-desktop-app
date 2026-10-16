@@ -1,9 +1,8 @@
 using System.Globalization;
+using HADA.Core.Abstractions;
+using HADA.Core.Unix;
 
 namespace HADA.Platform.Linux;
-
-/// <summary>How many screens are connected, and how many of them are not the laptop's own.</summary>
-public readonly record struct DisplayCount(int Total, int External);
 
 /// <summary>A screen whose backlight can be set, by the kernel's name for it.</summary>
 public readonly record struct Backlight(string Name, int Level, int MaxLevel)
@@ -11,10 +10,18 @@ public readonly record struct Backlight(string Name, int Level, int MaxLevel)
     public int Percent => MaxLevel > 0 ? (int)Math.Round(100d * Level / MaxLevel) : 0;
 }
 
-/// <summary>What the kernel says about the computer's hardware, in <c>/proc</c> and <c>/sys</c>.</summary>
+/// <summary>
+/// What the kernel says about the computer's hardware, in <c>/proc</c> and <c>/sys</c>, and what NVIDIA's driver says
+/// about its cards.
+/// </summary>
 /// <param name="root">Where the kernel's folders are; replaced in tests.</param>
-public sealed class LinuxHardware(string root = "/")
+/// <param name="run">Runs a tool; replaced in tests.</param>
+public sealed class LinuxHardware(string root = "/", Func<string, string[], ToolResult?>? run = null) : IHardwareReadings
 {
+    // Without nvidia-smi now, it is not there later either; asking again every ten seconds would be wasted.
+    private readonly Lazy<bool> _hasNvidia = new(() => Tools.Find("nvidia-smi") is not null);
+    private readonly Func<string, string[], ToolResult?> _run = run ?? Tools.Run;
+
     // The connectors of a laptop's own screen: embedded DisplayPort, LVDS on older ones, DSI on some tablets.
     private static readonly string[] InternalConnectors = ["eDP", "LVDS", "DSI"];
 
@@ -129,6 +136,44 @@ public sealed class LinuxHardware(string root = "/")
         return null;
     }
 
+    /// <summary>AMD's cards tell through the kernel, NVIDIA's through their driver's <c>nvidia-smi</c>; Intel's keep it to themselves.</summary>
+    public bool HasGpuLoad => ReadGpuBusyPercent() is not null || _hasNvidia.Value;
+
+    public int? ReadGpuLoadPercent() => ReadGpuBusyPercent() ?? (_hasNvidia.Value ? ReadNvidia() : null);
+
+    /// <summary>Reads <c>nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits</c>: a number per card; the busiest counts.</summary>
+    public static int? ParseNvidiaSmi(string output)
+    {
+        var loads = output.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => int.TryParse(line, NumberStyles.None, CultureInfo.InvariantCulture, out var load) ? load : (int?)null)
+            .OfType<int>()
+            .ToList();
+        return loads.Count > 0 ? Math.Clamp(loads.Max(), 0, 100) : null;
+    }
+
     private static int? Number(string path) =>
         int.TryParse(Proc.ReadText(path)?.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : null;
+
+    private int? ReadNvidia() =>
+        _run("nvidia-smi", ["--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"]) is { Succeeded: true } result
+            ? ParseNvidiaSmi(result.Output)
+            : null;
+}
+
+/// <summary>
+/// The screens, as the kernel lists them, and the window in front, in an X11 session. Opens the X11 display once,
+/// for as long as the agent runs.
+/// </summary>
+[System.Runtime.Versioning.SupportedOSPlatform("linux")]
+public sealed class LinuxDisplayReadings(LinuxHardware hardware) : IDisplayReadings, IDisposable
+{
+    private readonly X11ActiveWindow? _windows = X11ActiveWindow.Open();
+
+    public DisplayCount? ReadDisplays() => hardware.ReadDisplays();
+
+    public bool HasActiveWindow => _windows is not null;
+
+    public ActiveWindowInfo? ReadActiveWindow() => _windows?.Read();
+
+    public void Dispose() => _windows?.Dispose();
 }

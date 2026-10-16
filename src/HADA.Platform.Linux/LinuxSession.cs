@@ -3,6 +3,7 @@ using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
 using HADA.Core.Actions;
 using HADA.Core.Sensors;
+using HADA.Core.Unix;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HADA.Platform.Linux;
@@ -137,8 +138,8 @@ public static class LinuxSession
 
         // The screens, the window in front, quiet hours, and the backlight.
         services.AddSingleton<LinuxHardware>(_ => new LinuxHardware());
-        services.AddHostedService<ExternalDisplaySensor>();
-        services.AddHostedService<ActiveWindowSensor>();
+        services.AddSingleton<IDisplayReadings>(provider => new LinuxDisplayReadings(provider.GetRequiredService<LinuxHardware>()));
+        services.AddDisplayEntities();
         services.AddHostedService(provider => new DoNotDisturbSensor(
             provider.GetRequiredService<Core.Abstractions.IEventBus>(), provider.GetRequiredService<Core.Abstractions.IEntityRegistry>()));
         services.AddHostedService(provider => new ScreenBrightnessControl(

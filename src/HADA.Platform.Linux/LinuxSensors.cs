@@ -6,123 +6,10 @@ using HADA.Core.Entities;
 using HADA.Core.Hosting;
 using HADA.Core.Messaging;
 using HADA.Core.Models;
+using HADA.Core.Unix;
 using Microsoft.Extensions.Logging;
 
 namespace HADA.Platform.Linux;
-
-/// <summary>Publishes whether the laptop's lid is open. Registers nothing where there is no lid.</summary>
-public sealed class LidSensor(IEventBus bus, IEntityRegistry registry, LinuxHardware hardware) : EagerBackgroundService
-{
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (hardware.ReadLidOpen() is null)
-        {
-            return;
-        }
-
-        await registry.RegisterAsync(BuiltInDescriptors.Lid, stoppingToken);
-        var publisher = new ChangeOnlyPublisher(bus);
-        using var timer = new PeriodicTimer(PollInterval);
-        do
-        {
-            if (hardware.ReadLidOpen() is { } open)
-            {
-                await publisher.PublishAsync(BuiltInEntityIds.LidOpen, BinaryState.From(open), cancellationToken: stoppingToken);
-            }
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
-    }
-}
-
-/// <summary>
-/// Publishes how busy the graphics card is, where Linux tells: AMD's cards through the kernel, NVIDIA's through
-/// their driver's <c>nvidia-smi</c>. Registered with the first reading; Intel's cards keep it to themselves.
-/// </summary>
-public sealed class GpuLoadSensor(IEventBus bus, IEntityRegistry registry, LinuxHardware hardware, Func<string, string[], ToolResult?>? run = null)
-    : EagerBackgroundService
-{
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
-
-    private readonly Func<string, string[], ToolResult?> _run = run ?? Tools.Run;
-
-    /// <summary>Reads <c>nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits</c>: a number per card; the busiest counts.</summary>
-    public static int? ParseNvidiaSmi(string output)
-    {
-        var loads = output.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(line => int.TryParse(line, NumberStyles.None, CultureInfo.InvariantCulture, out var load) ? load : (int?)null)
-            .OfType<int>()
-            .ToList();
-        return loads.Count > 0 ? Math.Clamp(loads.Max(), 0, 100) : null;
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        // Without nvidia-smi now, it is not there later either; asking again every ten seconds would be wasted.
-        var hasNvidia = Tools.Find("nvidia-smi") is not null;
-        var registered = false;
-        var publisher = new ChangeOnlyPublisher(bus);
-        using var timer = new PeriodicTimer(PollInterval);
-        do
-        {
-            var load = hardware.ReadGpuBusyPercent() ?? (hasNvidia ? ReadNvidia() : null);
-            if (load is null)
-            {
-                if (!registered && !hasNvidia)
-                {
-                    return;
-                }
-
-                continue;
-            }
-
-            if (!registered)
-            {
-                registered = true;
-                await registry.RegisterAsync(BuiltInDescriptors.GpuLoad, stoppingToken);
-            }
-
-            await publisher.PublishAsync(BuiltInEntityIds.GpuLoad, load.Value.ToString(CultureInfo.InvariantCulture), cancellationToken: stoppingToken);
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
-    }
-
-    private int? ReadNvidia() =>
-        _run("nvidia-smi", ["--query-gpu=utilization.gpu", "--format=csv,noheader,nounits"]) is { Succeeded: true } result
-            ? ParseNvidiaSmi(result.Output)
-            : null;
-}
-
-/// <summary>Publishes whether a screen other than the laptop's own is connected, with how many there are.</summary>
-public sealed class ExternalDisplaySensor(IEventBus bus, IEntityRegistry registry, LinuxHardware hardware) : EagerBackgroundService
-{
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        if (hardware.ReadDisplays() is null)
-        {
-            return;
-        }
-
-        await registry.RegisterAsync(BuiltInDescriptors.ExternalDisplay, stoppingToken);
-        var publisher = new ChangeOnlyPublisher(bus);
-        using var timer = new PeriodicTimer(PollInterval);
-        do
-        {
-            if (hardware.ReadDisplays() is { } displays)
-            {
-                await publisher.PublishAsync(
-                    BuiltInEntityIds.ExternalDisplay,
-                    BinaryState.From(displays.External > 0),
-                    new Dictionary<string, object?> { ["displays"] = displays.Total, ["external_displays"] = displays.External },
-                    stoppingToken);
-            }
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
-    }
-}
 
 /// <summary>
 /// Publishes whether the desktop keeps notifications quiet: KDE's do-not-disturb, which its notification server
@@ -204,44 +91,6 @@ public sealed class DoNotDisturbSensor(IEventBus bus, IEntityRegistry registry, 
 
     private bool? Ask((string Tool, string[] Arguments, Func<string, bool?> Parse) source) =>
         _run(source.Tool, source.Arguments) is { Succeeded: true } result ? source.Parse(result.Output) : null;
-}
-
-/// <summary>Publishes the window in front, in an X11 session. Registers nothing on Wayland, which keeps it to the desktop.</summary>
-[SupportedOSPlatform("linux")]
-public sealed class ActiveWindowSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
-{
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        using var windows = X11ActiveWindow.Open();
-        if (windows is null)
-        {
-            return;
-        }
-
-        await registry.RegisterAsync(BuiltInDescriptors.ActiveWindow, stoppingToken);
-        ActiveWindowInfo? last = null;
-        using var timer = new PeriodicTimer(PollInterval);
-        do
-        {
-            if (windows.Read() is not { } window || window == last)
-            {
-                continue;
-            }
-
-            last = window;
-            await bus.PublishAsync(
-                new TelemetryEvent
-                {
-                    SensorId = BuiltInEntityIds.ActiveWindow,
-                    State = window.Title.Length > 0 ? window.Title : window.ProcessName ?? "unknown",
-                    Attributes = new Dictionary<string, object?> { ["process_name"] = window.ProcessName },
-                },
-                stoppingToken);
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
-    }
 }
 
 /// <summary>

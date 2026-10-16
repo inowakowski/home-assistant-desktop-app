@@ -58,7 +58,8 @@ public sealed class CustomSensorViewModel : ObservableObject
 
     public static string CommandsNote { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_PowerShellNote" : "Custom_ShellNote");
 
-    public static string ButtonsNote { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_ButtonNote" : "Custom_ButtonNoteUnix");
+    public static string ButtonsNote { get; } = Loc.Get(
+        OperatingSystem.IsWindows() ? "Custom_ButtonNote" : OperatingSystem.IsMacOS() ? "Custom_ButtonNoteMacOS" : "Custom_ButtonNoteUnix");
 
     /// <summary>Shortcuts of quick actions are listened for on Windows only.</summary>
     public static string QuickActionsNote { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_QuickActionNote" : "Custom_QuickActionNoteUnix");
