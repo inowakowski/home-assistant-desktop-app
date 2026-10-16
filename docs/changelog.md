@@ -2,6 +2,14 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.13.0 (pre-release)
+
+A switch for Do not disturb, and the quick actions' shortcuts on Linux and macOS. A pre-release, so that it gets tried before a stable version carries it.
+
+- **Silence notifications**: a switch to turn Do not disturb on and off from Home Assistant. On Windows it works as the switch in the notification settings does; on Linux it switches GNOME's notification banners off, and holds KDE's notifications back for as long as HADA runs. macOS keeps its Focus to itself, so there is no such switch there.
+- **The quick actions' keyboard shortcuts** now work on macOS, and on Linux in an X11 session; Wayland does not let apps listen for keys meant for others. The tray icon's menu shows them next to the actions.
+- Fixed: a custom sensor could be given the id of the media player, of "Restart required" or of the screen's brightness.
+
 ## 1.12.0 (pre-release)
 
 More of what Linux and macOS lacked. Their packages are still untested by hand, which their names say. On Windows nothing changes. A pre-release, so that it gets tried before a stable version carries it.
