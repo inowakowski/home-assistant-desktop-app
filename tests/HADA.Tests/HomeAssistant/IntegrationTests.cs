@@ -93,7 +93,7 @@ public sealed class IntegrationTests : IAsyncLifetime
     {
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "14" });
         await _bus.PublishAsync(new TelemetryEvent { SensorId = "display_on", State = BinaryState.On });
@@ -111,7 +111,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await _registry.RegisterAsync(new EntityDescriptor { Id = "memory_used", Name = "Memory", Kind = EntityKind.Sensor, UnitOfMeasurement = "%" });
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         JsonElement[] Updates() =>
             [.. _homeAssistant.SocketMessages.Where(m => m.GetProperty("type").GetString() == "hada/update")];
@@ -166,7 +166,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await using var commands = _bus.Subscribe<ActionCommand>();
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c1", command = "press", entity = "lock_screen" });
         await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c2", command = "set", entity = "audio_mute", value = true });
@@ -201,7 +201,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await using var commands = _bus.Subscribe<ActionCommand>();
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         var player = _homeAssistant.IntegrationEntity("media_player")!;
         Assert.Equal("media_player", player.Descriptor.GetProperty("kind").GetString());
@@ -257,7 +257,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await using var commands = _bus.Subscribe<ActionCommand>();
         await using var engine = CreateEngine(filter: new EntityFilter(["shutdown"]));
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         // Switched off in HADA, not there at all, a sensor, a value out of range, and something from a later version.
         await _homeAssistant.SendIntegrationCommandAsync(new { command_id = "c1", command = "press", entity = "shutdown" });
@@ -282,7 +282,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await using var commands = _bus.Subscribe<ActionCommand>();
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
         Assert.Equal("notify", _homeAssistant.IntegrationEntity("notification")!.Descriptor.GetProperty("kind").GetString());
 
         await _homeAssistant.SendIntegrationCommandAsync(new
@@ -335,7 +335,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await _registry.RegisterAsync(new EntityDescriptor { Id = "toggle_lamp", Name = "Toggle lamp", Kind = EntityKind.Trigger });
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
         Assert.Equal("event", _homeAssistant.IntegrationEntity("toggle_lamp")!.Descriptor.GetProperty("kind").GetString());
 
         await _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.QuickAction, Value = "toggle_lamp" });
@@ -363,7 +363,7 @@ public sealed class IntegrationTests : IAsyncLifetime
     {
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
         await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "14" });
         await WaitUntilAsync(() => _homeAssistant.IntegrationEntity("cpu_load")?.State == "14");
 
@@ -380,7 +380,7 @@ public sealed class IntegrationTests : IAsyncLifetime
     {
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         await _registry.RegisterAsync(new EntityDescriptor { Id = "gpu_load", Name = "GPU load", Kind = EntityKind.Sensor });
         await _registry.RegisterAsync(new EntityDescriptor { Id = "memory_usage", Name = "Memory", Kind = EntityKind.Sensor });
@@ -396,7 +396,7 @@ public sealed class IntegrationTests : IAsyncLifetime
     {
         await using var engine = CreateEngine(filter: new EntityFilter(["display_on"]));
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         Assert.Equal(["cpu_load", "lock_screen"], _homeAssistant.IntegrationEntityIds);
     }
@@ -428,7 +428,7 @@ public sealed class IntegrationTests : IAsyncLifetime
     {
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
 
         _homeAssistant.ReloadIntegration();
         await _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = "7" });
@@ -444,7 +444,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         await using var engine = CreateEngine();
         await engine.StartAsync(CancellationToken.None);
 
-        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected);
+        await WaitUntilConnectedAsync(engine);
         Assert.Equal(EngineConnectionState.Connected, engine.State);
     }
 
@@ -489,6 +489,14 @@ public sealed class IntegrationTests : IAsyncLifetime
         NullLogger<HaWebSocketEngine>.Instance,
         filter,
         new InMemoryMobileAppRegistrationStore());
+
+    /// <summary>
+    /// Until both ends are connected: Home Assistant sees the integration during the handshake, and the engine
+    /// counts as connected only after what follows it. What happens on the computer in between is not sent, as there
+    /// is nobody yet to send it to.
+    /// </summary>
+    private async Task WaitUntilConnectedAsync(HaWebSocketEngine engine) =>
+        await WaitUntilAsync(() => _homeAssistant.IsIntegrationConnected && engine.State == EngineConnectionState.Connected);
 
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
