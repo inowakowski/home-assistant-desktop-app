@@ -571,11 +571,12 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="App_BackgroundWindows" xml:space="preserve"><value>Closing this window does not stop HADA. The service goes on reporting this computer to Home Assistant, and the tray app keeps its icon in the notification area next to the clock, perhaps under the arrow there. Open this window again from that icon; end the tray app from its menu.</value></data>
   <data name="App_BackgroundLinux" xml:space="preserve"><value>Closing this window does not stop HADA. It goes on reporting this computer to Home Assistant, with its icon in the system tray. Open this window again from that icon; end HADA from its menu. On GNOME the icon needs the AppIndicator extension; without it, start HADA again to bring the window back.</value></data>
   <data name="App_BackgroundMacOS" xml:space="preserve"><value>Closing this window does not stop HADA. It goes on reporting this Mac to Home Assistant, with its icon in the menu bar. Open this window again from that icon; quit HADA from its menu.</value></data>
-  <data name="App_BackgroundOk" xml:space="preserve"><value>Got it</value></data>
+  <data name="App_BackgroundOk" xml:space="preserve"><value>OK</value></data>
   <data name="EntityHint_camera_in_use_MacOS" xml:space="preserve"><value>On while an app is using the camera. macOS does not say which.</value></data>
   <data name="EntityHint_microphone_in_use_MacOS" xml:space="preserve"><value>On while an app is using the microphone. macOS does not say which.</value></data>
   <data name="EntityHint_media_play_pause_MacOS" xml:space="preserve"><value>Presses the keyboard's play/pause key; whichever app plays reacts. Only once HADA is allowed under Privacy &amp; Security, Accessibility.</value></data>
   <data name="EntityHint_screen_brightness_MacOS" xml:space="preserve"><value>The brightness of the Mac's own screen, which Home Assistant can also set. Not on a Mac without a screen of its own.</value></data>
   <data name="EntityHint_turn_off_display_MacOS" xml:space="preserve"><value>Lets Home Assistant turn the screens off. If the Mac asks for the password at once after the screen sleeps, this locks it too.</value></data>
   <data name="EntityHint_turn_off_display_Unix" xml:space="preserve"><value>Lets Home Assistant turn the screens off, as GNOME, KDE or any X11 desktop do. Many laptops go to sleep soon after.</value></data>
+  <data name="App_BackgroundHide" xml:space="preserve"><value>Don't show this again</value></data>
 </root>

@@ -344,7 +344,7 @@
                     Tag="SouthEast" />
             </Panel>
 
-            <!--  Said once, the first time the window is closed: HADA goes on without it.  -->
+            <!--  Said as the window closes, until the user asks not to be told again: HADA goes on without it.  -->
             <Border
                 x:Name="BackgroundNotice"
                 Grid.RowSpan="2"
@@ -372,13 +372,23 @@
                                 Text="{l:Tr App_BackgroundTitle}" />
                         </StackPanel>
                         <TextBlock x:Name="BackgroundNoticeText" TextWrapping="Wrap" />
-                        <Button
-                            x:Name="BackgroundNoticeOk"
-                            HorizontalAlignment="Right"
-                            Classes="accent"
-                            Click="OnBackgroundNoticeAnswered"
-                            Content="{l:Tr App_BackgroundOk}"
-                            IsDefault="True" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <CheckBox
+                                x:Name="BackgroundNoticeHide"
+                                VerticalAlignment="Center"
+                                Content="{l:Tr App_BackgroundHide}" />
+                            <Button
+                                x:Name="BackgroundNoticeOk"
+                                Grid.Column="1"
+                                MinWidth="96"
+                                Margin="16,0,0,0"
+                                HorizontalContentAlignment="Center"
+                                VerticalAlignment="Center"
+                                Classes="accent"
+                                Click="OnBackgroundNoticeAnswered"
+                                Content="{l:Tr App_BackgroundOk}"
+                                IsDefault="True" />
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Border>
