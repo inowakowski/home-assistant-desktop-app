@@ -2,6 +2,13 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.11.1 (pre-release)
+
+A fix for the window, and a word the first time it is closed. A pre-release, so that it gets tried before a stable version carries it.
+
+- Fixed: on Windows, the buttons at the top right of the window, to minimize, maximize and close it, did nothing: a click on them was taken for one on the title bar. The buttons HADA draws itself on Linux and macOS get the same fix.
+- The first time the window is closed, it says that HADA goes on running in the background, and where to find its icon to open it again or to end it.
+
 ## 1.11.0 (pre-release)
 
 HADA for macOS, a first preview: disk images for Apple silicon and Intel that nobody has tried on a Mac by hand yet, which their names say. On Windows and Linux nothing changes. A pre-release, so that it gets tried before a stable version carries it.
