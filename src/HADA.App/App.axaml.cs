@@ -124,14 +124,14 @@ public sealed partial class App : Application
             // leave the program's files in use otherwise; with an agent, that ends the app.
             Program.Role?.Serve(
                 () => Dispatcher.UIThread.Post(window.BringToFront),
-                () => Dispatcher.UIThread.Post(withAgent ? () => Exit(desktop) : window.Close));
+                () => Dispatcher.UIThread.Post(withAgent ? () => Exit(desktop) : () => CloseQuietly(window)));
             if (snapshot is not null)
             {
                 window.Opened += async (_, _) =>
                 {
                     await Task.Delay(SnapshotDelay);
                     window.SaveSnapshot(snapshot);
-                    window.Close();
+                    CloseQuietly(window);
                 };
             }
 
@@ -183,9 +183,20 @@ public sealed partial class App : Application
         finally
         {
             _terminate?.Dispose();
-            _window?.Close();
+            if (_window is { } window)
+            {
+                CloseQuietly(window);
+            }
+
             desktop.Shutdown();
         }
+    }
+
+    /// <summary>Closes the window as part of HADA ending, without the word that HADA goes on.</summary>
+    private static void CloseQuietly(MainWindow window)
+    {
+        window.TellsHadaGoesOn = false;
+        window.Close();
     }
 
     /// <summary>What follows an argument such as <c>--page</c>: <c>--page logs</c> gives <c>logs</c>.</summary>

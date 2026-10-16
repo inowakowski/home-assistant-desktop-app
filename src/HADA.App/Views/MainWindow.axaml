@@ -84,19 +84,29 @@
                         VerticalAlignment="Center"
                         FontSize="12" />
                 </StackPanel>
+                <!--  The buttons are the window's own, not the title bar to drag: their clicks come to them.  -->
                 <StackPanel
                     x:Name="WindowsButtons"
                     Grid.Column="1"
                     VerticalAlignment="Top"
                     IsVisible="False"
                     Orientation="Horizontal">
-                    <Button Classes="chrome windows" Click="OnMinimize">
+                    <Button
+                        Classes="chrome windows"
+                        WindowDecorationProperties.ElementRole="User"
+                        Click="OnMinimize">
                         <fi:FluentIcon FontSize="12" Icon="Subtract" />
                     </Button>
-                    <Button Classes="chrome windows" Click="OnToggleMaximize">
+                    <Button
+                        Classes="chrome windows"
+                        WindowDecorationProperties.ElementRole="User"
+                        Click="OnToggleMaximize">
                         <fi:FluentIcon FontSize="12" Icon="Square" />
                     </Button>
-                    <Button Classes="chrome windows close" Click="OnClose">
+                    <Button
+                        Classes="chrome windows close"
+                        WindowDecorationProperties.ElementRole="User"
+                        Click="OnClose">
                         <fi:FluentIcon FontSize="12" Icon="Dismiss" />
                     </Button>
                 </StackPanel>
@@ -108,13 +118,22 @@
                     IsVisible="False"
                     Orientation="Horizontal"
                     Spacing="8">
-                    <Button Classes="chrome kde" Click="OnMinimize">
+                    <Button
+                        Classes="chrome kde"
+                        WindowDecorationProperties.ElementRole="User"
+                        Click="OnMinimize">
                         <fi:FluentIcon FontSize="14" Icon="ChevronDown" />
                     </Button>
-                    <Button Classes="chrome kde" Click="OnToggleMaximize">
+                    <Button
+                        Classes="chrome kde"
+                        WindowDecorationProperties.ElementRole="User"
+                        Click="OnToggleMaximize">
                         <fi:FluentIcon FontSize="14" Icon="ChevronUp" />
                     </Button>
-                    <Button Classes="chrome kde close" Click="OnClose">
+                    <Button
+                        Classes="chrome kde close"
+                        WindowDecorationProperties.ElementRole="User"
+                        Click="OnClose">
                         <fi:FluentIcon FontSize="14" Icon="Dismiss" />
                     </Button>
                 </StackPanel>
@@ -146,16 +165,19 @@
                                         Width="12"
                                         Height="12"
                                         Fill="#FF5F57"
+                                        WindowDecorationProperties.ElementRole="User"
                                         PointerPressed="OnCloseLight" />
                                     <Ellipse
                                         Width="12"
                                         Height="12"
                                         Fill="#FEBC2E"
+                                        WindowDecorationProperties.ElementRole="User"
                                         PointerPressed="OnMinimizeLight" />
                                     <Ellipse
                                         Width="12"
                                         Height="12"
                                         Fill="#28C840"
+                                        WindowDecorationProperties.ElementRole="User"
                                         PointerPressed="OnMaximizeLight" />
                                 </StackPanel>
                                 <TextBlock
@@ -266,6 +288,7 @@
                                     Margin="0,0,12,0"
                                     VerticalAlignment="Center"
                                     Classes="chrome gnome"
+                                    WindowDecorationProperties.ElementRole="User"
                                     Click="OnClose"
                                     IsVisible="False">
                                     <fi:FluentIcon FontSize="12" Icon="Dismiss" />
@@ -320,6 +343,45 @@
                     PointerPressed="OnResize"
                     Tag="SouthEast" />
             </Panel>
+
+            <!--  Said once, the first time the window is closed: HADA goes on without it.  -->
+            <Border
+                x:Name="BackgroundNotice"
+                Grid.RowSpan="2"
+                Background="#80000000"
+                IsVisible="False">
+                <!--  Solid, as a flyout is: a card of the page is see-through where Mica shows through the window.  -->
+                <Border
+                    MaxWidth="480"
+                    Margin="24"
+                    Padding="24,20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource FlyoutPresenterBackground}"
+                    Classes="card">
+                    <StackPanel Spacing="14">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <fi:FluentIcon
+                                VerticalAlignment="Center"
+                                FontSize="24"
+                                Foreground="{DynamicResource HadaIndicatorBrush}"
+                                Icon="Info" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Classes="strong"
+                                Text="{l:Tr App_BackgroundTitle}" />
+                        </StackPanel>
+                        <TextBlock x:Name="BackgroundNoticeText" TextWrapping="Wrap" />
+                        <Button
+                            x:Name="BackgroundNoticeOk"
+                            HorizontalAlignment="Right"
+                            Classes="accent"
+                            Click="OnBackgroundNoticeAnswered"
+                            Content="{l:Tr App_BackgroundOk}"
+                            IsDefault="True" />
+                    </StackPanel>
+                </Border>
+            </Border>
         </Grid>
     </Border>
 </Window>

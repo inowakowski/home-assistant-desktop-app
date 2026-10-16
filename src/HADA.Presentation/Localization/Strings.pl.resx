@@ -567,4 +567,9 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="EntityHint_microphone_muted_MacOS" xml:space="preserve"><value>Włączony, gdy głośność wejściowa domyślnego mikrofonu jest na zerze; tak też wycisza go HADA.</value></data>
   <data name="EntityHint_microphone_mute_MacOS" xml:space="preserve"><value>Pozwala Home Assistant wyciszać domyślny mikrofon, ustawiając jego głośność wejściową na zero i z powrotem.</value></data>
   <data name="Custom_ButtonNoteMacOS" xml:space="preserve"><value>Program uruchamiany przyciskiem działa w Twojej sesji, z Twoimi uprawnieniami, dopóki HADA działa. Ścieżkę zawierającą spacje ujmij w cudzysłów. Przyciski naciskające klawisze nie działają jeszcze na macOS.</value></data>
+  <data name="App_BackgroundTitle" xml:space="preserve"><value>HADA działa dalej</value></data>
+  <data name="App_BackgroundWindows" xml:space="preserve"><value>Zamknięcie tego okna nie zatrzymuje HADA. Usługa dalej przekazuje ten komputer do Home Assistant, a aplikacja Tray zostaje z ikoną w obszarze powiadomień obok zegara, być może pod strzałką. Z tej ikony otworzysz to okno ponownie, a z jej menu zakończysz aplikację Tray.</value></data>
+  <data name="App_BackgroundLinux" xml:space="preserve"><value>Zamknięcie tego okna nie zatrzymuje HADA. Dalej przekazuje ten komputer do Home Assistant, z ikoną w zasobniku systemowym. Z tej ikony otworzysz to okno ponownie, a z jej menu zakończysz HADA. W GNOME ikona wymaga rozszerzenia AppIndicator; bez niego uruchom HADA ponownie, by przywrócić okno.</value></data>
+  <data name="App_BackgroundMacOS" xml:space="preserve"><value>Zamknięcie tego okna nie zatrzymuje HADA. Dalej przekazuje tego Maca do Home Assistant, z ikoną na pasku menu. Z tej ikony otworzysz to okno ponownie, a z jej menu zakończysz HADA.</value></data>
+  <data name="App_BackgroundOk" xml:space="preserve"><value>Rozumiem</value></data>
 </root>

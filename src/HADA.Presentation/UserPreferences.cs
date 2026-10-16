@@ -32,6 +32,7 @@ public static class UserPreferences
     private const string BrowserValue = "NotificationBrowser";
     private const string SidebarValue = "SidebarCollapsed";
     private const string PreviousWindowValue = "PreviousWindow";
+    private const string BackgroundNoticeValue = "BackgroundNoticeShown";
 
     private static readonly IPreferenceStore Store = OperatingSystem.IsWindows() && !AppInstance.IsPortable
         ? new RegistryPreferenceStore()
@@ -100,6 +101,13 @@ public static class UserPreferences
     {
         get => Store.ReadNumber(SidebarValue) is 1;
         set => Store.Write(SidebarValue, value ? 1 : null);
+    }
+
+    /// <summary>Whether the window has said, the first time it was closed, that HADA goes on running without it.</summary>
+    public static bool BackgroundNoticeShown
+    {
+        get => Store.ReadNumber(BackgroundNoticeValue) is 1;
+        set => Store.Write(BackgroundNoticeValue, value ? 1 : null);
     }
 
     /// <summary>Whether the tray icon opens the previous window rather than the new one, while both come with HADA.</summary>
