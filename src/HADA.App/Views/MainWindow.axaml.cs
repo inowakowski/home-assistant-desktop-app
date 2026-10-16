@@ -37,6 +37,7 @@ public sealed partial class MainWindow : Window
 
     private bool _choosing;
     private bool _showsSidebarTitle;
+    private bool _noticeAnswered;
     private MainViewModel? _viewModel;
 
     public MainWindow()
@@ -127,6 +128,12 @@ public sealed partial class MainWindow : Window
                 break;
         }
     }
+
+    /// <summary>
+    /// Whether closing the window says first, the one time, that HADA goes on running without it. Off where the
+    /// window closes because HADA itself is ending.
+    /// </summary>
+    public bool TellsHadaGoesOn { get; set; } = true;
 
     /// <summary>Shows the window for <paramref name="viewModel"/>, at <paramref name="page"/> or the Overview.</summary>
     /// <param name="visible">False to keep it hidden until it is asked for, as the agent of Linux and macOS starts.</param>
@@ -266,6 +273,35 @@ public sealed partial class MainWindow : Window
     private void OnMinimize(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
     private void OnClose(object? sender, RoutedEventArgs e) => Close();
+
+    /// <summary>
+    /// The first time the user closes the window, it stays to say that HADA goes on running, and where to find it;
+    /// told, it closes as asked. Not when the system is shutting down, nor when HADA is ending.
+    /// </summary>
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (TellsHadaGoesOn && !_noticeAnswered && IsVisible && e.CloseReason == WindowCloseReason.WindowClosing
+            && !UserPreferences.BackgroundNoticeShown)
+        {
+            e.Cancel = true;
+            BackgroundNoticeText.Text = Loc.Get(
+                OperatingSystem.IsWindows() ? "App_BackgroundWindows" : OperatingSystem.IsMacOS() ? "App_BackgroundMacOS" : "App_BackgroundLinux");
+            BackgroundNotice.IsVisible = true;
+            BackgroundNoticeOk.Focus();
+            return;
+        }
+
+        base.OnClosing(e);
+    }
+
+    private void OnBackgroundNoticeAnswered(object? sender, RoutedEventArgs e)
+    {
+        UserPreferences.BackgroundNoticeShown = true;
+        _noticeAnswered = true;
+        BackgroundNotice.IsVisible = false;
+        Close();
+    }
 
     private void OnCloseLight(object? sender, PointerPressedEventArgs e) => Close();
 
