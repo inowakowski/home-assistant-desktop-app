@@ -61,8 +61,9 @@ public sealed class CustomSensorViewModel : ObservableObject
     public static string ButtonsNote { get; } = Loc.Get(
         OperatingSystem.IsWindows() ? "Custom_ButtonNote" : OperatingSystem.IsMacOS() ? "Custom_ButtonNoteMacOS" : "Custom_ButtonNoteUnix");
 
-    /// <summary>Shortcuts of quick actions are listened for on Windows only.</summary>
-    public static string QuickActionsNote { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Custom_QuickActionNote" : "Custom_QuickActionNoteUnix");
+    /// <summary>Shortcuts of quick actions are listened for on Windows and macOS, and on Linux in an X11 session.</summary>
+    public static string QuickActionsNote { get; } = Loc.Get(
+        OperatingSystem.IsWindows() ? "Custom_QuickActionNote" : OperatingSystem.IsMacOS() ? "Custom_QuickActionNoteMacOS" : "Custom_QuickActionNoteUnix");
 
     public double MinInterval => CustomSensorDefinition.MinIntervalSeconds;
 
@@ -173,7 +174,7 @@ public sealed class CustomSensorViewModel : ObservableObject
         CustomSensorType.CommandButton => "Custom_ValueCommandButton",
         CustomSensorType.LaunchButton => "Custom_ValueLaunchButton",
         CustomSensorType.KeysButton => "Custom_ValueKeysButton",
-        CustomSensorType.QuickAction => OperatingSystem.IsWindows() ? "Custom_ValueQuickAction" : "Custom_ValueQuickActionUnix",
+        CustomSensorType.QuickAction => OperatingSystem.IsLinux() ? "Custom_ValueQuickActionLinux" : "Custom_ValueQuickAction",
         _ => "Custom_ValueText",
     });
 
@@ -186,7 +187,7 @@ public sealed class CustomSensorViewModel : ObservableObject
         (CustomSensorType.CommandButton, true) => "Restart-Service Spooler",
         (CustomSensorType.CommandButton, false) => "systemctl --user restart pipewire",
         (CustomSensorType.KeysButton, _) => "Ctrl+Shift+M",
-        (CustomSensorType.QuickAction, true) => "Ctrl+Alt+L",
+        (CustomSensorType.QuickAction, _) => "Ctrl+Alt+L",
         (CustomSensorType.LaunchButton, true) => "\"C:\\Program Files\\App\\app.exe\" --option",
         (CustomSensorType.LaunchButton, false) => "firefox https://www.home-assistant.io",
         _ => string.Empty,

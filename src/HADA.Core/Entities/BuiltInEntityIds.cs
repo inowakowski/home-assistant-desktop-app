@@ -50,6 +50,7 @@ public static class BuiltInEntityIds
     public const string UpdateAvailable = "update_available";
     public const string RestartRequired = "restart_required";
     public const string ScreenBrightness = "screen_brightness";
+    public const string SilenceNotifications = "silence_notifications";
 
     private const string DiskPrefix = "disk_";
     private const string DiskSuffix = "_usage";
@@ -97,7 +98,11 @@ public static class BuiltInEntityIds
         MicrophoneMute,
         Notification,
         MediaPlayback,
+        MediaPlayer,
         UpdateAvailable,
+        RestartRequired,
+        ScreenBrightness,
+        SilenceNotifications,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>

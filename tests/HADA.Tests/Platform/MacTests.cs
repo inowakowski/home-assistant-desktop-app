@@ -176,6 +176,15 @@ public sealed class MacTests
             MacKeys.ModifiersOf(all.Modifiers).Select(modifier => ((int)modifier.KeyCode, modifier.Flag)));
     }
 
+    [MacOSFact]
+    [SupportedOSPlatform("macos")]
+    public void Shortcuts_use_carbons_modifier_bits()
+    {
+        Assert.True(HADA.Core.Input.KeyCombination.TryParse("Ctrl+Alt+Shift+Win+L", out var combination));
+
+        Assert.Equal(0x1000u | 0x800u | 0x200u | 0x100u, MacHotkeys.ModifiersOf(combination.Modifiers));
+    }
+
     [Fact]
     public async Task A_mac_has_no_hibernate_button()
     {

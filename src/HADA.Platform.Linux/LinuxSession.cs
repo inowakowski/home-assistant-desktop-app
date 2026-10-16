@@ -142,6 +142,8 @@ public static class LinuxSession
         services.AddDisplayEntities();
         services.AddHostedService(provider => new DoNotDisturbSensor(
             provider.GetRequiredService<Core.Abstractions.IEventBus>(), provider.GetRequiredService<Core.Abstractions.IEntityRegistry>()));
+        services.AddSingleton<IDoNotDisturb>(_ => new LinuxDoNotDisturb());
+        services.AddHostedService<DoNotDisturbControl>();
         services.AddSingleton<IScreenBrightness>(provider => new LinuxBacklight(provider.GetRequiredService<LinuxHardware>()));
         services.AddHostedService<ScreenBrightnessControl>();
 
