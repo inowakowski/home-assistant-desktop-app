@@ -2,6 +2,20 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.11.0 (pre-release)
+
+HADA for macOS, a first preview: disk images for Apple silicon and Intel that nobody has tried on a Mac by hand yet, which their names say. On Windows and Linux nothing changes. A pre-release, so that it gets tried before a stable version carries it.
+
+- **HADA on macOS, untested.** `HADA-1.11.0-macos-arm64-untested.dmg` for Apple silicon and `…-x64-untested.dmg` for Intel, for macOS 14 Sonoma or newer. Drag HADA into Applications. The app is not signed by an Apple developer, so the first time macOS refuses to open it: allow it under **System Settings → Privacy & Security → Open Anyway**. Once someone has tried them, the same images come without `-untested`.
+    - **The same window** as on Windows and Linux, and an icon in the menu bar, from which the window is opened and HADA is ended. HADA has no icon in the Dock; closing the window leaves it running in the menu bar.
+    - **The service runs as you**, started by the app and ending with it. To have it start when you sign in, turn on **Start when you sign in** on the Settings page; System Settings then lists HADA under Login Items.
+    - **What arrives in Home Assistant:** CPU load, memory, battery and charger, last boot, the signed-in user, whether the screen is locked, the disk's usage, the IP address and the Wi-Fi network, the lid, the GPU load, connected USB devices for custom sensors, whether you are active, an external display, the app in front, the volume, the audio device and the microphone's mute; buttons to lock the screen, sleep, shut down and restart (off until switched on). Volume, mute and the microphone's mute can be set from Home Assistant.
+    - **The Wi-Fi network's name** is shown only to apps that may know the location; without it, the sensor says `connected`.
+    - **Quick actions** and the **Home Assistant dashboard**, which opens in the browser, are in the menu of the menu bar icon. **Custom buttons** can start a program, and custom sensors run their commands with `sh`, as you.
+    - **Notifications** from Home Assistant appear in Notification Center, with their title and text. Their pictures and buttons do not, yet.
+    - The first time Home Assistant shuts the Mac down or restarts it, macOS asks whether HADA may control the login window.
+    - **Not yet on macOS:** whether the camera or the microphone records, media, buttons that press keys, Do not disturb, the screen's brightness, turning the display off and on, and keyboard shortcuts for quick actions. A Mac cannot hibernate on demand, so it has no such button.
+
 ## 1.10.0 (pre-release)
 
 Most of what HADA on Linux still lacked. The packages are still untested by hand, which their names say. On Windows nothing changes. A pre-release, so that it gets tried before a stable version carries it.
