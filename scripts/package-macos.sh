@@ -79,9 +79,10 @@ for arch in arm64 x64; do
 </plist>
 EOF
 
-    # Every file in Contents/MacOS is code to macOS, and is signed; then the app around them.
+    # Every file in Contents/MacOS is code to macOS, and is signed; then the app around them, which signs its main
+    # program last. Signed before the others, the main program would be taken for the app with unsigned files in it.
     echo "Signing HADA.app for $arch..."
-    find "$app/Contents/MacOS" -type f -print0 | xargs -0 codesign --force --sign - --timestamp=none
+    find "$app/Contents/MacOS" -type f ! -path "$app/Contents/MacOS/HADA.App" -print0 | xargs -0 codesign --force --sign - --timestamp=none
     codesign --force --sign - --timestamp=none "$app"
     codesign --verify --deep --strict "$app"
 
