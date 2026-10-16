@@ -2,6 +2,18 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## 1.12.0 (pre-release)
+
+More of what Linux and macOS lacked. Their packages are still untested by hand, which their names say. On Windows nothing changes. A pre-release, so that it gets tried before a stable version carries it.
+
+- **On Linux:** whether the screens are on, and buttons to turn them off and wake them: through GNOME on Wayland and X11, through KDE (which switches them, but does not say how they are), and on other X11 desktops.
+- **On macOS:**
+    - Whether the screens are on, and the buttons to turn them off and wake them. With the Mac set to ask for the password at once, turning the screens off locks it too.
+    - The brightness of the Mac's own screen, which Home Assistant can also set.
+    - Whether the microphone and the camera record. macOS does not say which app.
+    - **Buttons that press keys**, and **play/pause, next and previous** buttons, which press the keyboard's media keys. macOS lets HADA press keys once it is allowed in **System Settings → Privacy & Security → Accessibility**; until then nothing is pressed, and the log says why. A Mac's keyboard has no stop key, so there is no stop button; what plays macOS keeps to itself, so there is no playback sensor or media player.
+    - **Not yet on macOS:** Do not disturb, the pictures and buttons of notifications, and keyboard shortcuts for quick actions.
+
 ## 1.11.1 (pre-release)
 
 A fix for the window, and a word the first time it is closed. A pre-release, so that it gets tried before a stable version carries it.
