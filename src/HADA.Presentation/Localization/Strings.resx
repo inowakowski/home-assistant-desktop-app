@@ -560,4 +560,11 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="EntityHint_notification_Unix" xml:space="preserve"><value>Messages sent to this entity are shown as the desktop's notifications, with a picture and buttons if the message has them.</value></data>
   <data name="EntityHint_restart_required_Unix" xml:space="preserve"><value>On while updated packages or a new kernel wait for a restart to take effect.</value></data>
   <data name="EntityHint_screen_brightness_Unix" xml:space="preserve"><value>The brightness of the built-in screen, which Home Assistant can also set. Only on computers whose screen has a backlight.</value></data>
+  <data name="EntityHint_active_window_MacOS" xml:space="preserve"><value>The app in front, by its name. macOS shows the titles of other apps' windows only to apps allowed to record the screen.</value></data>
+  <data name="EntityHint_gpu_load_MacOS" xml:space="preserve"><value>How busy the graphics processor is, as Activity Monitor's GPU History shows it.</value></data>
+  <data name="EntityHint_wifi_network_MacOS" xml:space="preserve"><value>The name of the connected Wi-Fi network; "connected" where macOS keeps the name to itself, as it does from apps not allowed to know the location.</value></data>
+  <data name="EntityHint_notification_MacOS" xml:space="preserve"><value>Messages sent to this entity are shown in Notification Center: their title and text, without pictures or buttons.</value></data>
+  <data name="EntityHint_microphone_muted_MacOS" xml:space="preserve"><value>On while the default microphone's input volume is at zero, which is how HADA mutes it too.</value></data>
+  <data name="EntityHint_microphone_mute_MacOS" xml:space="preserve"><value>Lets Home Assistant mute and unmute the default microphone, by setting its input volume to zero and back.</value></data>
+  <data name="Custom_ButtonNoteMacOS" xml:space="preserve"><value>A program a button starts runs in your session, with your rights, while HADA is running. Put a path that contains spaces in quotes. Buttons that press keys do nothing on macOS yet.</value></data>
 </root>

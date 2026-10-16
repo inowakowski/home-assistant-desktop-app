@@ -25,4 +25,26 @@ public static class SystemEntities
         services.AddHostedService<PowerActions>();
         return services;
     }
+
+    /// <summary>
+    /// Adds the lid and the graphics processor to the service, on Linux and macOS; Windows has sensors of its own for
+    /// them. The system adds its <see cref="Abstractions.IHardwareReadings"/> first.
+    /// </summary>
+    public static IServiceCollection AddHardwareEntities(this IServiceCollection services)
+    {
+        services.AddHostedService<LidSensor>();
+        services.AddHostedService<GpuLoadSensor>();
+        return services;
+    }
+
+    /// <summary>
+    /// Adds the screens and the window in front to the sensors of the user's session, on Linux and macOS. The system
+    /// adds its <see cref="Abstractions.IDisplayReadings"/> first.
+    /// </summary>
+    public static IServiceCollection AddDisplayEntities(this IServiceCollection services)
+    {
+        services.AddHostedService<ExternalDisplaySensor>();
+        services.AddHostedService<ActiveWindowSensor>();
+        return services;
+    }
 }

@@ -14,6 +14,7 @@ using HADA.Core.Messaging;
 using HADA.Core.Models;
 using HADA.Ipc;
 using HADA.Platform.Linux;
+using HADA.Platform.MacOS;
 using HADA.Presentation;
 using HADA.Presentation.Localization;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,10 +62,13 @@ internal sealed partial class Agent : IAsyncDisposable
         var log = new FileLoggerProvider(new FileLoggerOptions { FilePath = Path.Combine(AppFolders.UserLogs, "app.log") });
         var logger = log.CreateLogger("HADA.App.Agent");
 
-        // The service is in the folder next to the app's, in a package as in a portable copy; not while developing.
+        // The service is in the folder next to the app's, in a Linux package as in a portable copy; in the app's own
+        // folder in a Mac's app, where all code is in Contents/MacOS. Not while developing.
         ServiceProcess? service = null;
-        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
-        if (Directory.Exists(Path.Combine(root, "service")))
+        var root = new[] { AppContext.BaseDirectory, Path.Combine(AppContext.BaseDirectory, "..") }
+            .Select(Path.GetFullPath)
+            .FirstOrDefault(folder => Directory.Exists(Path.Combine(folder, "service")));
+        if (root is not null)
         {
             service = new ServiceProcess(root, logger);
             try
@@ -85,6 +89,11 @@ internal sealed partial class Agent : IAsyncDisposable
         var ipc = host.Services.GetRequiredService<IpcClient>();
         var (icon, iconState) = CreateIcon(application, ipc, host.Services.GetRequiredService<QuickActions>(), logger, showWindow, exit);
         var notifications = OperatingSystem.IsLinux() ? await ShowNotificationsAsync(host, logger) : null;
+        if (OperatingSystem.IsMacOS())
+        {
+            ShowMacNotifications(host, logger);
+        }
+
         return new Agent(log, logger, host, service, icon, iconState, notifications);
     }
 
@@ -133,6 +142,10 @@ internal sealed partial class Agent : IAsyncDisposable
         {
             builder.Services.AddLinuxSessionEntities(() => TimeSpan.FromSeconds(UserPreferences.IdleSeconds));
         }
+        else if (OperatingSystem.IsMacOS())
+        {
+            builder.Services.AddMacSessionEntities(() => TimeSpan.FromSeconds(UserPreferences.IdleSeconds));
+        }
 
         return builder.Build();
     }
@@ -162,6 +175,17 @@ internal sealed partial class Agent : IAsyncDisposable
     /// The icon in the system tray. Its menu has the quick actions, the window, a Home Assistant dashboard for each
     /// there is, which opens in the browser, and the way to end the app.
     /// </summary>
+    /// <summary>Has Notification Center show what Home Assistant sends: a title and a text, without its picture or buttons.</summary>
+    [SupportedOSPlatform("macos")]
+    private static void ShowMacNotifications(IHost host, ILogger logger) =>
+        host.Services.GetRequiredService<NotificationPresenter>().Show = request => _ = Task.Run(() =>
+        {
+            if (MacNotifications.Show(request) is { } reason)
+            {
+                LogNotificationNotShown(logger, reason);
+            }
+        });
+
     private static (TrayIcon Icon, DispatcherTimer State) CreateIcon(
         Application application, IpcClient ipc, QuickActions quickActions, ILogger logger, Action showWindow, Action exit)
     {
@@ -253,6 +277,9 @@ internal sealed partial class Agent : IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The service could not be started: {Reason}")]
     private static partial void LogServiceNotStarted(ILogger logger, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A notification could not be shown: {Reason}")]
+    private static partial void LogNotificationNotShown(ILogger logger, string reason);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "'{Address}' could not be opened in the browser: {Reason}")]
     private static partial void LogNotOpened(ILogger logger, string address, string reason);

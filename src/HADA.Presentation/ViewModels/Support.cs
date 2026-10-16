@@ -177,9 +177,13 @@ public static class EntityVisuals
         : source.StartsWith("tray:", StringComparison.Ordinal) ? Loc.Format("Source_Tray", source["tray:".Length..])
         : source;
 
-    /// <summary>What the Entities page says about an entity; where Linux and macOS do it otherwise, what they do.</summary>
+    /// <summary>
+    /// What the Entities page says about an entity; where Linux and macOS do it otherwise, what they do, and where
+    /// macOS does it otherwise still, what it does.
+    /// </summary>
     public static string HintFor(string entityId) =>
-        (OperatingSystem.IsWindows() ? null : Loc.TryGet($"EntityHint_{entityId}_Unix"))
+        (OperatingSystem.IsMacOS() ? Loc.TryGet($"EntityHint_{entityId}_MacOS") : null)
+        ?? (OperatingSystem.IsWindows() ? null : Loc.TryGet($"EntityHint_{entityId}_Unix"))
         ?? Loc.TryGet($"EntityHint_{entityId}")
         ?? (entityId.StartsWith("disk_", StringComparison.Ordinal) ? Loc.TryGet("EntityHint_disk_usage") : null)
         ?? string.Empty;

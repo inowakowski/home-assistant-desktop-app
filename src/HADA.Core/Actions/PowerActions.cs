@@ -23,10 +23,15 @@ public sealed partial class PowerActions(IEventBus bus, IEntityRegistry registry
 
     protected override IReadOnlyList<EntityDescriptor> Entities { get; } =
     [
-        Button(SleepEntityId, "Sleep", "mdi:power-sleep"),
-        Button(HibernateEntityId, "Hibernate", "mdi:power-sleep"),
-        Button(ShutdownEntityId, "Shut down", "mdi:power"),
-        Button(RestartEntityId, "Restart", "mdi:restart"),
+        .. new[]
+        {
+            (PowerCommand.Sleep, Button(SleepEntityId, "Sleep", "mdi:power-sleep")),
+            (PowerCommand.Hibernate, Button(HibernateEntityId, "Hibernate", "mdi:power-sleep")),
+            (PowerCommand.Shutdown, Button(ShutdownEntityId, "Shut down", "mdi:power")),
+            (PowerCommand.Restart, Button(RestartEntityId, "Restart", "mdi:restart")),
+        }
+        .Where(button => power.Supports(button.Item1))
+        .Select(button => button.Item2),
     ];
 
     protected override ValueTask HandleAsync(ActionCommand command, CancellationToken cancellationToken)

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 
-namespace HADA.Platform.Linux;
+namespace HADA.Core.Unix;
 
 /// <summary>What a system tool printed, and how it ended.</summary>
 public readonly record struct ToolResult(int ExitCode, string Output, string Error)
@@ -9,7 +9,10 @@ public readonly record struct ToolResult(int ExitCode, string Output, string Err
     public bool Succeeded => ExitCode == 0;
 }
 
-/// <summary>Runs the system's own tools, such as <c>loginctl</c> and <c>systemctl</c>, from where the system keeps them.</summary>
+/// <summary>
+/// Runs the system's own tools on Linux and macOS, such as <c>loginctl</c>, <c>systemctl</c> or <c>pmset</c>, from where
+/// the system keeps them.
+/// </summary>
 public static class Tools
 {
     private static readonly string[] Folders = ["/usr/bin", "/bin", "/usr/sbin", "/sbin"];

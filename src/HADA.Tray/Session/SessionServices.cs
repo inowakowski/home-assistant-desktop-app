@@ -29,7 +29,7 @@ public static class SessionServices
         services.AddHostedService(provider => provider.GetRequiredService<IpcClient>());
 
         // What Home Assistant gets to know about this session.
-        services.AddHostedService<ActiveWindowSensor>();
+        services.AddHostedService<Platform.Windows.Sensors.ActiveWindowSensor>();
         services.AddHostedService<AudioVolumeSensor>();
         services.AddSingleton<ISessionReadings, WindowsSessionReadings>();
         services.AddSingleton<IAudioDevices, WindowsAudioDevices>();
@@ -40,7 +40,7 @@ public static class SessionServices
             () => TimeSpan.FromSeconds(UserPreferences.IdleSeconds)));
         services.AddHostedService<MediaCaptureSensor>();
         services.AddHostedService<MicrophoneMuteSensor>();
-        services.AddHostedService<ExternalDisplaySensor>();
+        services.AddHostedService<Platform.Windows.Sensors.ExternalDisplaySensor>();
         services.AddHostedService<AudioDeviceSensor>();
         services.AddHostedService<DoNotDisturbSensor>();
         services.AddSingleton<IMediaSessions, WindowsMediaSessions>();

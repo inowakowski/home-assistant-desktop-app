@@ -92,6 +92,9 @@ public sealed class NetworkSensor(IEventBus bus, IEntityRegistry registry, ISyst
     /// <summary>State of <see cref="WifiEntityId"/> while Wi-Fi is not connected. A state cannot be empty.</summary>
     public const string NotConnected = "not_connected";
 
+    /// <summary>State of <see cref="WifiEntityId"/> while connected to a network the system does not name.</summary>
+    public const string ConnectedUnnamed = "connected";
+
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -134,7 +137,7 @@ public sealed class NetworkSensor(IEventBus bus, IEntityRegistry registry, ISyst
             {
                 await publisher.PublishAsync(
                     WifiEntityId,
-                    string.IsNullOrEmpty(wifi.Ssid) ? NotConnected : wifi.Ssid,
+                    !string.IsNullOrEmpty(wifi.Ssid) ? wifi.Ssid : wifi.IsConnectedUnnamed ? ConnectedUnnamed : NotConnected,
                     new Dictionary<string, object?> { ["signal"] = wifi.SignalPercent },
                     stoppingToken);
             }

@@ -1,3 +1,5 @@
+using HADA.Core.Abstractions;
+using HADA.Core.Unix;
 using HADA.Platform.Linux;
 
 namespace HADA.Tests.Platform;
@@ -78,7 +80,7 @@ public sealed class LinuxHardwareTests : IDisposable
     [InlineData("12\n87\n", 87)]
     [InlineData("[N/A]\n", null)]
     public void Nvidia_smi_says_how_busy_the_busiest_card_is(string output, int? load) =>
-        Assert.Equal(load, GpuLoadSensor.ParseNvidiaSmi(output));
+        Assert.Equal(load, LinuxHardware.ParseNvidiaSmi(output));
 
     [Fact]
     public void Kde_says_quiet_through_dbus_and_gnome_through_its_settings()
@@ -88,7 +90,7 @@ public sealed class LinuxHardwareTests : IDisposable
         Assert.Null(DoNotDisturbSensor.ParseBusctlBool("Unknown property or interface."));
 
         // GNOME is quiet when banners are not shown.
-        var gnome = new DoNotDisturbSensor(null!, null!, (tool, _) => tool == "gsettings" ? new HADA.Platform.Linux.ToolResult(0, "false\n", string.Empty) : null);
+        var gnome = new DoNotDisturbSensor(null!, null!, (tool, _) => tool == "gsettings" ? new ToolResult(0, "false\n", string.Empty) : null);
         Assert.True(gnome.Read());
     }
 

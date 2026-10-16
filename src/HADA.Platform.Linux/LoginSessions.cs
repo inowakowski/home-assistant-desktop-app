@@ -1,3 +1,4 @@
+using HADA.Core.Unix;
 namespace HADA.Platform.Linux;
 
 /// <summary>The session shown on the computer's own screen, as systemd-logind keeps it.</summary>

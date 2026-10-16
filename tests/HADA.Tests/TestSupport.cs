@@ -41,6 +41,18 @@ public sealed class LinuxFactAttribute : FactAttribute
     }
 }
 
+/// <summary>A test of something only macOS has, such as its kernel's statistics; skipped elsewhere.</summary>
+public sealed class MacOSFactAttribute : FactAttribute
+{
+    public MacOSFactAttribute()
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            Skip = "Needs macOS.";
+        }
+    }
+}
+
 internal static class TestSetup
 {
     /// <summary>

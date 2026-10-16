@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Text;
 using HADA.Core.Abstractions;
+using HADA.Core.Unix;
 
 namespace HADA.Platform.Linux;
 

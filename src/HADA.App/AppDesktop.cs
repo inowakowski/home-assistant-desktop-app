@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using HADA.Core;
 using HADA.Platform.Linux;
+using HADA.Platform.MacOS;
 using HADA.Platform.Windows.Desktop;
 using HADA.Platform.Windows.Network;
 using HADA.Platform.Windows.Sensors;
@@ -20,7 +21,9 @@ internal sealed class AppDesktop(TopLevel window) : IDesktop
 {
     public bool StartsWithSystem
     {
-        get => OperatingSystem.IsWindows() ? Autostart.IsEnabled : OperatingSystem.IsLinux() && LinuxAutostart.IsEnabled;
+        get => OperatingSystem.IsWindows() ? Autostart.IsEnabled
+            : OperatingSystem.IsLinux() ? LinuxAutostart.IsEnabled
+            : OperatingSystem.IsMacOS() && MacAutostart.IsEnabled;
         set
         {
             if (OperatingSystem.IsWindows())
@@ -30,6 +33,10 @@ internal sealed class AppDesktop(TopLevel window) : IDesktop
             else if (OperatingSystem.IsLinux())
             {
                 LinuxAutostart.IsEnabled = value;
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                MacAutostart.IsEnabled = value;
             }
         }
     }
@@ -56,10 +63,14 @@ internal sealed class AppDesktop(TopLevel window) : IDesktop
     public IReadOnlyList<UsbDeviceOption> ConnectedUsbDevices() =>
         OperatingSystem.IsWindows() ? ConnectedWindowsDevices()
         : OperatingSystem.IsLinux() ? [.. new LinuxUsbDevices().ConnectedModels().Select(device => new UsbDeviceOption(device.MatchId, device.Name))]
+        : OperatingSystem.IsMacOS() ? [.. new MacUsbDevices().ConnectedModels().Select(device => new UsbDeviceOption(device.MatchId, device.Name))]
         : [];
 
     public IReadOnlyList<string> ConnectedNetworks() =>
-        OperatingSystem.IsWindows() ? WindowsNetworkLocation.Read() : OperatingSystem.IsLinux() ? LinuxNetworkLocation.Read() : [];
+        OperatingSystem.IsWindows() ? WindowsNetworkLocation.Read()
+        : OperatingSystem.IsLinux() ? LinuxNetworkLocation.Read()
+        : OperatingSystem.IsMacOS() ? MacNetworkLocation.Read()
+        : [];
 
     [SupportedOSPlatform("windows")]
     private static UsbDeviceOption[] ConnectedWindowsDevices() =>
