@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Hosting;
@@ -19,6 +20,67 @@ public enum QuietMode
 
 public static class QuietHours
 {
+    /// <summary>The profile of "Do not disturb" off.</summary>
+    public const string UnrestrictedProfile = "Microsoft.QuietHoursProfile.Unrestricted";
+
+    /// <summary>The profile of "Do not disturb" on Windows 11, "Priority only" on Windows 10.</summary>
+    public const string PriorityOnlyProfile = "Microsoft.QuietHoursProfile.PriorityOnly";
+
+    /// <summary>
+    /// The profile the user chose, as the Settings app's switch sets it, e.g. <see cref="UnrestrictedProfile"/>;
+    /// <see langword="null"/> where Windows does not tell.
+    /// </summary>
+    public static string? TryReadProfile() => With(settings =>
+        settings.GetUserSelectedProfile(out var profile) == 0 && !string.IsNullOrEmpty(profile) ? profile : null);
+
+    /// <summary>Turns "Do not disturb" on or off, as its switch in Settings does. Returns <see langword="null"/> when done, otherwise why not.</summary>
+    public static string? TrySet(bool on) => TrySetProfile(on ? PriorityOnlyProfile : UnrestrictedProfile);
+
+    /// <summary>Chooses a profile, as the Settings app does. Returns <see langword="null"/> when done, otherwise why not.</summary>
+    public static string? TrySetProfile(string profile)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(profile);
+        IQuietHoursSettings? settings = null;
+        try
+        {
+            settings = (IQuietHoursSettings)new QuietHoursSettingsComObject();
+            var result = settings.SetUserSelectedProfile(profile);
+            return result == 0 ? null : $"Windows refused it with error 0x{result:X8}.";
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException)
+        {
+            return $"Windows' quiet hours settings cannot be reached: {ex.Message}";
+        }
+        finally
+        {
+            if (settings is not null)
+            {
+                Marshal.ReleaseComObject(settings);
+            }
+        }
+    }
+
+    private static T? With<T>(Func<IQuietHoursSettings, T?> use)
+        where T : class
+    {
+        IQuietHoursSettings? settings = null;
+        try
+        {
+            settings = (IQuietHoursSettings)new QuietHoursSettingsComObject();
+            return use(settings);
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException)
+        {
+            return null;
+        }
+        finally
+        {
+            if (settings is not null)
+            {
+                Marshal.ReleaseComObject(settings);
+            }
+        }
+    }
     // WNF_SHEL_QUIETHOURS_ACTIVE_PROFILE_CHANGED. Windows has no documented way to ask for this.
     private const ulong ActiveProfile = 0x0D83063EA3BF1C75;
 
@@ -94,4 +156,17 @@ public sealed class DoNotDisturbSensor(IEventBus bus, IEntityRegistry registry) 
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
+}
+
+/// <summary>
+/// "Do not disturb" through the shell's quiet hours: read as the sensor reads it, switched as the Settings app's
+/// switch does it. Off is the unrestricted profile; on, "Do not disturb" on Windows 11 and "Priority only" on 10.
+/// </summary>
+public sealed class WindowsDoNotDisturb : IDoNotDisturb
+{
+    public bool? Read() => QuietHours.TryRead() is { } mode ? mode != QuietMode.Off : null;
+
+    public bool CanSet => QuietHours.TryReadProfile() is not null;
+
+    public string? Set(bool on) => QuietHours.TrySet(on);
 }

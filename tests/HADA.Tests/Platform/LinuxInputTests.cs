@@ -106,6 +106,44 @@ public sealed class LinuxInputTests
         _ = window.Read();
     }
 
+    /// <summary>
+    /// A shortcut grabbed on the X server, then pressed there through XTest, as the user would press it: the quick
+    /// action behind it is chosen, with Num Lock on as well.
+    /// </summary>
+    [LinuxFact]
+    [SupportedOSPlatform("linux")]
+    public async Task A_shortcut_grabbed_on_an_x11_display_is_heard_when_pressed()
+    {
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")))
+        {
+            // Without a display there is nothing to grab keys on; the build agents have one, and must run this.
+            Assert.Null(Environment.GetEnvironmentVariable("CI"));
+            return;
+        }
+
+        using var hotkeys = X11Hotkeys.Open();
+        Assert.NotNull(hotkeys);
+        var heard = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        // A key no keyboard has is said to be refused; the other is grabbed.
+        Assert.Equal(["Ctrl+F25"], hotkeys.Set([("Ctrl+Alt+F12", heard.SetResult), ("Ctrl+F25", () => { })]));
+
+        using var keyboard = new X11Keyboard();
+        Assert.True(KeyCombination.TryParse("Ctrl+Alt+F12", out var combination));
+        Assert.Null(keyboard.Press(combination));
+        await heard.Task.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [LinuxFact]
+    [SupportedOSPlatform("linux")]
+    public void Caps_lock_and_num_lock_do_not_change_a_shortcut()
+    {
+        Assert.True(KeyCombination.TryParse("Ctrl+Alt+Shift+Win+L", out var combination));
+        var mask = X11Hotkeys.MaskOf(combination.Modifiers);
+
+        Assert.Equal(4u | 8u | 1u | 64u, mask);
+        Assert.Equal(mask, X11Hotkeys.WithoutLocks(mask | 2 | 16));
+    }
+
     private sealed class FakeKeyboard : IKeyboard
     {
         public ConcurrentQueue<KeyCombination> Pressed { get; } = new();

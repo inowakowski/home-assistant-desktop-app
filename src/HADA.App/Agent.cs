@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using HADA.Core;
@@ -39,9 +40,17 @@ internal sealed partial class Agent : IAsyncDisposable
     private readonly TrayIcon _icon;
     private readonly DispatcherTimer _iconState;
     private readonly IAsyncDisposable? _notifications;
+    private readonly IDisposable? _shortcuts;
 
     private Agent(
-        FileLoggerProvider log, ILogger logger, IHost host, ServiceProcess? service, TrayIcon icon, DispatcherTimer iconState, IAsyncDisposable? notifications)
+        FileLoggerProvider log,
+        ILogger logger,
+        IHost host,
+        ServiceProcess? service,
+        TrayIcon icon,
+        DispatcherTimer iconState,
+        IAsyncDisposable? notifications,
+        IDisposable? shortcuts)
     {
         _log = log;
         _logger = logger;
@@ -50,6 +59,7 @@ internal sealed partial class Agent : IAsyncDisposable
         _icon = icon;
         _iconState = iconState;
         _notifications = notifications;
+        _shortcuts = shortcuts;
     }
 
     /// <summary>Whether this system has its agent in the app; Windows has the tray app for it.</summary>
@@ -87,14 +97,15 @@ internal sealed partial class Agent : IAsyncDisposable
         await host.StartAsync();
 
         var ipc = host.Services.GetRequiredService<IpcClient>();
-        var (icon, iconState) = CreateIcon(application, ipc, host.Services.GetRequiredService<QuickActions>(), logger, showWindow, exit);
+        var (shortcuts, setShortcuts) = CreateShortcuts();
+        var (icon, iconState) = CreateIcon(application, ipc, host.Services.GetRequiredService<QuickActions>(), setShortcuts, logger, showWindow, exit);
         var notifications = OperatingSystem.IsLinux() ? await ShowNotificationsAsync(host, logger) : null;
         if (OperatingSystem.IsMacOS())
         {
             ShowMacNotifications(host, logger);
         }
 
-        return new Agent(log, logger, host, service, icon, iconState, notifications);
+        return new Agent(log, logger, host, service, icon, iconState, notifications, shortcuts);
     }
 
     public async ValueTask DisposeAsync()
@@ -107,6 +118,7 @@ internal sealed partial class Agent : IAsyncDisposable
         _iconState.Stop();
         _icon.IsVisible = false;
         _icon.Dispose();
+        _shortcuts?.Dispose();
 
         // The session's sensors say goodbye first, while the service still hears them.
         using (var stopping = new CancellationTokenSource(StopTimeout))
@@ -186,8 +198,34 @@ internal sealed partial class Agent : IAsyncDisposable
             }
         });
 
+    /// <summary>
+    /// What listens for the quick actions' shortcuts: Carbon's hot keys on a Mac, X11's key grabs on Linux.
+    /// Nothing on Wayland, which lets no app listen for keys meant for others.
+    /// </summary>
+    private static (IDisposable? Owner, Func<IEnumerable<(string Shortcut, Action Pressed)>, IReadOnlyList<string>>? Set) CreateShortcuts()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            var mac = new MacHotkeys();
+            return (mac, mac.Set);
+        }
+
+        if (OperatingSystem.IsLinux() && X11Hotkeys.Open() is { } x11)
+        {
+            return (x11, x11.Set);
+        }
+
+        return (null, null);
+    }
+
     private static (TrayIcon Icon, DispatcherTimer State) CreateIcon(
-        Application application, IpcClient ipc, QuickActions quickActions, ILogger logger, Action showWindow, Action exit)
+        Application application,
+        IpcClient ipc,
+        QuickActions quickActions,
+        Func<IEnumerable<(string Shortcut, Action Pressed)>, IReadOnlyList<string>>? setShortcuts,
+        ILogger logger,
+        Action showWindow,
+        Action exit)
     {
         var menu = new NativeMenu();
         string? shown = null;
@@ -199,7 +237,7 @@ internal sealed partial class Agent : IAsyncDisposable
             var dashboards = UserPreferences.AllDashboards;
             var content = string.Join(
                 '\n',
-                actions.Select(action => $"{action.Id}\t{action.Name}")
+                actions.Select(action => $"{action.Id}\t{action.Name}\t{action.Hotkey}")
                     .Concat(dashboards.Select(dashboard => $"{dashboard.Id}\t{dashboard.Name}\t{dashboard.Address}")));
             if (content == shown)
             {
@@ -207,11 +245,25 @@ internal sealed partial class Agent : IAsyncDisposable
             }
 
             shown = content;
+
+            // The shortcuts, where the system lets them be listened for; what cannot be had is said in the log.
+            var refused = setShortcuts?.Invoke(
+                actions.Where(action => action.Hotkey.Length > 0).Select(action => (action.Hotkey, (Action)(() => quickActions.Choose(action))))) ?? [];
+            foreach (var shortcut in refused)
+            {
+                LogShortcutNotSet(logger, shortcut);
+            }
+
             menu.Items.Clear();
             foreach (var action in actions)
             {
-                // Shortcuts are not offered here: Linux has no way for an app to listen for one everywhere.
                 var item = new NativeMenuItem(action.Name);
+                if (setShortcuts is not null && action.Hotkey.Length > 0 && !refused.Contains(action.Hotkey) && GestureOf(action.Hotkey) is { } gesture)
+                {
+                    // Shown at the right edge, as menus show shortcuts; listened for above.
+                    item.Gesture = gesture;
+                }
+
                 item.Click += (_, _) => quickActions.Choose(action);
                 menu.Items.Add(item);
             }
@@ -262,6 +314,19 @@ internal sealed partial class Agent : IAsyncDisposable
         return (icon, state);
     }
 
+    /// <summary>A shortcut as the menu shows it; Win is the Command key on a Mac and Super on Linux, which Avalonia calls Meta.</summary>
+    private static KeyGesture? GestureOf(string shortcut)
+    {
+        try
+        {
+            return KeyGesture.Parse(shortcut.Replace("Win+", "Meta+", StringComparison.OrdinalIgnoreCase).Replace("Windows+", "Meta+", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex) when (ex is ArgumentException or FormatException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Opens an <c>http</c> or <c>https</c> address in the user's browser.</summary>
     private static void OpenInBrowser(string address, ILogger logger)
     {
@@ -277,6 +342,9 @@ internal sealed partial class Agent : IAsyncDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "The service could not be started: {Reason}")]
     private static partial void LogServiceNotStarted(ILogger logger, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The shortcut {Shortcut} of a quick action could not be set; the menu entry still works.")]
+    private static partial void LogShortcutNotSet(ILogger logger, string shortcut);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "A notification could not be shown: {Reason}")]
     private static partial void LogNotificationNotShown(ILogger logger, string reason);

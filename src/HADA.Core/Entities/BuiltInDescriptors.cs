@@ -32,6 +32,14 @@ public static class BuiltInDescriptors
         Icon = "mdi:bell-off",
     };
 
+    public static EntityDescriptor SilenceNotifications { get; } = new()
+    {
+        Id = BuiltInEntityIds.SilenceNotifications,
+        Name = "Silence notifications",
+        Kind = EntityKind.Switch,
+        Icon = "mdi:bell-off-outline",
+    };
+
     public static EntityDescriptor GpuLoad { get; } = new()
     {
         Id = BuiltInEntityIds.GpuLoad,

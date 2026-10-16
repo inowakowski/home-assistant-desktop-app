@@ -43,12 +43,14 @@ public static class SessionServices
         services.AddHostedService<Platform.Windows.Sensors.ExternalDisplaySensor>();
         services.AddHostedService<AudioDeviceSensor>();
         services.AddHostedService<DoNotDisturbSensor>();
+        services.AddSingleton<IDoNotDisturb, WindowsDoNotDisturb>();
         services.AddSingleton<IMediaSessions, WindowsMediaSessions>();
         services.AddHostedService<MediaPlaybackSensor>();
 
         // What Home Assistant can do in it.
         services.AddSingleton<NotificationPresenter>();
         services.AddHostedService<AudioControl>();
+        services.AddHostedService<DoNotDisturbControl>();
         services.AddHostedService<MediaKeyActions>();
         services.AddHostedService<MediaPlayerControl>();
         services.AddHostedService<DisplayActions>();
