@@ -37,7 +37,7 @@ public sealed partial class MainWindow : Window
 
     private bool _choosing;
     private bool _showsSidebarTitle;
-    private bool _noticeAnswered;
+    private bool _closingAfterNotice;
     private MainViewModel? _viewModel;
 
     public MainWindow()
@@ -275,18 +275,20 @@ public sealed partial class MainWindow : Window
     private void OnClose(object? sender, RoutedEventArgs e) => Close();
 
     /// <summary>
-    /// The first time the user closes the window, it stays to say that HADA goes on running, and where to find it;
-    /// told, it closes as asked. Not when the system is shutting down, nor when HADA is ending.
+    /// When the user closes the window, it stays to say that HADA goes on running, and where to find it; told, it
+    /// closes as asked. Not once the user asked not to be told again, nor when the system is shutting down or HADA
+    /// is ending.
     /// </summary>
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        if (TellsHadaGoesOn && !_noticeAnswered && IsVisible && e.CloseReason == WindowCloseReason.WindowClosing
-            && !UserPreferences.BackgroundNoticeShown)
+        if (TellsHadaGoesOn && !_closingAfterNotice && IsVisible && e.CloseReason == WindowCloseReason.WindowClosing
+            && !UserPreferences.HidesBackgroundNotice)
         {
             e.Cancel = true;
             BackgroundNoticeText.Text = Loc.Get(
                 OperatingSystem.IsWindows() ? "App_BackgroundWindows" : OperatingSystem.IsMacOS() ? "App_BackgroundMacOS" : "App_BackgroundLinux");
+            BackgroundNoticeHide.IsChecked = false;
             BackgroundNotice.IsVisible = true;
             BackgroundNoticeOk.Focus();
             return;
@@ -295,12 +297,26 @@ public sealed partial class MainWindow : Window
         base.OnClosing(e);
     }
 
+    /// <summary>Closes the window as it was asked to, remembering whether to say it again next time.</summary>
     private void OnBackgroundNoticeAnswered(object? sender, RoutedEventArgs e)
     {
-        UserPreferences.BackgroundNoticeShown = true;
-        _noticeAnswered = true;
+        if (BackgroundNoticeHide.IsChecked == true)
+        {
+            UserPreferences.HidesBackgroundNotice = true;
+        }
+
         BackgroundNotice.IsVisible = false;
-        Close();
+
+        // Only this closing goes through without the word; where the window only hides, the next one has it again.
+        _closingAfterNotice = true;
+        try
+        {
+            Close();
+        }
+        finally
+        {
+            _closingAfterNotice = false;
+        }
     }
 
     private void OnCloseLight(object? sender, PointerPressedEventArgs e) => Close();

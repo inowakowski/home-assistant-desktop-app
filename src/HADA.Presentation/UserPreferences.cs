@@ -32,7 +32,7 @@ public static class UserPreferences
     private const string BrowserValue = "NotificationBrowser";
     private const string SidebarValue = "SidebarCollapsed";
     private const string PreviousWindowValue = "PreviousWindow";
-    private const string BackgroundNoticeValue = "BackgroundNoticeShown";
+    private const string BackgroundNoticeValue = "BackgroundNoticeHidden";
 
     private static readonly IPreferenceStore Store = OperatingSystem.IsWindows() && !AppInstance.IsPortable
         ? new RegistryPreferenceStore()
@@ -103,8 +103,10 @@ public static class UserPreferences
         set => Store.Write(SidebarValue, value ? 1 : null);
     }
 
-    /// <summary>Whether the window has said, the first time it was closed, that HADA goes on running without it.</summary>
-    public static bool BackgroundNoticeShown
+    /// <summary>
+    /// Whether the user asked not to be told again, as the window closes, that HADA goes on running without it.
+    /// </summary>
+    public static bool HidesBackgroundNotice
     {
         get => Store.ReadNumber(BackgroundNoticeValue) is 1;
         set => Store.Write(BackgroundNoticeValue, value ? 1 : null);

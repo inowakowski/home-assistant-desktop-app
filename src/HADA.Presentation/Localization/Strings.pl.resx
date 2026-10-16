@@ -571,11 +571,12 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="App_BackgroundWindows" xml:space="preserve"><value>Zamknięcie tego okna nie zatrzymuje HADA. Usługa dalej przekazuje ten komputer do Home Assistant, a aplikacja Tray zostaje z ikoną w obszarze powiadomień obok zegara, być może pod strzałką. Z tej ikony otworzysz to okno ponownie, a z jej menu zakończysz aplikację Tray.</value></data>
   <data name="App_BackgroundLinux" xml:space="preserve"><value>Zamknięcie tego okna nie zatrzymuje HADA. Dalej przekazuje ten komputer do Home Assistant, z ikoną w zasobniku systemowym. Z tej ikony otworzysz to okno ponownie, a z jej menu zakończysz HADA. W GNOME ikona wymaga rozszerzenia AppIndicator; bez niego uruchom HADA ponownie, by przywrócić okno.</value></data>
   <data name="App_BackgroundMacOS" xml:space="preserve"><value>Zamknięcie tego okna nie zatrzymuje HADA. Dalej przekazuje tego Maca do Home Assistant, z ikoną na pasku menu. Z tej ikony otworzysz to okno ponownie, a z jej menu zakończysz HADA.</value></data>
-  <data name="App_BackgroundOk" xml:space="preserve"><value>Rozumiem</value></data>
+  <data name="App_BackgroundOk" xml:space="preserve"><value>OK</value></data>
   <data name="EntityHint_camera_in_use_MacOS" xml:space="preserve"><value>Włączony, gdy jakaś aplikacja używa kamery. macOS nie mówi, która.</value></data>
   <data name="EntityHint_microphone_in_use_MacOS" xml:space="preserve"><value>Włączony, gdy jakaś aplikacja używa mikrofonu. macOS nie mówi, która.</value></data>
   <data name="EntityHint_media_play_pause_MacOS" xml:space="preserve"><value>Naciska klawisz odtwarzaj/pauza; reaguje aplikacja, która odtwarza. Dopiero gdy HADA ma zgodę w Prywatności i ochronie, w sekcji Dostępność.</value></data>
   <data name="EntityHint_screen_brightness_MacOS" xml:space="preserve"><value>Jasność wbudowanego ekranu Maca, którą Home Assistant może też ustawić. Nie na Macu bez własnego ekranu.</value></data>
   <data name="EntityHint_turn_off_display_MacOS" xml:space="preserve"><value>Pozwala Home Assistant wyłączyć ekrany. Jeśli Mac prosi o hasło od razu po uśpieniu ekranu, przy okazji go blokuje.</value></data>
   <data name="EntityHint_turn_off_display_Unix" xml:space="preserve"><value>Pozwala Home Assistant wyłączyć ekrany, tak jak robi to GNOME, KDE czy dowolny pulpit X11. Wiele laptopów wkrótce potem zasypia.</value></data>
+  <data name="App_BackgroundHide" xml:space="preserve"><value>Nie pokazuj tego więcej</value></data>
 </root>

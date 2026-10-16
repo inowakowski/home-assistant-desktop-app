@@ -13,6 +13,7 @@ More of what Linux and macOS lacked. Their packages are still untested by hand, 
     - Whether the microphone and the camera record. macOS does not say which app.
     - **Buttons that press keys**, and **play/pause, next and previous** buttons, which press the keyboard's media keys. macOS lets HADA press keys once it is allowed in **System Settings → Privacy & Security → Accessibility**; until then nothing is pressed, and the log says why. A Mac's keyboard has no stop key, so there is no stop button; what plays macOS keeps to itself, so there is no playback sensor or media player.
     - **Not yet on macOS:** Do not disturb, the pictures and buttons of notifications, and keyboard shortcuts for quick actions.
+- **The word that HADA goes on running** comes each time the window is closed, until **Don't show this again** is ticked.
 
 ## 1.11.1 (pre-release)
 
