@@ -30,7 +30,7 @@ public static class WindowsPlatform
         services.AddSystemEntities();
         services.AddHostedService<PowerStateSensor>();
         services.AddHostedService<Sensors.GpuLoadSensor>();
-        services.AddHostedService<ScreenBrightnessControl>();
+        services.AddHostedService<Actions.ScreenBrightnessControl>();
         return services;
     }
 }

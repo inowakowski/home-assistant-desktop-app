@@ -13,23 +13,20 @@ namespace HADA.Core.Actions;
 public sealed partial class MediaButtons(IEventBus bus, IEntityRegistry registry, ILogger<MediaButtons> logger, IMediaSessions media)
     : CommandHandler(bus, registry, logger)
 {
-    protected override IReadOnlyList<EntityDescriptor> Entities { get; } =
+    private static readonly (EntityDescriptor Button, string Action)[] Buttons =
     [
-        BuiltInDescriptors.MediaPlayPause,
-        BuiltInDescriptors.MediaNext,
-        BuiltInDescriptors.MediaPrevious,
-        BuiltInDescriptors.MediaStop,
+        (BuiltInDescriptors.MediaPlayPause, MediaCommand.PlayPause),
+        (BuiltInDescriptors.MediaNext, MediaCommand.Next),
+        (BuiltInDescriptors.MediaPrevious, MediaCommand.Previous),
+        (BuiltInDescriptors.MediaStop, MediaCommand.Stop),
     ];
+
+    protected override IReadOnlyList<EntityDescriptor> Entities { get; } =
+        [.. Buttons.Where(button => media.Supports(button.Action)).Select(button => button.Button)];
 
     protected override async ValueTask HandleAsync(ActionCommand command, CancellationToken cancellationToken)
     {
-        var action = command.ActionId switch
-        {
-            BuiltInEntityIds.MediaPlayPause => MediaCommand.PlayPause,
-            BuiltInEntityIds.MediaNext => MediaCommand.Next,
-            BuiltInEntityIds.MediaPrevious => MediaCommand.Previous,
-            _ => MediaCommand.Stop,
-        };
+        var action = Array.Find(Buttons, button => button.Button.Id == command.ActionId).Action ?? MediaCommand.Stop;
 
         if (!await media.ControlAsync(action, cancellationToken))
         {

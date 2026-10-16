@@ -142,11 +142,13 @@ public static class LinuxSession
         services.AddDisplayEntities();
         services.AddHostedService(provider => new DoNotDisturbSensor(
             provider.GetRequiredService<Core.Abstractions.IEventBus>(), provider.GetRequiredService<Core.Abstractions.IEntityRegistry>()));
-        services.AddHostedService(provider => new ScreenBrightnessControl(
-            provider.GetRequiredService<Core.Abstractions.IEventBus>(),
-            provider.GetRequiredService<Core.Abstractions.IEntityRegistry>(),
-            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ScreenBrightnessControl>>(),
-            provider.GetRequiredService<LinuxHardware>()));
+        services.AddSingleton<IScreenBrightness>(provider => new LinuxBacklight(provider.GetRequiredService<LinuxHardware>()));
+        services.AddHostedService<ScreenBrightnessControl>();
+
+        // Whether the screens are on, and turning them off and on.
+        services.AddSingleton<IDisplayPower>(_ => new LinuxDisplayPower());
+        services.AddHostedService<DisplayPowerSensor>();
+        services.AddHostedService<DisplayPowerActions>();
 
         // Notifications, shown by the desktop once the agent has connected to it.
         services.AddSingleton<NotificationPresenter>();

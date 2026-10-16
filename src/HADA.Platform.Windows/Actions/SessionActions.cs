@@ -28,8 +28,8 @@ public sealed partial class DisplayActions(IEventBus bus, IEntityRegistry regist
 
     protected override IReadOnlyList<EntityDescriptor> Entities { get; } =
     [
-        new() { Id = TurnOffEntityId, Name = "Turn off display", Kind = EntityKind.Button, Icon = "mdi:monitor-off" },
-        new() { Id = WakeEntityId, Name = "Wake display", Kind = EntityKind.Button, Icon = "mdi:monitor-shimmer" },
+        BuiltInDescriptors.TurnOffDisplay,
+        BuiltInDescriptors.WakeDisplay,
     ];
 
     protected override ValueTask HandleAsync(ActionCommand command, CancellationToken cancellationToken)
