@@ -64,7 +64,7 @@ public sealed class LinuxHardwareTests : IDisposable
     [InlineData(0, 1)]
     [InlineData(150, 240000)]
     public void A_percentage_becomes_a_level_that_keeps_the_screen_lit(double percent, int level) =>
-        Assert.Equal(level, ScreenBrightnessControl.LevelFor(new Backlight("intel_backlight", 0, 240000), percent));
+        Assert.Equal(level, LinuxBacklight.LevelFor(new Backlight("intel_backlight", 0, 240000), percent));
 
     [Fact]
     public void Amds_cards_say_how_busy_they_are()

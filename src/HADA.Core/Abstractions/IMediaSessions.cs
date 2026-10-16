@@ -27,4 +27,7 @@ public interface IMediaSessions
     /// next, previous or stop. Returns <see langword="false"/> when there is no player to tell, or it would not listen.
     /// </summary>
     Task<bool> ControlAsync(string action, CancellationToken cancellationToken);
+
+    /// <summary>Whether the player can be told this at all; a button for what it cannot is left out.</summary>
+    bool Supports(string action) => true;
 }

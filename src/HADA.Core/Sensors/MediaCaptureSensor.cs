@@ -7,8 +7,8 @@ using Microsoft.Extensions.Hosting;
 namespace HADA.Core.Sensors;
 
 /// <summary>
-/// Publishes whether the microphone and the camera are in use, with the apps using them as an attribute.
-/// Runs in the user's session. Left out where the system does not tell.
+/// Publishes whether the microphone and the camera are in use, with the apps using them as an attribute where the
+/// system names them. Runs in the user's session. Left out where the system does not tell.
 /// </summary>
 public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry, ISessionReadings session) : EagerBackgroundService
 {
@@ -19,7 +19,7 @@ public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry, 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (session.AppsUsing(CaptureDevice.Microphone) is null && session.AppsUsing(CaptureDevice.Camera) is null)
+        if (Read(CaptureDevice.Microphone).InUse is null && Read(CaptureDevice.Camera).InUse is null)
         {
             return;
         }
@@ -55,15 +55,19 @@ public sealed class MediaCaptureSensor(IEventBus bus, IEntityRegistry registry, 
 
     private ValueTask PublishAsync(ChangeOnlyPublisher publisher, string entityId, CaptureDevice device, CancellationToken cancellationToken)
     {
-        if (session.AppsUsing(device) is not { } apps)
+        if (Read(device) is not { InUse: { } inUse } reading)
         {
             return ValueTask.CompletedTask;
         }
 
         return publisher.PublishAsync(
             entityId,
-            BinaryState.From(apps.Count > 0),
-            new Dictionary<string, object?> { ["apps"] = apps },
+            BinaryState.From(inUse),
+            reading.Apps is { } apps ? new Dictionary<string, object?> { ["apps"] = apps } : null,
             cancellationToken);
     }
+
+    /// <summary>Whether the device is in use, and by which apps where the system names them; the apps are asked for once.</summary>
+    private (bool? InUse, IReadOnlyList<string>? Apps) Read(CaptureDevice device) =>
+        session.AppsUsing(device) is { } apps ? (apps.Count > 0, apps) : (session.IsInUse(device), null);
 }

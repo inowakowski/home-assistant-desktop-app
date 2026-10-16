@@ -139,6 +139,43 @@ public sealed class MacTests
             MacParsers.ParseVolumeSettings("output volume:missing value, input volume:missing value, alert volume:100, output muted:missing value\n"));
     }
 
+    [Theory]
+    [InlineData("A", (ushort)0x00)]
+    [InlineData("Q", (ushort)0x0C)]
+    [InlineData("Z", (ushort)0x06)]
+    [InlineData("0", (ushort)0x1D)]
+    [InlineData("5", (ushort)0x17)]
+    [InlineData("F1", (ushort)0x7A)]
+    [InlineData("F12", (ushort)0x6F)]
+    [InlineData("Enter", (ushort)0x24)]
+    [InlineData("Backspace", (ushort)0x33)]
+    [InlineData("Delete", (ushort)0x75)]
+    [InlineData("Left", (ushort)0x7B)]
+    public void Keys_are_the_macs_own_of_the_same_name(string name, ushort keyCode)
+    {
+        Assert.True(HADA.Core.Input.KeyCombination.TryParse(name, out var combination));
+
+        Assert.Equal(keyCode, MacKeys.KeyCodeOf(combination.VirtualKey));
+        Assert.Null(MacKeys.MediaKeyOf(combination.VirtualKey));
+    }
+
+    [Fact]
+    public void Media_keys_are_the_keyboards_own_and_modifiers_come_in_order()
+    {
+        Assert.True(HADA.Core.Input.KeyCombination.TryParse("MediaPlayPause", out var play));
+        Assert.Equal(16, MacKeys.MediaKeyOf(play.VirtualKey));
+        Assert.Null(MacKeys.KeyCodeOf(play.VirtualKey));
+        Assert.True(HADA.Core.Input.KeyCombination.TryParse("MediaStop", out var stop));
+        Assert.Null(MacKeys.MediaKeyOf(stop.VirtualKey));
+        Assert.True(HADA.Core.Input.KeyCombination.TryParse("F24", out var f24));
+        Assert.Null(MacKeys.KeyCodeOf(f24.VirtualKey));
+
+        Assert.True(HADA.Core.Input.KeyCombination.TryParse("Win+Shift+Alt+Ctrl+L", out var all));
+        Assert.Equal(
+            [(0x3B, MacKeys.ControlFlag), (0x3A, MacKeys.OptionFlag), (0x38, MacKeys.ShiftFlag), (0x37, MacKeys.CommandFlag)],
+            MacKeys.ModifiersOf(all.Modifiers).Select(modifier => ((int)modifier.KeyCode, modifier.Flag)));
+    }
+
     [Fact]
     public async Task A_mac_has_no_hibernate_button()
     {
@@ -204,6 +241,20 @@ public sealed class MacTests
         _ = audio.Read(AudioEndpoint.Speakers);
         _ = audio.ReadName(AudioEndpoint.Speakers);
         _ = audio.ReadName(AudioEndpoint.Microphone);
+
+        // What records, the screens and the brightness, and whether keys may be pressed: asked, never refused.
+        var session = new MacSessionReadings();
+        _ = session.IsInUse(CaptureDevice.Microphone);
+        _ = session.IsInUse(CaptureDevice.Camera);
+        _ = new MacDisplayPower().ReadDisplayOn();
+        _ = new MacScreenBrightness().ReadPercent();
+        if (!MacKeyboard.IsAllowed())
+        {
+            Assert.Equal(MacKeyboard.NotAllowed, new MacKeyboard().Press(new HADA.Core.Input.KeyCombination(HADA.Core.Input.KeyModifiers.Shift, 0)));
+        }
+
+        // A media key built as the keyboard sends it; without Accessibility it goes nowhere.
+        Assert.True(MacKeyboard.PressMediaKey(16));
 
         var hardware = new MacHardware();
         _ = hardware.ReadLidOpen();

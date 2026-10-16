@@ -50,6 +50,30 @@ public static class BuiltInDescriptors
         Icon = "mdi:application-outline",
     };
 
+    public static EntityDescriptor Display { get; } = new()
+    {
+        Id = BuiltInEntityIds.DisplayOn,
+        Name = "Display",
+        Kind = EntityKind.BinarySensor,
+        Icon = "mdi:monitor",
+    };
+
+    public static EntityDescriptor TurnOffDisplay { get; } = new()
+    {
+        Id = BuiltInEntityIds.TurnOffDisplay,
+        Name = "Turn off display",
+        Kind = EntityKind.Button,
+        Icon = "mdi:monitor-off",
+    };
+
+    public static EntityDescriptor WakeDisplay { get; } = new()
+    {
+        Id = BuiltInEntityIds.WakeDisplay,
+        Name = "Wake display",
+        Kind = EntityKind.Button,
+        Icon = "mdi:monitor-shimmer",
+    };
+
     public static EntityDescriptor ScreenBrightness { get; } = new()
     {
         Id = BuiltInEntityIds.ScreenBrightness,

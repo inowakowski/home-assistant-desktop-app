@@ -135,3 +135,29 @@ public sealed class ActiveWindowSensor(IEventBus bus, IEntityRegistry registry, 
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }
+
+/// <summary>Publishes whether the screens are on, on Linux and macOS. Left out where the system does not tell.</summary>
+public sealed class DisplayPowerSensor(IEventBus bus, IEntityRegistry registry, IDisplayPower display) : EagerBackgroundService
+{
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        if (display.ReadDisplayOn() is null)
+        {
+            return;
+        }
+
+        await registry.RegisterAsync(BuiltInDescriptors.Display, stoppingToken);
+        var publisher = new ChangeOnlyPublisher(bus);
+        using var timer = new PeriodicTimer(PollInterval);
+        do
+        {
+            if (display.ReadDisplayOn() is { } on)
+            {
+                await publisher.PublishAsync(BuiltInEntityIds.DisplayOn, BinaryState.From(on), cancellationToken: stoppingToken);
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+}

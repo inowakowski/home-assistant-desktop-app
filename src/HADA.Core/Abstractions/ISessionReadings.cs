@@ -14,6 +14,12 @@ public interface ISessionReadings
     /// where it cannot be told, and the sensor is left out.
     /// </summary>
     IReadOnlyList<string>? AppsUsing(CaptureDevice device);
+
+    /// <summary>
+    /// Whether anything records from <paramref name="device"/> now, where the system tells that much but not who:
+    /// macOS, for one. <see langword="null"/> where it cannot be told; by default, what <see cref="AppsUsing"/> says.
+    /// </summary>
+    bool? IsInUse(CaptureDevice device) => AppsUsing(device) is { } apps ? apps.Count > 0 : null;
 }
 
 /// <summary>What records the user: the microphone, the camera.</summary>

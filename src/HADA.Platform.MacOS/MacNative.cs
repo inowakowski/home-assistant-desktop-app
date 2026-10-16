@@ -11,6 +11,8 @@ internal static class MacNative
     private const string CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
     private const string CoreGraphics = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
     private const string CoreAudio = "/System/Library/Frameworks/CoreAudio.framework/CoreAudio";
+    private const string CoreMediaIO = "/System/Library/Frameworks/CoreMediaIO.framework/CoreMediaIO";
+    private const string DisplayServices = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices";
 
     // host_statistics: the CPU's ticks by state, and the virtual memory's pages by use.
     private const int HostCpuLoadInfo = 3;
@@ -132,6 +134,87 @@ internal static class MacNative
         }
     }
 
+    /// <summary>Whether something records from the default input device now, as Core Audio tells; who, it does not.</summary>
+    public static bool? IsMicrophoneInUse()
+    {
+        var address = new AudioObjectPropertyAddress(FourCc("dIn "), FourCc("glob"), 0);
+        var size = (uint)sizeof(uint);
+        if (AudioObjectGetPropertyData(1, ref address, 0, IntPtr.Zero, ref size, out uint device) != Success || device == 0)
+        {
+            return null;
+        }
+
+        // kAudioDevicePropertyDeviceIsRunningSomewhere.
+        var running = new AudioObjectPropertyAddress(FourCc("gone"), FourCc("glob"), 0);
+        size = (uint)sizeof(uint);
+        return AudioObjectGetPropertyData(device, ref running, 0, IntPtr.Zero, ref size, out uint isRunning) == Success ? isRunning != 0 : null;
+    }
+
+    /// <summary>Whether any camera records now, as CoreMediaIO tells of each; <see langword="null"/> where it cannot be asked.</summary>
+    public static bool? IsCameraInUse()
+    {
+        try
+        {
+            // kCMIOObjectSystemObject asked for kCMIOHardwarePropertyDevices.
+            var devices = new AudioObjectPropertyAddress(FourCc("dev#"), FourCc("glob"), 0);
+            if (CMIOObjectGetPropertyDataSize(1, ref devices, 0, IntPtr.Zero, out var size) != Success)
+            {
+                return null;
+            }
+
+            var ids = new uint[size / sizeof(uint)];
+            if (ids.Length > 0 && CMIOObjectGetPropertyData(1, ref devices, 0, IntPtr.Zero, size, out _, ids) != Success)
+            {
+                return null;
+            }
+
+            // kCMIODevicePropertyDeviceIsRunningSomewhere.
+            var running = new AudioObjectPropertyAddress(FourCc("gone"), FourCc("glob"), 0);
+            var flag = new uint[1];
+            return ids.Any(id => CMIOObjectGetPropertyData(id, ref running, 0, IntPtr.Zero, sizeof(uint), out _, flag) == Success && flag[0] != 0);
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Whether the main display sleeps; <see langword="null"/> where it cannot be told.</summary>
+    public static bool? IsMainDisplayAsleep()
+    {
+        var display = CGMainDisplayID();
+        return display == 0 ? null : CGDisplayIsAsleep(display) != 0;
+    }
+
+    /// <summary>
+    /// The brightness of the Mac's own screen, 0 to 1, through the DisplayServices framework that the Displays
+    /// settings use; <see langword="null"/> where the Mac has no screen of its own, or no such framework.
+    /// </summary>
+    public static float? ReadBuiltInBrightness()
+    {
+        try
+        {
+            return BuiltInDisplay() is { } display && DisplayServicesGetBrightness(display, out var level) == Success ? level : null;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Sets the brightness of the Mac's own screen, 0 to 1. Returns whether it was set.</summary>
+    public static bool SetBuiltInBrightness(float level)
+    {
+        try
+        {
+            return BuiltInDisplay() is { } display && DisplayServicesSetBrightness(display, Math.Clamp(level, 0, 1)) == Success;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>A Core Foundation string's text.</summary>
     public static string ToString(IntPtr cfString)
     {
@@ -142,6 +225,26 @@ internal static class MacNative
     }
 
     private static uint FourCc(string code) => (uint)(code[0] << 24 | code[1] << 16 | code[2] << 8 | code[3]);
+
+    /// <summary>The Mac's own screen among those connected; <see langword="null"/> without one, as on a Mac mini.</summary>
+    private static uint? BuiltInDisplay()
+    {
+        var displays = new uint[32];
+        if (CGGetOnlineDisplayList((uint)displays.Length, displays, out var count) != Success)
+        {
+            return null;
+        }
+
+        foreach (var display in displays.Take((int)count))
+        {
+            if (CGDisplayIsBuiltin(display) != 0)
+            {
+                return display;
+            }
+        }
+
+        return null;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private readonly record struct AudioObjectPropertyAddress(uint Selector, uint Scope, uint Element);
@@ -172,6 +275,25 @@ internal static class MacNative
 
     [DllImport(CoreGraphics)]
     private static extern int CGDisplayIsBuiltin(uint display);
+
+    [DllImport(CoreGraphics)]
+    private static extern uint CGMainDisplayID();
+
+    [DllImport(CoreGraphics)]
+    private static extern int CGDisplayIsAsleep(uint display);
+
+    [DllImport(DisplayServices)]
+    private static extern int DisplayServicesGetBrightness(uint display, out float brightness);
+
+    [DllImport(DisplayServices)]
+    private static extern int DisplayServicesSetBrightness(uint display, float brightness);
+
+    [DllImport(CoreMediaIO)]
+    private static extern int CMIOObjectGetPropertyDataSize(uint objectId, ref AudioObjectPropertyAddress address, uint qualifierSize, IntPtr qualifier, out uint size);
+
+    [DllImport(CoreMediaIO)]
+    private static extern int CMIOObjectGetPropertyData(
+        uint objectId, ref AudioObjectPropertyAddress address, uint qualifierSize, IntPtr qualifier, uint size, out uint used, [Out] uint[] data);
 
     [DllImport(CoreAudio)]
     private static extern int AudioObjectGetPropertyData(

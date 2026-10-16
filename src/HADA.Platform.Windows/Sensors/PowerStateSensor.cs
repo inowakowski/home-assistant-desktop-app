@@ -27,15 +27,7 @@ public sealed partial class PowerStateSensor(IEventBus bus, IEntityRegistry regi
         // The current values arrive as soon as a setting is watched; they wait in the channel until the loop below.
         if (listener.TryRegister(PowerSettingListener.ConsoleDisplayState, out var error))
         {
-            await registry.RegisterAsync(
-                new EntityDescriptor
-                {
-                    Id = DisplayEntityId,
-                    Name = "Display",
-                    Kind = EntityKind.BinarySensor,
-                    Icon = "mdi:monitor",
-                },
-                stoppingToken);
+            await registry.RegisterAsync(BuiltInDescriptors.Display, stoppingToken);
         }
         else
         {

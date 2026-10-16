@@ -23,9 +23,23 @@ public static class MacSession
             provider.GetRequiredService<ISessionReadings>(),
             activeWindow));
 
-        // The screens, and the app in front.
+        // Whether the microphone and the camera record, though not for whom.
+        services.AddHostedService<MediaCaptureSensor>();
+
+        // The screens, and the app in front; the screens off and on, and the brightness of the Mac's own.
         services.AddSingleton<IDisplayReadings, MacDisplayReadings>();
         services.AddDisplayEntities();
+        services.AddSingleton<IDisplayPower, MacDisplayPower>();
+        services.AddHostedService<DisplayPowerSensor>();
+        services.AddHostedService<DisplayPowerActions>();
+        services.AddSingleton<IScreenBrightness, MacScreenBrightness>();
+        services.AddHostedService<ScreenBrightnessControl>();
+
+        // Keys pressed for the service's buttons, and the media keys, once allowed under Accessibility.
+        services.AddSingleton<IKeyboard, MacKeyboard>();
+        services.AddHostedService<KeyPressAction>();
+        services.AddSingleton<IMediaSessions, MacMediaKeys>();
+        services.AddHostedService<MediaButtons>();
 
         // Notifications, shown by Notification Center once the agent has started.
         services.AddSingleton<NotificationPresenter>();
@@ -42,8 +56,8 @@ public static class MacSession
 }
 
 /// <summary>
-/// What the session's sensors read on macOS: the time since the last input, from Core Graphics. Which apps use
-/// the camera or the microphone macOS keeps to itself, so those sensors are left out.
+/// What the session's sensors read on macOS: the time since the last input, from Core Graphics, and whether the
+/// microphone and the camera record, from Core Audio and CoreMediaIO. Which apps record macOS keeps to itself.
 /// </summary>
 [SupportedOSPlatform("macos")]
 public sealed class MacSessionReadings : ISessionReadings
@@ -51,6 +65,9 @@ public sealed class MacSessionReadings : ISessionReadings
     public TimeSpan? ReadIdleTime() => MacNative.ReadIdleTime();
 
     public IReadOnlyList<string>? AppsUsing(CaptureDevice device) => null;
+
+    public bool? IsInUse(CaptureDevice device) =>
+        device == CaptureDevice.Microphone ? MacNative.IsMicrophoneInUse() : MacNative.IsCameraInUse();
 }
 
 /// <summary>

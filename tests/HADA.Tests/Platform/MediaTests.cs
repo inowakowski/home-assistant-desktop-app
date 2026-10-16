@@ -41,6 +41,18 @@ public sealed class MediaTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_button_for_what_the_player_cannot_do_is_left_out()
+    {
+        using var buttons = new MediaButtons(_bus, _registry, NullLogger<MediaButtons>.Instance, new KeysOnly());
+        await buttons.StartAsync(CancellationToken.None);
+
+        Assert.DoesNotContain(_registry.Entities, entity => entity.Id == BuiltInEntityIds.MediaStop);
+        Assert.Equal(3, _registry.Entities.Count);
+
+        await buttons.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task The_media_player_shows_what_plays_and_how_loud_and_takes_commands()
     {
         var audio = new FakeAudio();
@@ -114,6 +126,15 @@ public sealed class MediaTests : IAsyncDisposable
             _told.Enqueue(action);
             return Task.FromResult(true);
         }
+    }
+
+    private sealed class KeysOnly : IMediaSessions
+    {
+        public Task<MediaPlayback> ReadAsync(CancellationToken cancellationToken) => Task.FromException<MediaPlayback>(new NotSupportedException());
+
+        public Task<bool> ControlAsync(string action, CancellationToken cancellationToken) => Task.FromResult(true);
+
+        public bool Supports(string action) => action != MediaCommand.Stop;
     }
 
     private sealed class FakeAudio : IAudioDevices
