@@ -60,6 +60,12 @@ public sealed class AppSignal : IDisposable
     [SupportedOSPlatform("windows")]
     private sealed class EventListener : IDisposable
     {
+        private static readonly TimeSpan UnregisterTimeout = TimeSpan.FromSeconds(5);
+
+        // Whether this thread is answering a signal; a listener disposed from there cannot wait for itself.
+        [ThreadStatic]
+        private static bool t_answering;
+
         private readonly EventWaitHandle _event;
         private readonly RegisteredWaitHandle _registration;
 
@@ -67,7 +73,22 @@ public sealed class AppSignal : IDisposable
         {
             _event = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, name);
             _registration = ThreadPool.RegisterWaitForSingleObject(
-                _event, (_, _) => onSignal(), state: null, Timeout.Infinite, executeOnlyOnce: once);
+                _event,
+                (_, _) =>
+                {
+                    t_answering = true;
+                    try
+                    {
+                        onSignal();
+                    }
+                    finally
+                    {
+                        t_answering = false;
+                    }
+                },
+                state: null,
+                Timeout.Infinite,
+                executeOnlyOnce: once);
         }
 
         public static bool TrySet(string name)
@@ -83,9 +104,25 @@ public sealed class AppSignal : IDisposable
             }
         }
 
+        /// <summary>
+        /// Stops listening. The thread pool holds on to the event until it has taken the wait off its list; this
+        /// waits for that, so that once disposed, the signal's name leads nowhere.
+        /// </summary>
         public void Dispose()
         {
-            _registration.Unregister(null);
+            if (t_answering)
+            {
+                _registration.Unregister(null);
+            }
+            else
+            {
+                using var unregistered = new ManualResetEvent(initialState: false);
+                if (_registration.Unregister(unregistered))
+                {
+                    _ = unregistered.WaitOne(UnregisterTimeout);
+                }
+            }
+
             _event.Dispose();
         }
     }
