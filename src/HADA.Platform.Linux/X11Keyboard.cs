@@ -125,6 +125,14 @@ public static class X11Keys
         return keysyms.Count > 0 ? keysyms : null;
     }
 
+    /// <summary>
+    /// Whether the X server keeps the combination to switch to a text console, as keyboard layouts have it do with
+    /// Ctrl+Alt and F1 to F12; the press never reaches any app.
+    /// </summary>
+    public static bool SwitchesConsoles(KeyCombination combination) =>
+        (combination.Modifiers & (KeyModifiers.Ctrl | KeyModifiers.Alt | KeyModifiers.Shift)) == (KeyModifiers.Ctrl | KeyModifiers.Alt)
+        && combination.VirtualKey is >= 0x70 and <= 0x7B;
+
     /// <summary>The X11 key, a keysym, of a Windows virtual-key code: those <see cref="KeyCombination"/> reads.</summary>
     public static ulong? KeysymOf(ushort virtualKey) => virtualKey switch
     {

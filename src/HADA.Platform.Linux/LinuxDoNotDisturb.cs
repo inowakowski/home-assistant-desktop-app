@@ -19,10 +19,11 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
     private const string ObjectPath = "/org/freedesktop/Notifications";
 
     private static readonly string[] GnomeBanners = ["org.gnome.desktop.notifications", "show-banners"];
+    private static readonly TimeSpan BusTimeout = TimeSpan.FromSeconds(10);
 
     private readonly Func<string, string[], ToolResult?> _run = run ?? Tools.Run;
     private readonly string _desktop = desktop ?? Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty;
-    private readonly Lock _lock = new();
+    private readonly SemaphoreSlim _asking = new(1, 1);
     private Way? _way;
     private DBusConnection? _connection;
     private uint? _cookie;
@@ -43,7 +44,7 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
         _ => null,
     };
 
-    public string? Set(bool on)
+    public async Task<string?> SetAsync(bool on, CancellationToken cancellationToken)
     {
         switch (Chosen)
         {
@@ -52,7 +53,7 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
                 return result is { Succeeded: true } ? null : Tools.Describe("gsettings", result);
 
             case Way.Inhibit:
-                return on ? Inhibit() : Release();
+                return on ? await InhibitAsync(cancellationToken) : await ReleaseAsync(cancellationToken);
 
             default:
                 return "the desktop does not let its notifications be kept quiet.";
@@ -61,13 +62,9 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
 
     public void Dispose()
     {
-        lock (_lock)
-        {
-            // Closing the connection ends HADA's request, as the server forgets those of who left.
-            _connection?.Dispose();
-            _connection = null;
-            _cookie = null;
-        }
+        // Closing the connection ends HADA's request, as the server forgets those of who left.
+        Disconnect();
+        _asking.Dispose();
     }
 
     private Way Chosen => _way ??= Choose();
@@ -89,43 +86,46 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
             ? DoNotDisturbSensor.ParseBusctlBool(inhibited)
             : null;
 
-    private string? Inhibit()
+    private async Task<string?> InhibitAsync(CancellationToken cancellationToken)
     {
-        lock (_lock)
+        await _asking.WaitAsync(cancellationToken);
+        try
         {
             if (_cookie is not null)
             {
                 return null;
             }
 
-            try
+            var connection = await ConnectAsync(cancellationToken);
+            MessageBuffer message;
+            using (var writer = connection.GetMessageWriter())
             {
-                var connection = Connect();
-                MessageBuffer message;
-                using (var writer = connection.GetMessageWriter())
-                {
-                    writer.WriteMethodCallHeader(Service, ObjectPath, Service, "Inhibit", "ssa{sv}", MessageFlags.None);
-                    writer.WriteString("hada");
-                    writer.WriteString("Home Assistant asked for quiet");
-                    writer.WriteDictionary(new Dictionary<string, VariantValue>());
-                    message = writer.CreateMessage();
-                }
+                writer.WriteMethodCallHeader(Service, ObjectPath, Service, "Inhibit", "ssa{sv}", MessageFlags.None);
+                writer.WriteString("hada");
+                writer.WriteString("Home Assistant asked for quiet");
+                writer.WriteDictionary(new Dictionary<string, VariantValue>());
+                message = writer.CreateMessage();
+            }
 
-                _cookie = connection.CallMethodAsync(message, static (reply, _) => reply.GetBodyReader().ReadUInt32(), null)
-                    .WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
-                return null;
-            }
-            catch (Exception ex) when (IsBusFailure(ex))
-            {
-                Disconnect();
-                return $"the notification server did not hold notifications back: {ex.Message}";
-            }
+            _cookie = await connection.CallMethodAsync(message, static (reply, _) => reply.GetBodyReader().ReadUInt32(), null)
+                .WaitAsync(BusTimeout, cancellationToken);
+            return null;
+        }
+        catch (Exception ex) when (IsBusFailure(ex))
+        {
+            Disconnect();
+            return $"the notification server did not hold notifications back: {ex.Message}";
+        }
+        finally
+        {
+            _asking.Release();
         }
     }
 
-    private string? Release()
+    private async Task<string?> ReleaseAsync(CancellationToken cancellationToken)
     {
-        lock (_lock)
+        await _asking.WaitAsync(cancellationToken);
+        try
         {
             if (_cookie is { } cookie && _connection is { } connection)
             {
@@ -139,7 +139,7 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
                         message = writer.CreateMessage();
                     }
 
-                    connection.CallMethodAsync(message).WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+                    await connection.CallMethodAsync(message).WaitAsync(BusTimeout, cancellationToken);
                 }
                 catch (Exception ex) when (IsBusFailure(ex))
                 {
@@ -150,12 +150,16 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
                 _cookie = null;
             }
         }
+        finally
+        {
+            _asking.Release();
+        }
 
         // Quiet still, it is the desktop's own, which only its switch ends.
         return Inhibited() == true ? "the desktop's own Do not disturb is on; it ends from the desktop's notifications." : null;
     }
 
-    private DBusConnection Connect()
+    private async Task<DBusConnection> ConnectAsync(CancellationToken cancellationToken)
     {
         if (_connection is { } open)
         {
@@ -166,7 +170,7 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
         var connection = new DBusConnection(address);
         try
         {
-            connection.ConnectAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            await connection.ConnectAsync().AsTask().WaitAsync(BusTimeout, cancellationToken);
         }
         catch
         {
@@ -180,8 +184,7 @@ public sealed class LinuxDoNotDisturb(Func<string, string[], ToolResult?>? run =
 
     private void Disconnect()
     {
-        _connection?.Dispose();
-        _connection = null;
+        Interlocked.Exchange(ref _connection, null)?.Dispose();
         _cookie = null;
     }
 

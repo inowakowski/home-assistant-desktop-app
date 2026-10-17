@@ -51,8 +51,9 @@ public sealed partial class X11Hotkeys : IDisposable
         X11Session.OpenDisplay() is var display && display != IntPtr.Zero ? new X11Hotkeys(display) : null;
 
     /// <summary>
-    /// Replaces every shortcut set so far. Returns those that could not be had, as X11 has no such key or the
-    /// keyboard layout lacks it. One another app holds already is not told apart: it just does nothing.
+    /// Replaces every shortcut set so far. Returns those that could not be had, as X11 has no such key, the
+    /// keyboard layout lacks it or the X server keeps it for itself. One another app holds already is not told
+    /// apart: it just does nothing.
     /// </summary>
     public IReadOnlyList<string> Set(IEnumerable<(string Shortcut, Action Pressed)> shortcuts)
     {
@@ -62,7 +63,7 @@ public sealed partial class X11Hotkeys : IDisposable
             Clear();
             foreach (var (shortcut, pressed) in shortcuts)
             {
-                if (!KeyCombination.TryParse(shortcut, out var keys) || keys.VirtualKey == 0
+                if (!KeyCombination.TryParse(shortcut, out var keys) || keys.VirtualKey == 0 || X11Keys.SwitchesConsoles(keys)
                     || X11Keys.KeysymOf(keys.VirtualKey) is not { } keysym || XKeysymToKeycode(_display, keysym) is var keyCode && keyCode == 0)
                 {
                     refused.Add(shortcut);
@@ -78,7 +79,8 @@ public sealed partial class X11Hotkeys : IDisposable
                 _actions[(keyCode, modifiers)] = pressed;
             }
 
-            _ = X11Session.XFlush(_display);
+            // Waited for, so that the shortcuts work as soon as this returns.
+            _ = X11Session.XSync(_display, discard: false);
         }
 
         if (_listener is null && _actions.Count > 0)

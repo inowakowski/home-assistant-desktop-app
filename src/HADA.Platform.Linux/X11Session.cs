@@ -53,6 +53,9 @@ internal static partial class X11Session
     public static extern int XFlush(IntPtr display);
 
     [DllImport(Library)]
+    public static extern int XSync(IntPtr display, [MarshalAs(UnmanagedType.Bool)] bool discard);
+
+    [DllImport(Library)]
     private static extern IntPtr XOpenDisplay(IntPtr name);
 
     [DllImport(Library)]

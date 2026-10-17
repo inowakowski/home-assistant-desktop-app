@@ -10,5 +10,5 @@ public interface IDoNotDisturb
     bool CanSet { get; }
 
     /// <summary>Turns it on or off. Returns <see langword="null"/> when done, otherwise why not.</summary>
-    string? Set(bool on);
+    Task<string?> SetAsync(bool on, CancellationToken cancellationToken);
 }
