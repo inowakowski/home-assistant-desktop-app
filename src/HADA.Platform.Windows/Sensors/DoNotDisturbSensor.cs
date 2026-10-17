@@ -168,5 +168,5 @@ public sealed class WindowsDoNotDisturb : IDoNotDisturb
 
     public bool CanSet => QuietHours.TryReadProfile() is not null;
 
-    public string? Set(bool on) => QuietHours.TrySet(on);
+    public Task<string?> SetAsync(bool on, CancellationToken cancellationToken) => Task.FromResult(QuietHours.TrySet(on));
 }

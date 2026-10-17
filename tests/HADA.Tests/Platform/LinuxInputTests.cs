@@ -108,7 +108,7 @@ public sealed class LinuxInputTests
 
     /// <summary>
     /// A shortcut grabbed on the X server, then pressed there through XTest, as the user would press it: the quick
-    /// action behind it is chosen, with Num Lock on as well.
+    /// action behind it is chosen.
     /// </summary>
     [LinuxFact]
     [SupportedOSPlatform("linux")]
@@ -124,11 +124,13 @@ public sealed class LinuxInputTests
         using var hotkeys = X11Hotkeys.Open();
         Assert.NotNull(hotkeys);
         var heard = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        // A key no keyboard has is said to be refused; the other is grabbed.
-        Assert.Equal(["Ctrl+F25"], hotkeys.Set([("Ctrl+Alt+F12", heard.SetResult), ("Ctrl+F25", () => { })]));
+        // A key no keyboard has is said to be refused, as is one the X server switches consoles with; the other is grabbed.
+        Assert.Equal(
+            ["Ctrl+F25", "Ctrl+Alt+F2"],
+            hotkeys.Set([("Ctrl+Shift+F9", () => heard.TrySetResult()), ("Ctrl+F25", () => { }), ("Ctrl+Alt+F2", () => { })]));
 
         using var keyboard = new X11Keyboard();
-        Assert.True(KeyCombination.TryParse("Ctrl+Alt+F12", out var combination));
+        Assert.True(KeyCombination.TryParse("Ctrl+Shift+F9", out var combination));
         Assert.Null(keyboard.Press(combination));
         await heard.Task.WaitAsync(TimeSpan.FromSeconds(10));
     }
@@ -142,6 +144,20 @@ public sealed class LinuxInputTests
 
         Assert.Equal(4u | 8u | 1u | 64u, mask);
         Assert.Equal(mask, X11Hotkeys.WithoutLocks(mask | 2 | 16));
+    }
+
+    [Theory]
+    [InlineData("Ctrl+Alt+F1", true)]
+    [InlineData("Ctrl+Alt+F12", true)]
+    [InlineData("Ctrl+Alt+Win+F3", true)]
+    [InlineData("Ctrl+Alt+Shift+F12", false)]
+    [InlineData("Ctrl+Alt+F13", false)]
+    [InlineData("Ctrl+F12", false)]
+    [InlineData("Ctrl+Alt+L", false)]
+    public void Ctrl_alt_and_a_function_key_is_kept_by_the_x_server(string shortcut, bool kept)
+    {
+        Assert.True(KeyCombination.TryParse(shortcut, out var combination));
+        Assert.Equal(kept, X11Keys.SwitchesConsoles(combination));
     }
 
     private sealed class FakeKeyboard : IKeyboard

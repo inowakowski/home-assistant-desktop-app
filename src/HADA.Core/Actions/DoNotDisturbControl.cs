@@ -29,7 +29,7 @@ public sealed partial class DoNotDisturbControl(IEventBus bus, IEntityRegistry r
 
     protected override async ValueTask HandleAsync(ActionCommand command, CancellationToken cancellationToken)
     {
-        if (quiet.Set(command.Value == BinaryState.On) is { } reason)
+        if (await quiet.SetAsync(command.Value == BinaryState.On, cancellationToken) is { } reason)
         {
             LogFailed(Logger, reason);
         }

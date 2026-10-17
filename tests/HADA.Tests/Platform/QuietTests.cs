@@ -56,7 +56,7 @@ public sealed class QuietTests : IAsyncDisposable
     }
 
     [Fact]
-    public void Gnome_is_kept_quiet_by_switching_its_banners_off()
+    public async Task Gnome_is_kept_quiet_by_switching_its_banners_off()
     {
         var calls = new List<string>();
         var banners = "true";
@@ -75,19 +75,19 @@ public sealed class QuietTests : IAsyncDisposable
 
         Assert.True(quiet.CanSet);
         Assert.False(quiet.Read());
-        Assert.Null(quiet.Set(true));
+        Done(await quiet.SetAsync(true, CancellationToken.None));
         Assert.Equal("gsettings set org.gnome.desktop.notifications show-banners false", calls[^1]);
         Assert.True(quiet.Read());
     }
 
     [Fact]
-    public void A_desktop_whose_notifications_cannot_be_held_back_has_no_switch()
+    public async Task A_desktop_whose_notifications_cannot_be_held_back_has_no_switch()
     {
         var quiet = new LinuxDoNotDisturb((_, _) => new ToolResult(1, string.Empty, "unknown"), desktop: "sway");
 
         Assert.False(quiet.CanSet);
         Assert.Null(quiet.Read());
-        Assert.NotNull(quiet.Set(true));
+        Assert.NotNull(await quiet.SetAsync(true, CancellationToken.None));
     }
 
     /// <summary>
@@ -128,11 +128,11 @@ public sealed class QuietTests : IAsyncDisposable
                 busAddress: address);
 
             Assert.True(quiet.CanSet);
-            Assert.Null(quiet.Set(true));
+            Done(await quiet.SetAsync(true, CancellationToken.None));
             Assert.True(server.Inhibited);
             Assert.True(quiet.Read());
 
-            Assert.Null(quiet.Set(false));
+            Done(await quiet.SetAsync(false, CancellationToken.None));
             Assert.False(server.Inhibited);
             Assert.Equal(["Inhibit hada", "UnInhibit"], server.Told);
         }
@@ -155,6 +155,9 @@ public sealed class QuietTests : IAsyncDisposable
         Assert.NotNull(quiet.Read());
     }
 
+    /// <summary>Done, or the whole of why not: <see cref="Assert.Null(object?)"/> cuts a long reason short.</summary>
+    private static void Done(string? failure) => Assert.True(failure is null, failure);
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         using var timeout = new CancellationTokenSource(Timeout);
@@ -175,11 +178,11 @@ public sealed class QuietTests : IAsyncDisposable
 
         public bool? Read() => _on;
 
-        public string? Set(bool on)
+        public Task<string?> SetAsync(bool on, CancellationToken cancellationToken)
         {
             _told.Enqueue(on);
             _on = on;
-            return null;
+            return Task.FromResult<string?>(null);
         }
     }
 
