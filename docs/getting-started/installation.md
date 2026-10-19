@@ -27,8 +27,6 @@ For unattended installation: `msiexec /i HADA-<version>-x64.msi /qn`. The tray a
 > The installers are not code-signed, so Windows SmartScreen may warn before running them. Choose **More info → Run anyway**, or sign them with your own certificate.
 
 
-Next: [First setup](first-setup.md).
-
 ## By hand
 
 For when you build HADA yourself and do not want an installer.
@@ -42,12 +40,15 @@ Use `win-x64` or `win-arm64` to match the machine:
 ```powershell
 dotnet publish src/HADA.Service -c Release -r win-x64 --self-contained -o "C:\Program Files\HADA\service"
 dotnet publish src/HADA.Tray -c Release -r win-x64 --self-contained -o "C:\Program Files\HADA\tray"
+dotnet publish src/HADA.App -c Release -r win-x64 --self-contained -o "C:\Program Files\HADA\app"
 ```
+
+The third is the new window, which the tray icon opens when the `app` folder is there; without it the tray opens the previous window. See [Two windows](../window.md#two-windows).
 
 ### 2. Register the service (elevated PowerShell)
 
 ```powershell
-sc.exe create HADA binPath= "C:\Program Files\HADA\service\HADA.Service.exe" start= delayed-auto DisplayName= "Home Assistant Desktop App"
+sc.exe create HADA binPath= "C:\Program Files\HADA\service\HADA.Service.exe" start= auto DisplayName= "Home Assistant Desktop App"
 sc.exe failure HADA reset= 86400 actions= restart/60000/restart/60000/restart/60000
 sc.exe start HADA
 ```
@@ -68,3 +69,5 @@ New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Na
 ```
 
 Only one tray instance runs per user session. Then open the window from the tray icon and configure a connection.
+
+Next: [First setup](first-setup.md).

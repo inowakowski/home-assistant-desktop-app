@@ -18,6 +18,8 @@ What this does not protect against, and cannot:
 
 What helps on the Home Assistant side: give HADA a broker user of its own, so its password opens nothing else and can be changed without touching anything else.
 
+On Linux and macOS the service runs as your user and seals the secrets with a key file only you can read; see [Security on Linux and macOS](../getting-started/linux-macos.md#security).
+
 A [portable copy](../getting-started/portable.md) encrypts its secrets for the user who runs it rather than for the computer, and keeps them in its own folder, which is as protected as the place it was unpacked to.
 
 ## The connection to Home Assistant

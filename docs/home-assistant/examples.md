@@ -21,9 +21,9 @@ automation:
 
 When the computer goes to sleep the sensor becomes *unavailable*, not *off*. To switch the lamp off then as well, add `unavailable` to the trigger and map it to `off`.
 
-## Do not disturb while in a call
+## An "on air" sign while in a call
 
-`microphone_in_use` is on while any app uses the microphone, which is a good sign of a call.
+`microphone_in_use` is on while any app uses the microphone, which is a good sign of a call. This one lights a sign outside the door; to hold the computer's own notifications back during a call as well, switch `silence_notifications` on and off in the same way (see [Controls](../features/controls.md)).
 
 ```yaml
 automation:

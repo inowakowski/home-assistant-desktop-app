@@ -27,6 +27,8 @@ dotnet run --project src/HADA.Tray
 
 The tray opens its window straight away. The Overview page should show the service as running and the tray as connected.
 
+The new window is the project `src/HADA.App`. The tray starts it from the `app` folder next to its own, as in an installed or portable copy, and opens the previous window when there is none, as when started with `dotnet run`. On Linux and macOS `HADA.App` is the whole program, window and agent: `dotnet run --project src/HADA.App` starts it, and it starts the service from the `service` folder beside it.
+
 On a computer where HADA is also installed, stop the installed service first (`sc.exe stop HADA` in an elevated terminal). A service started from a console refuses to start while another one is running: both would read the same settings and connect to the broker under the same ID, each throwing the other out. Exit the installed tray app as well, from its icon.
 
 Tray command-line options:
@@ -47,7 +49,9 @@ Tray command-line options:
 .\scripts\Publish-HADA.ps1
 ```
 
-This creates `artifacts\installer\HADA-<version>-x64.msi` and `HADA-<version>-arm64.msi`, and next to them the [portable](../getting-started/portable.md) `HADA-<version>-<x64|arm64>-portable.zip`; either computer can build both architectures. The GitHub workflow in `.github/workflows/build.yml` builds the same two files and attaches them to each run. The installer project (WiX) is in `installer/` and is deliberately not part of the solution, so `dotnet build` stays fast.
+This creates `artifacts\installer\HADA-<version>-x64.msi` and `HADA-<version>-arm64.msi`, and next to them the [portable](../getting-started/portable.md) `HADA-<version>-<x64|arm64>-portable.zip`; either computer can build both architectures. The GitHub workflow in `.github/workflows/build.yml` builds the same files and attaches them to each run. The installer project (WiX) is in `installer/` and is deliberately not part of the solution, so `dotnet build` stays fast.
+
+The packages for [Linux and macOS](../getting-started/linux-macos.md) are built in CI by `scripts/package-linux.sh` (an AppImage, a `.deb` and an `.rpm` for x64 and arm64) and `scripts/package-macos.sh` (a `.dmg` for Apple silicon and one for Intel), in the jobs `linux-packages` and `macos-packages`; each starts HADA from what it built, without a screen. Their names carry `-untested` until someone has tried them by hand, and the update check looks for both names (`HadaReleases.PackageNames`). The tests run on Windows, Ubuntu and macOS.
 
 ## Releases on GitHub
 

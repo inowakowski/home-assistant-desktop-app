@@ -35,8 +35,8 @@ and no administrator rights. Delete the whole folder to remove it.
 
 Start:   Start HADA.cmd   (or tray\HADA.Tray.exe)
 Stop:    Exit, in the menu of the HADA icon in the notification area   (or Stop HADA.cmd)
-Update:  stop HADA, replace the "service" and "tray" folders with those of the new
-         version, and keep "data".
+Update:  stop HADA, replace the "service", "tray" and "app" folders with those of the
+         new version, and keep "data".
 
 https://github.com/inowakowski/home-assistant-desktop-app
 "@

@@ -7,8 +7,8 @@ Open it by double-clicking the HADA tray icon, or choose **Open HADA** from its 
 | **Overview** | Whether the service is running, the state of both connections and whether the tray is connected, a notice when a newer version is available, and every entity with its latest value. Each status card is a button: the service's opens **Logs**, the connections' open their settings on **Connections**, the tray's opens **Entities** |
 | **Connections** | MQTT and Home Assistant settings, each with a **Test connection** button |
 | **Entities** | A switch per entity to choose what is shared with Home Assistant and what Home Assistant may do. Disabled entities are removed from Home Assistant. The power buttons start switched off |
-| **Custom entities** | Your own sensors (a fixed text, whether a program is running or a device is connected, the output of a PowerShell command) and buttons (run a PowerShell command, start a program) |
-| **Settings** | [Updates](getting-started/updating.md): the installed version, **Check now**, and whether to check by itself. And settings of your own, which need no administrator rights: **Start with Windows**, the language of the window (Polish, English, or as Windows), the address of the [dashboard window](#the-dashboard-window), and how long without input until `user_active` turns off |
+| **Custom entities** | Your own sensors (a fixed text, whether a program is running or a device is connected, the output of a PowerShell command), buttons (run a PowerShell command, start a program, press keys) and [quick actions](features/custom-entities.md#quick-actions) |
+| **Settings** | [Updates](getting-started/updating.md): the installed version, **Check now**, and whether to check by itself. And settings of your own, which need no administrator rights: **Start with Windows**, the language of the window (Polish, English, or as Windows), the address of the [dashboard window](#the-dashboard-window), how long without input until `user_active` turns off, the browser that the addresses of [notifications](features/notifications.md#more-than-a-text) open in, and the **New window (preview)** switch described [below](#two-windows) |
 | **Logs** | Recent service log entries, filterable by level, with copy to clipboard |
 
 **Changing settings requires administrator rights.** Anyone signed in can see status and logs, but the pages are read-only until you choose **Unlock editing**. That reopens the window as administrator (a UAC prompt). The service checks this itself, so a non-elevated client cannot save settings or run connection tests.
@@ -17,6 +17,19 @@ Saved settings take effect immediately: the affected connection restarts. Passwo
 
 
 ![The Overview page](assets/img/overview.png)
+
+## Two windows
+
+*New in 1.7.0; the tray icon opens it since 1.8.0.*
+
+HADA has two windows with the same pages and the same settings. **The new window** is drawn with Avalonia, is the same on Windows, Linux and macOS, and is what the tray icon opens. **The previous window** is the one the screenshots on these pages show; it stays for as long as both come with HADA. On Windows you choose between them with **New window (preview)** on the **Settings** page: turn it off, and the tray icon opens the previous one. The new window is also **HADA (new window, preview)** in the Start menu, and **New window (preview).cmd** in a [portable copy](getting-started/portable.md).
+
+The pages are the same; what differs is the layout of two of them:
+
+- **Overview** has a card for each way of connecting that you use, MQTT or directly, with a row for each server and its state. A notice says when a connection needs attention; close it, and it comes back with the next problem. **Manage** leads to the **Connections** page, and a server's row to that server.
+- **Connections** lists your servers by the way they connect. A server opens with its state and all of its settings, to test, change or remove. **Add a connection** takes three steps: the way to connect, with what each gives and needs; the address and signing in; and a check that saves the connection and says what it does now.
+
+The sidebar can be folded to its icons, and stays so. **Unlock editing** opens the window as administrator at the page you were on. Closing the window does not stop HADA: the first time, the window says so and where to find the icon again.
 
 ## The tray icon's menu
 
@@ -41,7 +54,7 @@ It is a browser of its own, built on the Microsoft Edge WebView2 Runtime that Wi
 
 ## Memory use
 
-Measured on Windows 11 ARM64 (private memory):
+Measured on Windows 11 ARM64 (private memory), with the previous window:
 
 | Process | Memory |
 |---|---|
@@ -49,4 +62,4 @@ Measured on Windows 11 ARM64 (private memory):
 | Tray app | 20 to 25 MB |
 | Settings window, while it is open | about 125 MB |
 
-The window draws with the CPU instead of the graphics card. On some graphics drivers, setting up hardware rendering alone takes more than 200 MB, and these pages have nothing that needs it.
+The previous window draws with the CPU instead of the graphics card. On some graphics drivers, setting up hardware rendering alone takes more than 200 MB, and these pages have nothing that needs it.

@@ -2,7 +2,7 @@
 
 ![The Custom entities page](../assets/img/custom-entities.png)
 
-On the **Custom entities** page you define your own sensors:
+On the **Custom entities** page you define your own sensors, buttons and quick actions. First the sensors:
 
 | Type | Becomes | What you enter |
 |---|---|---|
@@ -17,7 +17,6 @@ And your own buttons, which Home Assistant can press from a dashboard or an auto
 |---|---|---|
 | **Button: PowerShell command** | A command, e.g. `Start-ScheduledTask -TaskName Backup` | In the service, so as SYSTEM when installed, without a desktop. It may take up to 10 minutes; pressing the button again meanwhile is ignored |
 | **Button: start a program** | A program with its arguments, a document, or an address: `"C:\Program Files\App\app.exe" --option`, `notepad`, `https://example.com` | On the desktop of the signed-in user, with that user's rights, so the tray app must be running. Put a path that contains spaces in quotes |
-
 | **Button: press keys** | A key combination, e.g. `Ctrl+Shift+M`, `F11` or `MediaNext` | On the desktop of the signed-in user, as if typed; the program that has the focus gets the keys |
 
 What a button does is fixed in settings. Home Assistant can only press it; it cannot send a command of its own.
