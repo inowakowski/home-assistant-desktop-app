@@ -31,7 +31,7 @@ Then set up the connection to Home Assistant as described under [First setup](fi
 - **Starting at sign-in.** Turn on **Start when you sign in** on the **Settings** page: on Linux that is an entry in your autostart folder, `~/.config/autostart`, on a Mac a login item that **System Settings** then lists under Login Items.
 - **Custom sensors and buttons** run their commands with `sh`, as you, not with PowerShell. A [custom button](../features/custom-entities.md) that starts a program works on the desktop of your session.
 - **Quick actions and the dashboard.** Quick actions are in the icon's menu. The Home Assistant dashboard opens in your browser, not in a window of HADA.
-- **Updating.** Install the newer package yourself, from the releases page: the AppImage replaced, the `.deb` or `.rpm` with the package manager, the app dragged over the old one. The **Overview** page tells when a newer version exists, but its **Download and install** button is built for the Windows installer and should not be used with these packages.
+- **Updating.** Install the newer package yourself, from the releases page: the AppImage replaced, the `.deb` or `.rpm` with the package manager, the app dragged over the old one. The **Overview** and **Settings** pages tell when a newer version exists, and **What is new** opens its release page. There is no **Download and install** button: it belongs to the Windows installer, and HADA cannot tell which of these packages it came from or start any of them for you. Your settings stay in their folders (see below).
 
 ## Where it keeps things
 
@@ -85,6 +85,6 @@ What [Security](../reference/security.md) says holds in the main, with these dif
 
 - On Linux: anything that only X11 has, when the session is Wayland (see the table); Secret Service for the saved passwords.
 - On macOS: Do not disturb, the pictures and buttons of notifications, the playback sensor and media player, hibernate, the restart-required sensor.
-- On both: the update installer, and a package nobody has tried. Bugs and wishes are welcome as [issues on GitHub](https://github.com/inowakowski/home-assistant-desktop-app/issues).
+- On both: updating from the window (a newer version is installed by hand, as described under Updating above), and a package nobody has tried. Bugs and wishes are welcome as [issues on GitHub](https://github.com/inowakowski/home-assistant-desktop-app/issues).
 
 The [changelog](../changelog.md) says in which version each of these arrived.

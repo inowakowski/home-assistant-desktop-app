@@ -37,6 +37,8 @@
   <data name="Update_Install" xml:space="preserve"><value>Pobierz i zainstaluj</value></data>
   <data name="Update_DetailElevated" xml:space="preserve"><value>Aby zainstalować, użyj okna HADA otwartego z ikony w zasobniku, a nie tego okna administratora.</value></data>
   <data name="Update_DetailPortable" xml:space="preserve"><value>To kopia przenośna: pobierz ZIP portable nowej wersji, zakończ HADA i podmień foldery service, tray oraz app. Zachowaj folder data – są w nim Twoje ustawienia.</value></data>
+  <data name="Update_DetailLinux" xml:space="preserve"><value>HADA nie aktualizuje się sama w systemie Linux. Pobierz nową paczkę ze strony wydania i zainstaluj ją tak jak poprzednią: podmień plik AppImage albo zaktualizuj .deb lub .rpm menedżerem pakietów. Ustawienia zostaną zachowane.</value></data>
+  <data name="Update_DetailMac" xml:space="preserve"><value>HADA nie aktualizuje się sama w systemie macOS. Pobierz nowy obraz dysku ze strony wydania, otwórz go i przeciągnij HADA na starą w folderze Programy. Ustawienia zostaną zachowane.</value></data>
   <data name="Update_Downloading" xml:space="preserve"><value>Pobieranie… {0:0}%</value></data>
   <data name="Update_Started" xml:space="preserve"><value>Instalator został uruchomiony; dokończ w jego oknie. HADA zamknie się na czas wymiany plików.</value></data>
   <data name="Update_Failed" xml:space="preserve"><value>Pobieranie nie powiodło się: {0} Instalator możesz też pobrać ze strony wydania.</value></data>
