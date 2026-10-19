@@ -12,6 +12,7 @@ What Home Assistant can do to the computer. With the MQTT engine, and with the [
 | `volume_level` | number (0–100 %) | Tray | Sets the volume of the default playback device |
 | `audio_mute` | switch | Tray | Mutes the default playback device |
 | `microphone_mute` | switch | Tray | Mutes the default microphone in Windows |
+| `silence_notifications` | switch | Tray | *New in 1.13.0.* Turns Do not disturb on and off, as the switch in Windows' notification settings does. The `do_not_disturb` sensor shows the state. Windows reads and changes it through a state that is not documented; see [Known limitations](../reference/limitations.md) |
 | `media_player` | media player | Tray | *New in 1.5.0.* What is playing, play, pause, next, previous, stop, volume and mute in one entity. **Through the HADA integration only**; see [below](#the-media-player) |
 | `notification` | notify | Tray | A message sent to it is shown as a Windows notification. See [Notifications](notifications.md) |
 

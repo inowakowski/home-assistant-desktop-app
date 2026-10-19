@@ -29,7 +29,7 @@ Only to the MQTT broker or the Home Assistant you configured. The one exception 
 
 ## How much memory does it use?
 
-About 15 MB for the service and 20 to 25 MB for the tray app, measured on Windows 11 ARM64. The window takes about 125 MB while it is open and nothing once it is closed, because it is a separate process.
+About 15 MB for the service and 20 to 25 MB for the tray app, measured on Windows 11 ARM64. The previous window takes about 125 MB while it is open, as measured, and nothing once it is closed, because the window is a separate process.
 
 ## Windows warns me when I run the installer
 
@@ -45,11 +45,11 @@ Yes, with the [portable version](getting-started/portable.md): a folder to unpac
 
 ## Where are my settings, and how do I remove everything?
 
-Settings and logs are in `%ProgramData%\HADA`; personal settings under `HKCU\Software\HADA`. Uninstalling leaves both in place, so that updating keeps them. Delete them by hand to forget everything.
+Settings and logs are in `%ProgramData%\HADA`; personal settings under `HKCU\Software\HADA`. Uninstalling leaves both in place, so that updating keeps them. Delete them by hand to forget everything. On Linux and macOS the folders are listed under [Where it keeps things](getting-started/linux-macos.md#where-it-keeps-things).
 
 ## Is there a macOS or Linux version?
 
-No. The connection to Home Assistant is portable, but the sensors, the controls and the window are written for Windows.
+Yes, as a preview that nobody has tried by hand yet. HADA runs on Linux (GNOME and KDE; as an AppImage, a `.deb` or an `.rpm`) and on macOS 14 or newer, with most of what it does on Windows. The packages were built and checked by machines only, and their file names say `-untested`. See [Linux and macOS](getting-started/linux-macos.md) for what works where.
 
 ## Something is wrong
 

@@ -4,28 +4,31 @@ For a value a PowerShell command can print, a [custom sensor](../features/custom
 
 ## A sensor
 
-**1. Decide where it runs.**
+**1. Decide where it is read, and where it runs.**
 
-| Runs in | Choose it when | Registered in |
+| It is | Put the class in | Registered in |
 |---|---|---|
-| Service | The value is the same for the whole computer and should be reported with nobody signed in: hardware, power, disks, network | `src/HADA.Service/ServiceHost.cs` |
-| Tray | The value belongs to the signed-in user's desktop: windows, audio devices, keyboard and mouse, per-user registry | `src/HADA.Tray/Session/SessionServices.cs` |
+| The same on every system, and read from something each system can tell (CPU, memory, battery, disks) | `src/HADA.Core/Sensors`, reading through an interface such as `ISystemReadings`; each system's project implements the interface | `SystemEntities.AddSystemEntities` in `src/HADA.Core/Sensors/SystemEntities.cs` |
+| Only on Windows, or needing a Windows API | `src/HADA.Platform.Windows/Sensors` | `WindowsPlatform.AddWindowsServiceEntities` in `src/HADA.Platform.Windows/WindowsPlatform.cs` |
+| Only on Linux or on macOS | `src/HADA.Platform.Linux` or `src/HADA.Platform.MacOS` | `AddLinuxServiceEntities` in `LinuxSystem.cs`, `AddMacServiceEntities` in `MacSystem.cs` |
 
-A tray entity turns *unavailable* in Home Assistant while the tray app is not running, or while another user is at the computer.
+That is for a sensor of the **service**: the value is the same for the whole computer and is reported with nobody signed in. A value that belongs to the signed-in user's desktop (windows, audio devices, keyboard and mouse) is a sensor of the **tray app** on Windows, registered in `src/HADA.Tray/Session/SessionServices.cs`, and of the user's session on Linux and macOS, registered in `AddLinuxSessionEntities` (`LinuxSession.cs`) or `AddMacSessionEntities` (`MacSession.cs`). A session entity turns *unavailable* in Home Assistant while the tray app (on Linux and macOS, the app) is not running, or while another user is at the computer.
 
-**2. Add a class** to `src/HADA.Platform.Windows/Sensors`. A sensor is a `BackgroundService` that registers its entity once and then publishes readings:
+Windows API calls stay in `HADA.Platform.Windows` (or in members marked `[SupportedOSPlatform("windows")]`) and are reached through an interface; every other project builds for plain `net10.0`, and the build fails (CA1416) on a Windows call anywhere else. See [Architecture](architecture.md).
+
+**2. Add a class.** A sensor derives from `EagerBackgroundService`, not `BackgroundService`: it registers its entity once and then publishes readings. This one reports the free space of the drive HADA runs from, which every system can tell:
 
 ```csharp
 using System.Globalization;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
+using HADA.Core.Hosting;
 using HADA.Core.Messaging;
-using Microsoft.Extensions.Hosting;
 
-namespace HADA.Platform.Windows.Sensors;
+namespace HADA.Core.Sensors;
 
-/// <summary>Publishes the free space on the system drive.</summary>
-public sealed class DiskFreeSensor(IEventBus bus, IEntityRegistry registry) : BackgroundService
+/// <summary>Publishes the free space on the drive HADA runs from.</summary>
+public sealed class DiskFreeSensor(IEventBus bus, IEntityRegistry registry) : EagerBackgroundService
 {
     public const string EntityId = "disk_free";
 
@@ -43,11 +46,12 @@ public sealed class DiskFreeSensor(IEventBus bus, IEntityRegistry registry) : Ba
             },
             stoppingToken);
 
+        var drive = new DriveInfo(Path.GetPathRoot(AppContext.BaseDirectory)!);
         var publisher = new ChangeOnlyPublisher(bus);
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
         do
         {
-            var freeGigabytes = new DriveInfo("C").AvailableFreeSpace / 1_000_000_000;
+            var freeGigabytes = drive.AvailableFreeSpace / 1_000_000_000;
             await publisher.PublishAsync(
                 EntityId, freeGigabytes.ToString(CultureInfo.InvariantCulture), cancellationToken: stoppingToken);
         }
@@ -63,26 +67,28 @@ public sealed class DiskFreeSensor(IEventBus bus, IEntityRegistry registry) : Ba
 - States are text of at most 255 characters.
 - A sensor never touches MQTT or the WebSocket API. It publishes to the event bus, and whichever engine is configured delivers the reading.
 
-**3. Register it** next to the other sensors, in the file from step 1. In the service, keep it above `CustomSensorHost`.
+**3. Register it** where the table in step 1 says, next to the sensors already there:
 
 ```csharp
-builder.Services.AddHostedService<DiskFreeSensor>();
+services.AddHostedService<DiskFreeSensor>();
 ```
 
-**4. Reserve the ID.** Add `DiskFreeSensor.EntityId` to `BuiltInIds` in `src/HADA.Service/CustomSensors/CustomSensorRules.cs`, so that a custom sensor cannot take the same ID.
+If you register it in `src/HADA.Service/ServiceHost.cs` itself, keep it above `CustomSensorHost`.
 
-**5. Optional polish** for the settings window, in `src/HADA.Tray`:
+**4. Reserve the ID.** Add the ID to `BuiltInEntityIds` in `src/HADA.Core/Entities/BuiltInEntityIds.cs`, as a constant and in `All`, so that a custom sensor cannot take it. The ID is what Home Assistant knows the entity by, so it is the same on every system, whichever of them registers it.
+
+**5. Optional polish** for the window, in `src/HADA.Presentation`:
 
 - an icon: a line in `EntityVisuals.SymbolFor` in `ViewModels/Support.cs`
-- a hint under the entity's name: `EntityHint_disk_free` in both `Localization/Strings.resx` and `Localization/Strings.pl.resx`
+- a hint under the entity's name: `EntityHint_disk_free` in both `Localization/Strings.resx` and `Localization/Strings.pl.resx`. Where Linux or macOS differ, add `EntityHint_disk_free_Unix` or `EntityHint_disk_free_MacOS`; they are used there instead of the plain one.
 
 **6. Try it.** Run `dotnet test`, then start the service and the tray as described under [Running during development](building.md#running-during-development). The entity appears on the **Overview** page with its value, and in Home Assistant under the device.
 
-Existing sensors to copy from: `MemoryUsageSensor` (polling, the shortest), `BatterySensor` (several entities from one reading, registered only when the hardware is there), `PowerStateSensor` (reports changes from a Windows notification instead of polling), `MicrophoneMuteSensor` (a tray sensor with an attribute).
+Existing sensors to copy from, all in `src/HADA.Core/Sensors` unless said otherwise: `MemoryUsageSensor` (polling through `ISystemReadings`, the shortest), `BatterySensor` (several entities from one reading, registered only when the hardware is there), `MicrophoneMuteSensor` (a session sensor with an attribute), and, in `src/HADA.Platform.Windows/Sensors`, `PowerStateSensor` (reports changes from a Windows notification instead of polling).
 
 ## A button, switch or number
 
-These are entities Home Assistant sends commands to. Derive from `CommandHandler` in `src/HADA.Platform.Windows/Actions`: it registers the entities and hands every command for one of them to `HandleAsync`.
+These are entities Home Assistant sends commands to. Derive from `CommandHandler` in `src/HADA.Core/Actions`: it registers the entities and hands every command for one of them to `HandleAsync`.
 
 ```csharp
 public sealed class EjectAction(IEventBus bus, IEntityRegistry registry, ILogger<EjectAction> logger)
@@ -106,7 +112,7 @@ public sealed class EjectAction(IEventBus bus, IEntityRegistry registry, ILogger
 - `Kind` is `Button` (pressed, no value), `Switch` (`command.Value` is `on` or `off`) or `Number` (`command.Value` is a number in invariant culture, already checked against `Min` and `Max`). Switches and numbers also report their state, like sensors; override `RunAsync` to publish it. `AudioControl` is the complete example.
 - Where it runs follows the same rule as for sensors. Commands for tray entities reach the tray through the pipe by themselves.
 - Set `EnabledByDefault = false` for anything that should not work until the user switched it on, as `PowerActions` does. Anyone who can press the button in Home Assistant can trigger the action, so think about what it lets them do to the computer.
-- Reserve the ID in `BuiltInIds`, as for a sensor.
+- Reserve the ID in `BuiltInEntityIds`, as for a sensor.
 
 ## Something that happens
 

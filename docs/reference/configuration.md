@@ -47,8 +47,13 @@ You can also configure the service without the window, through `appsettings.json
 | `Mqtt:Username` / `Mqtt:Password` | – | Broker credentials. See [Secrets](#secrets) |
 | `Mqtt:DiscoveryPrefix` | `homeassistant` | Must match the MQTT integration's discovery prefix |
 | `Mqtt:BaseTopic` | `hada` | Root of HADA's state, attributes, command and availability topics |
-| `HomeAssistant:BaseUrl` | *(empty = WebSocket engine off)* | Home Assistant URL, `http` or `https` |
-| `HomeAssistant:AccessToken` | – | Long-lived token of an administrator. See [Secrets](#secrets) |
+| `HomeAssistant:BaseUrl` | *(empty = WebSocket engine off)* | Home Assistant URL, `http` or `https`. An `http` address out on the internet is refused unless `AllowUnencrypted` is on; see [Security](security.md#the-connection-to-home-assistant) |
+| `HomeAssistant:AccessToken` | – | Long-lived access token. Sensors as states and `hada_command` events need an administrator's; notifications, entities of the device and the HADA integration work with any user's. After signing in through Home Assistant it holds the refresh token instead, together with `ClientId`. See [Secrets](#secrets) |
+| `HomeAssistant:SensorMode` | `States` | How sensors reach this Home Assistant: `Off`, `States`, `Entities` (entities of the device) or `Integration` (the HADA integration). See [What the connection is used for](../home-assistant/websocket.md#what-the-connection-is-used-for). A server added in the window starts with `Entities`, or `Off` if an MQTT server is set up |
+| `HomeAssistant:Notifications` | `false` | Registers the computer with the `mobile_app` integration, which adds `notify.mobile_app_…` |
+| `HomeAssistant:LocalUrl`, `HomeAssistant:LocalNetworks` | *(empty)* | [Another address on the home network](../home-assistant/websocket.md#another-address-on-your-home-network), and the networks, one name per line, on which it is used |
+| `HomeAssistant:AllowUnencrypted` | `false` | Lets the connection be made to an `http` address on the internet, where the token can be read on the way |
+| `HomeAssistant:ClientId` | *(empty)* | Set by signing in through Home Assistant; leave it to the window |
 | `HomeAssistant:CommandEventType` | `hada_command` | Event type the WebSocket engine listens to for commands |
 | `HomeAssistant:DeviceEventType` | `hada_event` | Event type the WebSocket engine fires for quick actions and notification buttons |
 | `*:DeviceId` | machine name | Used in topics and entity IDs. Lowercased, and anything other than letters and digits becomes `_` (`DESKTOP-01` → `desktop_01`) |
@@ -77,6 +82,23 @@ You can also configure the service without the window, through `appsettings.json
 ```
 
 Passwords go in `MqttServers:Items:0:Password` and so on, kept out of `appsettings.json` as described under [Secrets](#secrets). Once servers are saved from the window, the saved list replaces both `MqttServers` and `Mqtt` of `appsettings.json`, down to there being none. Settings saved by a version before 1.2 hold one server; it becomes the first of the list.
+
+### Several Home Assistants connected to directly
+
+`HomeAssistant` describes one Home Assistant. For [several at once](../home-assistant/websocket.md#several-home-assistants-at-once), list them under `HomeAssistantServers:Items` instead; each takes the settings of `HomeAssistant`, plus a `Name` and an `Id` that never changes (lowercase letters and digits; without one, a server is named after its place in the list):
+
+```json
+{
+  "HomeAssistantServers": {
+    "Items": [
+      { "Id": "home", "Name": "Home", "BaseUrl": "http://192.168.1.20:8123", "SensorMode": "Entities", "Notifications": true },
+      { "Id": "office", "Name": "Office", "BaseUrl": "https://office.example.com", "SensorMode": "Off", "Notifications": true }
+    ]
+  }
+}
+```
+
+Access tokens go in `HomeAssistantServers:Items:0:AccessToken` and so on, kept out of `appsettings.json` as described under [Secrets](#secrets). As with MQTT servers, the list saved from the window replaces both `HomeAssistantServers` and `HomeAssistant` of `appsettings.json`.
 
 ## Secrets
 

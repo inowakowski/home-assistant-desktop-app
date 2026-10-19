@@ -36,7 +36,7 @@
   <data name="Update_Open" xml:space="preserve"><value>What is new</value></data>
   <data name="Update_Install" xml:space="preserve"><value>Download and install</value></data>
   <data name="Update_DetailElevated" xml:space="preserve"><value>To install it, use the HADA window opened from the tray icon, not this administrator window.</value></data>
-  <data name="Update_DetailPortable" xml:space="preserve"><value>This is a portable copy: download the portable ZIP of the new version, exit HADA, and replace the service and tray folders. Keep the data folder; it holds your settings.</value></data>
+  <data name="Update_DetailPortable" xml:space="preserve"><value>This is a portable copy: download the portable ZIP of the new version, exit HADA, and replace the service, tray and app folders. Keep the data folder; it holds your settings.</value></data>
   <data name="Update_Downloading" xml:space="preserve"><value>Downloading… {0:0} %</value></data>
   <data name="Update_Started" xml:space="preserve"><value>The installer was started; carry on in its window. HADA closes while it is being replaced.</value></data>
   <data name="Update_Failed" xml:space="preserve"><value>The download did not work: {0} You can also get the installer from the release page.</value></data>

@@ -20,7 +20,7 @@ HADA może rozmawiać z Home Assistant na trzy sposoby. Nie wykluczają się i �
 
 We wszystkich trzech komputer jest w Home Assistant urządzeniem z encjami, które można przemianować i przypisać do pomieszczenia.
 
-## Co działa którą drogą
+## Co działa którą drogą { #what-works-through-which-connection }
 
 *Druga i trzecia kolumna są nowe w wersji 1.4.0; wiersze oznaczone \* są nowe w wersji 1.5.0.*
 
