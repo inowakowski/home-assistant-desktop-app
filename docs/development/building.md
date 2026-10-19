@@ -49,6 +49,19 @@ Tray command-line options:
 
 This creates `artifacts\installer\HADA-<version>-x64.msi` and `HADA-<version>-arm64.msi`, and next to them the [portable](../getting-started/portable.md) `HADA-<version>-<x64|arm64>-portable.zip`; either computer can build both architectures. The GitHub workflow in `.github/workflows/build.yml` builds the same two files and attaches them to each run. The installer project (WiX) is in `installer/` and is deliberately not part of the solution, so `dotnet build` stays fast.
 
+## Releases on GitHub
+
+Every version is a GitHub release tagged `vX.Y.Z`, equal to `<Version>` in `Directory.Build.props`. A **stable** release is the `--latest` one: the landing page and the app's update check follow it. A **preview** is a pre-release titled `HADA X.Y.Z (preview)`, for a batch of features that someone should try before it becomes stable.
+
+The list is kept short by one rule: **one preview at a time**. A preview contains everything the earlier ones did, so:
+
+- publishing a new preview deletes the previous one;
+- publishing a stable version deletes every preview older than it, and a preview made stable (`gh release edit vX.Y.Z --prerelease=false --latest`) replaces the previews before it.
+
+Only the release is deleted, never the tag: `gh release delete vX.Y.Z --yes` without `--cleanup-tag`. An old version can still be built from its tag, and what it brought stays in the [changelog](../changelog.md), which keeps a heading for every version, previews included. Before deleting, save the release's notes and `SHA256SUMS.txt` (for example in `artifacts\release-archive\vX.Y.Z`, which is not tracked). The files themselves are lost with the release.
+
+The update check in the app lists the 30 newest releases and takes the highest version, skipping pre-releases unless **Offer test versions too** is on, so deleting a superseded preview never hides an update.
+
 ## Building this documentation
 
 The pages are Markdown files in `docs/`, built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/):
