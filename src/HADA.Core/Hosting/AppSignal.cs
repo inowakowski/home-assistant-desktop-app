@@ -20,7 +20,7 @@ public sealed class AppSignal : IDisposable
     private AppSignal(IDisposable listener) => _listener = listener;
 
     /// <summary>Starts listening for <paramref name="name"/>, e.g. <c>Local\HADA.Tray.Exit</c>.</summary>
-    /// <param name="onSignal">Called on a thread-pool thread each time the signal is set, or only the first time with <paramref name="once"/>.</param>
+    /// <param name="onSignal">Called on a thread of its own, not the caller's, each time the signal is set, or only the first time with <paramref name="once"/>.</param>
     public static AppSignal Listen(string name, Action onSignal, bool once = false)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -57,38 +57,26 @@ public sealed class AppSignal : IDisposable
         return Path.Combine(folder, $"s{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fileName)), 0, 8)}.sock");
     }
 
+    /// <summary>
+    /// A thread of its own waits for the named event. It is not left to the thread pool, which signals "no longer
+    /// waiting" before it has let go of the event, so that a listener just disposed could still be opened by name:
+    /// this thread closes the event itself, and <see cref="Dispose"/> returns once it has.
+    /// </summary>
     [SupportedOSPlatform("windows")]
     private sealed class EventListener : IDisposable
     {
-        private static readonly TimeSpan UnregisterTimeout = TimeSpan.FromSeconds(5);
-
-        // Whether this thread is answering a signal; a listener disposed from there cannot wait for itself.
-        [ThreadStatic]
-        private static bool t_answering;
+        private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(5);
 
         private readonly EventWaitHandle _event;
-        private readonly RegisteredWaitHandle _registration;
+        private readonly ManualResetEvent _stop = new(initialState: false);
+        private readonly Thread _thread;
+        private int _disposed;
 
         public EventListener(string name, Action onSignal, bool once)
         {
             _event = new EventWaitHandle(initialState: false, EventResetMode.AutoReset, name);
-            _registration = ThreadPool.RegisterWaitForSingleObject(
-                _event,
-                (_, _) =>
-                {
-                    t_answering = true;
-                    try
-                    {
-                        onSignal();
-                    }
-                    finally
-                    {
-                        t_answering = false;
-                    }
-                },
-                state: null,
-                Timeout.Infinite,
-                executeOnlyOnce: once);
+            _thread = new Thread(() => Listen(onSignal, once)) { IsBackground = true, Name = "HADA signal " + name };
+            _thread.Start();
         }
 
         public static bool TrySet(string name)
@@ -105,25 +93,48 @@ public sealed class AppSignal : IDisposable
         }
 
         /// <summary>
-        /// Stops listening. The thread pool holds on to the event until it has taken the wait off its list; this
-        /// waits for that, so that once disposed, the signal's name leads nowhere.
+        /// Stops listening and waits until the event is closed, so that once disposed, the signal's name leads nowhere.
+        /// Waits for a signal being answered, too, unless disposed from its callback, which cannot wait for itself;
+        /// the event is then closed as the callback returns.
         /// </summary>
         public void Dispose()
         {
-            if (t_answering)
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
             {
-                _registration.Unregister(null);
-            }
-            else
-            {
-                using var unregistered = new ManualResetEvent(initialState: false);
-                if (_registration.Unregister(unregistered))
-                {
-                    _ = unregistered.WaitOne(UnregisterTimeout);
-                }
+                return;
             }
 
-            _event.Dispose();
+            _stop.Set();
+            if (Thread.CurrentThread != _thread)
+            {
+                _ = _thread.Join(StopTimeout);
+            }
+        }
+
+        // The only one to close the event and the stop handle, which it does when asked to stop and not before: Dispose
+        // sets the one and is done with it, and the thread waits for the other.
+        private void Listen(Action onSignal, bool once)
+        {
+            try
+            {
+                // Stopping goes first: when both are set, the wait reports the lower index.
+                WaitHandle[] handles = [_stop, _event];
+                while (WaitHandle.WaitAny(handles) == 1)
+                {
+                    onSignal();
+                    if (once)
+                    {
+                        // The signal is answered; it stays set up, as it does on a socket, until it is disposed.
+                        _ = _stop.WaitOne();
+                        return;
+                    }
+                }
+            }
+            finally
+            {
+                _event.Dispose();
+                _stop.Dispose();
+            }
         }
     }
 

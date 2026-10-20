@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using HADA.Core.Hosting;
 
 namespace HADA.Tests.Hosting;
@@ -49,6 +50,50 @@ public sealed class AppSignalTests : IDisposable
         }
 
         Assert.False(AppSignal.TrySet(_name));
+    }
+
+    /// <summary>
+    /// A disposed listener let go of its event a moment after Dispose returned, once in some thousand: the signal could
+    /// still be opened, and set. Run often enough to show it, and as the processes of HADA do not, side by side.
+    /// </summary>
+    [WindowsFact]
+    public void A_disposed_listener_leaves_its_signal_leading_nowhere_however_often_it_is_tried()
+    {
+        var names = Enumerable.Range(0, 4000).Select(i => $@"Local\HADA.Test.{i}.{Guid.NewGuid():N}").ToArray();
+        var stillThere = new ConcurrentBag<string>();
+
+        Parallel.ForEach(names, name =>
+        {
+            using (AppSignal.Listen(name, () => { }))
+            {
+            }
+
+            if (AppSignal.TrySet(name))
+            {
+                stillThere.Add(name);
+            }
+        });
+
+        Assert.Empty(stillThere);
+    }
+
+    [Fact]
+    public async Task A_listener_disposed_from_its_own_signal_does_not_wait_for_itself_and_is_gone_after()
+    {
+        AppSignal? listener = null;
+        var disposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        listener = AppSignal.Listen(_name, () =>
+        {
+            // Not before the field is set: the signal cannot come earlier than the test sets it.
+            listener!.Dispose();
+            disposed.TrySetResult();
+        });
+
+        Assert.True(AppSignal.TrySet(_name));
+        await disposed.Task.WaitAsync(Timeout);
+
+        // On Windows the event is closed as the callback returns.
+        await WaitUntilAsync(() => !AppSignal.TrySet(_name));
     }
 
     [Fact]

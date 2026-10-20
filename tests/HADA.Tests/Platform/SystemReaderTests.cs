@@ -198,16 +198,25 @@ public class SystemReaderTests
         }
     }
 
-    /// <summary>
-    /// The profile the Settings app's switch chose is read, and chosen again unchanged: the way the switch is set,
-    /// tried without turning "Do not disturb" on or off.
-    /// </summary>
     [WindowsFact]
-    public void The_do_not_disturb_profile_is_read_and_chosen_again_unchanged()
+    public void The_do_not_disturb_profile_the_settings_switch_chose_is_read()
+    {
+        var profile = QuietHours.TryReadProfile();
+
+        Assert.NotNull(profile);
+        Assert.StartsWith("Microsoft.QuietHoursProfile.", profile, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The profile is chosen again unchanged: the way the Settings app's switch is set, tried without turning "Do not
+    /// disturb" on or off. Not on Windows Server, as on the hosted build agents, where setting it crashes the service
+    /// behind it; see <see cref="WindowsClientFactAttribute"/>.
+    /// </summary>
+    [WindowsClientFact]
+    public void The_do_not_disturb_profile_is_chosen_again_unchanged()
     {
         var profile = QuietHours.TryReadProfile();
         Assert.NotNull(profile);
-        Assert.StartsWith("Microsoft.QuietHoursProfile.", profile, StringComparison.Ordinal);
 
         Assert.Null(QuietHours.TrySetProfile(profile));
         Assert.Equal(profile, QuietHours.TryReadProfile());

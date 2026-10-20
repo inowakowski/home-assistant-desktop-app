@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using System.Text;
 using HADA.Service.Settings;
+using Microsoft.Win32;
 
 namespace HADA.Tests;
 
@@ -26,6 +28,34 @@ public sealed class WindowsTheoryAttribute : TheoryAttribute
         {
             Skip = "Needs Windows.";
         }
+    }
+}
+
+/// <summary>
+/// A test that changes a setting of Windows, skipped on Windows Server. The hosted build agents are Windows Server
+/// 2025, where setting the quiet hours ("Do not disturb") crashes the service behind them (QuietHours.dll in
+/// WpnUserService, exception 0xC000027B) every time; it restarts, and the calls of whoever asks in the meantime fail.
+/// </summary>
+public sealed class WindowsClientFactAttribute : FactAttribute
+{
+    public WindowsClientFactAttribute()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Skip = "Needs Windows.";
+        }
+        else if (IsWindowsServer())
+        {
+            Skip = "Needs a Windows that is not a Server.";
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static bool IsWindowsServer()
+    {
+        // "WinNT" on a workstation; "ServerNT" or "LanmanNT" (a domain controller) on a server.
+        using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\ProductOptions");
+        return key?.GetValue("ProductType") is string productType && !string.Equals(productType, "WinNT", StringComparison.OrdinalIgnoreCase);
     }
 }
 
