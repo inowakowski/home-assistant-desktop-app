@@ -161,12 +161,14 @@ public sealed class DoNotDisturbSensor(IEventBus bus, IEntityRegistry registry) 
 /// <summary>
 /// "Do not disturb" through the shell's quiet hours: read as the sensor reads it, switched as the Settings app's
 /// switch does it. Off is the unrestricted profile; on, "Do not disturb" on Windows 11 and "Priority only" on 10.
+/// Not switchable on Windows Server: nobody keeps a server quiet, and setting the profile there crashes the service
+/// behind it.
 /// </summary>
 public sealed class WindowsDoNotDisturb : IDoNotDisturb
 {
     public bool? Read() => QuietHours.TryRead() is { } mode ? mode != QuietMode.Off : null;
 
-    public bool CanSet => QuietHours.TryReadProfile() is not null;
+    public bool CanSet => !WindowsEdition.IsServer && QuietHours.TryReadProfile() is not null;
 
     public Task<string?> SetAsync(bool on, CancellationToken cancellationToken) => Task.FromResult(QuietHours.TrySet(on));
 }

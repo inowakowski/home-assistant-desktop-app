@@ -8,6 +8,7 @@ using HADA.Core.Messaging;
 using HADA.Core.Models;
 using HADA.Core.Unix;
 using HADA.Platform.Linux;
+using HADA.Platform.Windows;
 using HADA.Platform.Windows.Sensors;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tmds.DBus.Protocol;
@@ -144,15 +145,31 @@ public sealed class QuietTests : IAsyncDisposable
         }
     }
 
-    /// <summary>Windows' quiet hours: told and switchable where the Settings app's switch is.</summary>
+    /// <summary>
+    /// Windows' quiet hours: told, and switchable where the Settings app's switch is, which is not on a server (the
+    /// hosted build agents are one: setting the quiet hours there crashes the service behind them).
+    /// </summary>
     [WindowsFact]
     [SupportedOSPlatform("windows")]
-    public void Windows_says_whether_it_is_quiet_and_lets_it_be_switched()
+    public void Windows_says_whether_it_is_quiet_and_lets_it_be_switched_except_on_a_server()
     {
         var quiet = new WindowsDoNotDisturb();
 
-        Assert.True(quiet.CanSet);
+        Assert.Equal(!WindowsEdition.IsServer, quiet.CanSet);
         Assert.NotNull(quiet.Read());
+    }
+
+    [WindowsTheory]
+    [SupportedOSPlatform("windows")]
+    [InlineData("WinNT", false)]
+    [InlineData("ServerNT", true)]
+    [InlineData("LanmanNT", true)]
+    [InlineData("servernt", true)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void A_server_is_told_from_a_workstation_by_its_product_type(string? productType, bool server)
+    {
+        Assert.Equal(server, WindowsEdition.IsServerProductType(productType));
     }
 
     /// <summary>Done, or the whole of why not: <see cref="Assert.Null(object?)"/> cuts a long reason short.</summary>

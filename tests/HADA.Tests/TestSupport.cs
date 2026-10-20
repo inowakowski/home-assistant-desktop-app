@@ -2,8 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Text;
+using HADA.Platform.Windows;
 using HADA.Service.Settings;
-using Microsoft.Win32;
 
 namespace HADA.Tests;
 
@@ -51,12 +51,7 @@ public sealed class WindowsClientFactAttribute : FactAttribute
     }
 
     [SupportedOSPlatform("windows")]
-    private static bool IsWindowsServer()
-    {
-        // "WinNT" on a workstation; "ServerNT" or "LanmanNT" (a domain controller) on a server.
-        using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\ProductOptions");
-        return key?.GetValue("ProductType") is string productType && !string.Equals(productType, "WinNT", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsWindowsServer() => WindowsEdition.IsServer;
 }
 
 /// <summary>A test of something only Linux has, such as <c>/proc</c>; skipped elsewhere.</summary>
