@@ -93,7 +93,8 @@ EOF
     ln -s /Applications "$stage/Applications"
     # Now and then GitHub's macOS runners fail here with "hdiutil: create failed - Resource busy": XProtect is still
     # looking at the image just made (actions/runner-images#7522). That one error is tried again, a few times; any
-    # other fails the build at once. Either way hdiutil's own message is in the log.
+    # other fails the build at once. Either way hdiutil's own message is in the log. Untested: nobody has run this on
+    # a Mac by hand, only GitHub's runners, and the retry only when they happened to be busy.
     for attempt in 1 2 3 4 5; do
         if hdiutil create -volname "HADA $version" -srcfolder "$stage" -ov -format UDZO "$out/$name.dmg" 2> "$work/hdiutil.err"; then
             break
