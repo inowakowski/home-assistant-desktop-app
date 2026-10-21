@@ -91,7 +91,20 @@ EOF
     mkdir -p "$stage"
     cp -R "$app" "$stage/"
     ln -s /Applications "$stage/Applications"
-    hdiutil create -quiet -volname "HADA $version" -srcfolder "$stage" -ov -format UDZO "$out/$name.dmg"
+    # Now and then GitHub's macOS runners fail here with "hdiutil: create failed - Resource busy": XProtect is still
+    # looking at the image just made (actions/runner-images#7522). That one error is tried again, a few times; any
+    # other fails the build at once. Either way hdiutil's own message is in the log.
+    for attempt in 1 2 3 4 5; do
+        if hdiutil create -volname "HADA $version" -srcfolder "$stage" -ov -format UDZO "$out/$name.dmg" 2> "$work/hdiutil.err"; then
+            break
+        fi
+        cat "$work/hdiutil.err" >&2
+        if ! grep -q "Resource busy" "$work/hdiutil.err" || [ "$attempt" -eq 5 ]; then
+            exit 1
+        fi
+        echo "hdiutil was busy; trying again in $((attempt * 5)) seconds..."
+        sleep $((attempt * 5))
+    done
 done
 
 ls -l "$out"
