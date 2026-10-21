@@ -2,7 +2,14 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## 1.13.0
+## 1.13.1 (pre-release)
+
+Fixes, and the documentation brought up to date. A pre-release, so that it gets tried before a stable version carries it.
+
+- Fixed: on Windows, for a moment after a window or a portable copy's service had ended, HADA could still take it to be running, so that showing the window or stopping the service right then could reach nobody.
+- **Windows Server** no longer gets the **Silence notifications** switch: setting the quiet hours there crashes the service that also shows notifications. The `do_not_disturb` sensor stays.
+- **Updates on Linux and macOS:** the window no longer offers **Download and install** there, nor speaks of a portable ZIP. **What is new** opens the release page, and the window says what to do with the package from it. On Windows nothing changes.
+- **The documentation** was checked against the program: wrong and stale pages are corrected, the settings of the direct connection are listed, and a new page, [Linux and macOS](getting-started/linux-macos.md), says what the untested packages do and how they differ from Windows. Updating a portable copy now means replacing its `app` folder too, which the page and the window say.
 
 A switch for Do not disturb, and the quick actions' shortcuts on Linux and macOS. A stable version, which also brings everything new in the previews 1.6.0 to 1.12.0 to those who use stable versions: the new window, the same on every system, and HADA for Linux and macOS, whose packages are still untested by hand.
 
