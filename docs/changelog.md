@@ -2,9 +2,9 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## 1.13.1 (pre-release)
+## 1.13.1
 
-Fixes, and the documentation brought up to date. A pre-release, so that it gets tried before a stable version carries it.
+Fixes, and the documentation brought up to date. A stable version.
 
 - Fixed: on Windows, for a moment after a window or a portable copy's service had ended, HADA could still take it to be running, so that showing the window or stopping the service right then could reach nobody.
 - **Windows Server** no longer gets the **Silence notifications** switch: setting the quiet hours there crashes the service that also shows notifications. The `do_not_disturb` sensor stays.
