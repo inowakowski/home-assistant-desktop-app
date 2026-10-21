@@ -15,7 +15,7 @@ public interface IDesktop
     /// <summary>Opens an <c>http</c> or <c>https</c> address in the user's browser, running as the signed-in user.</summary>
     void OpenInBrowser(Uri address);
 
-    /// <summary>Starts an installer that was downloaded and checked.</summary>
+    /// <summary>Starts the Windows installer that was downloaded and checked. Other systems install their packages by hand.</summary>
     void StartInstaller(string path);
 
     /// <summary>Whether HADA starts when the user signs in.</summary>

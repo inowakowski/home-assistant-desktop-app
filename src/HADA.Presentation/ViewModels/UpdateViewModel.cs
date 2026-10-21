@@ -39,12 +39,26 @@ public sealed class UpdateViewModel : ObservableObject
 
     /// <param name="isElevated">Whether this is the administrator copy of the window, opened with "Unlock editing".</param>
     /// <param name="isPortable">Whether this is a portable copy, which no installer can update.</param>
-    public UpdateViewModel(ServiceControlClient client, IDesktop desktop, bool isElevated, bool isPortable = false)
+    /// <param name="system">The system the window runs on; the one this process runs on when not told.</param>
+    public UpdateViewModel(ServiceControlClient client, IDesktop desktop, bool isElevated, bool isPortable = false, OSPlatform? system = null)
     {
         _client = client;
         _desktop = desktop;
-        CanInstall = !isElevated && !isPortable;
-        _idleDetail = Loc.Get(isPortable ? "Update_DetailPortable" : isElevated ? "Update_DetailElevated" : "Update_Detail");
+        var platform = system ?? CurrentSystem();
+
+        // Only Windows has a package the window can fetch and start by itself: the installer. An AppImage is a file to
+        // replace, a .deb or .rpm is the package manager's to install and a .dmg is a disk image to drag the app out
+        // of; none of those is safe to start for the user, and the window does not know which of the three it came
+        // from. So elsewhere the user gets the release page and a few words on what to do with what is there.
+        // Linux and macOS pass isPortable too (their settings are the user's own), which must not read as a
+        // portable Windows copy.
+        CanInstall = platform == OSPlatform.Windows && !isElevated && !isPortable;
+        _idleDetail = Loc.Get(
+            platform == OSPlatform.OSX ? "Update_DetailMac"
+            : platform != OSPlatform.Windows ? "Update_DetailLinux"
+            : isPortable ? "Update_DetailPortable"
+            : isElevated ? "Update_DetailElevated"
+            : "Update_Detail");
         _detail = _idleDetail;
         OpenReleasePageCommand = new RelayCommand(OpenReleasePage);
         _installCommand = new AsyncCommand(InstallAsync, () => CanInstall && _update is not null);
@@ -56,9 +70,11 @@ public sealed class UpdateViewModel : ObservableObject
     public string Title => _update is { } update ? Loc.Format("Update_Title", update.Version) : string.Empty;
 
     /// <summary>
-    /// An installer started from the administrator window would run as administrator from its first page, and so
-    /// would the tray app it starts when it is done. Installing is therefore offered in the ordinary window only,
-    /// where Windows asks for administrator rights at the step that needs them.
+    /// Whether the window offers to download and start the installer: on Windows only. An installer started from
+    /// the administrator window would run as administrator from its first page, and so would the tray app it
+    /// starts when it is done. Installing is therefore offered in the ordinary window only, where Windows asks for
+    /// administrator rights at the step that needs them. On Linux and macOS the user installs the package from the
+    /// release page.
     /// </summary>
     public bool CanInstall { get; }
 
@@ -215,7 +231,8 @@ public sealed class UpdateViewModel : ObservableObject
                     update.Version,
                     RuntimeInformation.OSArchitecture,
                     Path.Combine(AppFolders.UserData, "updates"),
-                    progress);
+                    progress,
+                    PackageKind.Msi);
                 _installerVersion = update.Version;
             }
 
@@ -250,6 +267,9 @@ public sealed class UpdateViewModel : ObservableObject
             // Nothing to open it with; the version is in the title for the user to look up.
         }
     }
+
+    private static OSPlatform CurrentSystem() =>
+        OperatingSystem.IsWindows() ? OSPlatform.Windows : OperatingSystem.IsMacOS() ? OSPlatform.OSX : OSPlatform.Linux;
 
     private static HttpClient CreateHttpClient()
     {

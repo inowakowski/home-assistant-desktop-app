@@ -5,6 +5,8 @@ Once a day the service asks GitHub whether a newer HADA was released: one reques
 - **What is new** opens the release page in your browser.
 - **Download and install** downloads the installer for this computer (x64 or ARM64) to `%LocalAppData%\HADA\updates`, compares it with the checksum published with the release, and starts it. From there it is the ordinary installer: you click through it, and Windows asks for administrator rights. A download that does not match its checksum is deleted and not started.
 
+**Download and install** is for Windows. On Linux and macOS the pages show **What is new** alone, and the new package is installed by hand from the release page; see [Linux and macOS](linux-macos.md#how-it-differs-from-windows).
+
 Nothing is downloaded or installed unless you press that button. It is offered in the window opened from the tray icon, not in the administrator window opened with **Unlock editing**: an installer started from there would run as administrator throughout, and so would the tray app it starts at the end.
 
 ![The Settings page](../assets/img/settings.png)
