@@ -31,6 +31,10 @@ public sealed class ServiceControlClient(IpcOptions? options = null) : IAsyncDis
     public async Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken = default) =>
         Expect<OperationResponse>(await SendAsync(new SaveSettingsRequest(Guid.NewGuid(), settings), cancellationToken).ConfigureAwait(false)).Result;
 
+    /// <summary>Changes how the service looks for newer versions; needs no administrator rights.</summary>
+    public async Task<OperationResult> SaveUpdateSettingsAsync(UpdateSettings updates, CancellationToken cancellationToken = default) =>
+        Expect<OperationResponse>(await SendAsync(new SaveUpdateSettingsRequest(Guid.NewGuid(), updates), cancellationToken).ConfigureAwait(false)).Result;
+
     /// <exception cref="ServiceControlException">With <see cref="IpcError.Unauthorized"/> unless running as an elevated administrator.</exception>
     /// <param name="serverId">Which server of <paramref name="settings"/> to test; the first one of that kind when <see langword="null"/>.</param>
     public async Task<OperationResult> TestConnectionAsync(

@@ -168,7 +168,7 @@
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
                                     IsChecked="{Binding Settings.CheckUpdatesAutomatically}"
-                                    IsEnabled="{Binding Settings.CanEdit}"
+                                    IsEnabled="{Binding Settings.CanChangeUpdates}"
                                     OffContent="{l:Tr Common_Off}"
                                     OnContent="{l:Tr Common_On}" />
                             </Grid>
@@ -192,51 +192,12 @@
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
                                     IsChecked="{Binding Settings.IncludePrereleases}"
-                                    IsEnabled="{Binding Settings.CanEdit}"
+                                    IsEnabled="{Binding Settings.CanChangeUpdates}"
                                     OffContent="{l:Tr Common_Off}"
                                     OnContent="{l:Tr Common_On}" />
                             </Grid>
                         </Border>
                     </StackPanel>
-                </ui:Card>
-
-                <!--  The two switches above belong to the service, so changing them takes an administrator.  -->
-                <ui:Card
-                    Margin="0,0,0,12"
-                    Padding="16,12"
-                    Visibility="{Binding Settings.IsLocked, Converter={StaticResource BooleanToVisibility}}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ui:SymbolIcon
-                            VerticalAlignment="Center"
-                            FontSize="24"
-                            Foreground="{DynamicResource SystemFillColorCautionBrush}"
-                            Symbol="ShieldLock24" />
-                        <StackPanel
-                            Grid.Column="1"
-                            Margin="14,0,16,0"
-                            VerticalAlignment="Center">
-                            <ui:TextBlock FontTypography="BodyStrong" Text="{l:Tr Settings_LockedTitle}" />
-                            <ui:TextBlock
-                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                Text="{l:Tr Preferences_LockedMessage}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                        <ui:Button
-                            Grid.Column="2"
-                            VerticalAlignment="Center"
-                            Appearance="Primary"
-                            Command="{Binding UnlockCommand}"
-                            Content="{l:Tr Common_Unlock}">
-                            <ui:Button.Icon>
-                                <ui:SymbolIcon Symbol="ShieldKeyhole24" />
-                            </ui:Button.Icon>
-                        </ui:Button>
-                    </Grid>
                 </ui:Card>
 
                 <!--  Personal  -->

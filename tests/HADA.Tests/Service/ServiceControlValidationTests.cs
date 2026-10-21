@@ -15,8 +15,7 @@ public class ServiceControlValidationTests
         [new HomeAssistantServerUpdate(HomeAssistant, SecretUpdate.Unchanged)],
         [],
         [ProcessSensor],
-        [],
-        new UpdateSettings());
+        []);
 
     private static CustomSensorDefinition ProcessSensor => new()
     {

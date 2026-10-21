@@ -10,7 +10,10 @@ public enum IpcClientRole
     /// <summary>Streams entities and readings from the user session (the tray's sensors).</summary>
     Sensors,
 
-    /// <summary>Reads status, settings and logs. Saving settings and testing connections also require an elevated administrator.</summary>
+    /// <summary>
+    /// Reads status, settings and logs, and changes how updates are looked for. Saving the other settings and testing
+    /// connections also require an elevated administrator.
+    /// </summary>
     Control,
 }
 
@@ -194,6 +197,7 @@ public sealed record SecretUpdate(SecretChange Change, string? Value = null)
     public override string ToString() => $"SecretUpdate {{ Change = {Change} }}";
 }
 
+/// <summary>The settings an elevated administrator saves. How updates are looked for is saved on its own, by anyone.</summary>
 /// <param name="MqttServers">Every server there should be; one that is left out is forgotten, with its password.</param>
 /// <param name="HomeAssistantServers">Likewise: one that is left out is forgotten, with its access token.</param>
 public sealed record SettingsUpdate(
@@ -201,8 +205,7 @@ public sealed record SettingsUpdate(
     IReadOnlyList<HomeAssistantServerUpdate> HomeAssistantServers,
     IReadOnlyList<string> DisabledEntities,
     IReadOnlyList<CustomSensorDefinition> CustomSensors,
-    IReadOnlyList<string> EnabledEntities,
-    UpdateSettings Updates);
+    IReadOnlyList<string> EnabledEntities);
 
 public enum ConnectionTarget
 {
@@ -227,7 +230,14 @@ public interface IServiceControl
 
     Task<SettingsSnapshot> GetSettingsAsync(CancellationToken cancellationToken);
 
+    /// <summary>Saves everything but how updates are looked for, which stays as it is.</summary>
     Task<OperationResult> SaveSettingsAsync(SettingsUpdate settings, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Saves how updates are looked for, and nothing else. Open to every signed-in user: it decides what the service
+    /// asks GitHub, never what is downloaded or installed.
+    /// </summary>
+    Task<OperationResult> SaveUpdateSettingsAsync(UpdateSettings updates, CancellationToken cancellationToken);
 
     /// <summary>Tries <paramref name="settings"/> without saving; secrets marked Keep use the stored values.</summary>
     /// <param name="serverId">Which server of <paramref name="settings"/> to try; the first one of that kind when <see langword="null"/>.</param>

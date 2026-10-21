@@ -243,8 +243,7 @@ public sealed class HomeAssistantServersTests : IDisposable
         servers,
         [],
         [],
-        [],
-        new UpdateSettings());
+        []);
 
     private sealed class Control(ChannelEventBus bus, EngineSupervisor engines, ServiceControl control) : IAsyncDisposable
     {

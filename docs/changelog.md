@@ -2,6 +2,10 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## Unreleased
+
+- **The update switches no longer need Unlock editing.** **Check for updates automatically** and **Offer test versions too** on the **Settings** page are changed by anyone signed in, in the window opened from the tray icon, and apply at once, with no **Save**. They decide only what HADA asks GitHub, never what is downloaded or installed; installing still asks for administrator rights. Saving the other settings leaves them as they are.
+
 ## 1.13.1
 
 Fixes, and the documentation brought up to date. A stable version.
