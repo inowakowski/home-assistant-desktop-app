@@ -19,9 +19,11 @@ To stop it, choose **Exit** in the icon's menu, or start **Stop HADA.cmd**. Eith
 | | |
 |---|---|
 | `HADA.portable` | The file that makes the folder a portable copy. Without it the programs behave as if installed |
-| `service\\`, `tray\\` | The two programs, the same as in the installer |
-| `data\\` | Created on first start: your settings, the logs, your preferences, the dashboard window's sign-in. Copy it to keep or move your configuration |
+| `service`, `tray` | The service and the tray app, the same as in the installer |
+| `app` | The new window, which the tray icon opens; see [The HADA window](../window.md#two-windows) |
+| `data` | Created on first start: your settings, the logs, your preferences, the dashboard window's sign-in. Copy it to keep or move your configuration |
 | `Start HADA.cmd`, `Stop HADA.cmd` | Start and stop |
+| `New window (preview).cmd` | Opens the new window on its own, without the tray icon |
 
 ## How it differs from the installed version
 
@@ -32,7 +34,7 @@ To stop it, choose **Exit** in the icon's menu, or start **Stop HADA.cmd**. Eith
 | Changing settings | Needs an administrator | Needs nobody's permission |
 | Custom PowerShell sensors and buttons | Run as SYSTEM, without a desktop | Run as you |
 | Start with Windows | On, for every user | Off until you turn it on, on the **Settings** page; then for you only |
-| Updating | **Download and install** in the window | Replace the `service` and `tray` folders |
+| Updating | **Download and install** in the window | Replace the `service`, `tray` and `app` folders |
 | Saved passwords | Readable by the service on this computer | Readable by your account on this computer |
 | Several users | The one at the computer is reported | Each user would run their own copy |
 
@@ -42,7 +44,7 @@ Sleep, hibernate, shut down, restart, lock and everything on the desktop work as
 
 1. Exit HADA.
 2. Unpack the new ZIP somewhere else.
-3. Replace the `service` and `tray` folders with the new ones. Leave `data` alone.
+3. Replace the `service`, `tray` and `app` folders with the new ones, all three: a new window next to an old service does not work. Leave `data` alone.
 4. Start it again.
 
 The window says when a newer version exists, if the update check is on; it cannot replace its own folders.
@@ -54,7 +56,7 @@ Exit HADA first. To move it, move the folder; your settings travel in `data`. Sa
 To remove it, delete the folder. Two things are outside it, both in your own part of the registry:
 
 - If you turned **Start with Windows** on, turn it off before moving or deleting the folder. It is an entry in your startup programs that points at the folder.
-- Windows needs to be told who shows HADA's notifications. That is one small key, `HKCU\\Software\\Classes\\AppUserModelId\\HADA.Tray.P…`, which you can delete.
+- Windows needs to be told who shows HADA's notifications. That is one small key, `HKCU\Software\Classes\AppUserModelId\HADA.Tray.P…`, which you can delete.
 
 ## Next to an installed HADA, or another copy
 
@@ -64,6 +66,6 @@ A portable copy shares nothing with an installed HADA or with another portable c
 
 | Command | Effect |
 |---|---|
-| `tray\\HADA.Tray.exe` | Start, and open the window |
-| `tray\\HADA.Tray.exe --background` | Start without opening the window |
-| `tray\\HADA.Tray.exe --exit` | Tell the running copy to exit, which also stops its service and closes its windows |
+| `tray\HADA.Tray.exe` | Start, and open the window |
+| `tray\HADA.Tray.exe --background` | Start without opening the window |
+| `tray\HADA.Tray.exe --exit` | Tell the running copy to exit, which also stops its service and closes its windows |

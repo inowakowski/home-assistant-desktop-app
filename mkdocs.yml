@@ -98,6 +98,7 @@ nav:
   - Getting started:
       - Installation: getting-started/installation.md
       - Portable version: getting-started/portable.md
+      - Linux and macOS (preview): getting-started/linux-macos.md
       - First setup: getting-started/first-setup.md
       - Updating: getting-started/updating.md
   - What it does:
