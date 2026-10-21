@@ -86,7 +86,8 @@ public sealed partial class UpdateChecker : EagerBackgroundService
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
     private static readonly TimeSpan RetryInterval = TimeSpan.FromHours(1);
 
-    // Any signed-in user may press "Check now"; pressing it over and over must not become a stream of requests.
+    // Any signed-in user may press "Check now" or change the update switches; doing either over and over must not
+    // become a stream of requests.
     private static readonly TimeSpan MinimumInterval = TimeSpan.FromSeconds(30);
 
     private static readonly EntityDescriptor Entity = new()
@@ -218,6 +219,17 @@ public sealed partial class UpdateChecker : EagerBackgroundService
             {
                 await changed.WaitAsync(delay, stoppingToken);
                 delay = CheckInterval;
+
+                // A switch changed right after a look waits out the rest of the interval, with any further changes.
+                var sinceLast = DateTimeOffset.UtcNow - (_last?.CheckedAt ?? DateTimeOffset.MinValue);
+                if (sinceLast < MinimumInterval)
+                {
+                    await Task.Delay(MinimumInterval - sinceLast, stoppingToken);
+                    while (changed.Wait(0, stoppingToken))
+                    {
+                    }
+                }
+
                 if (!_options.CurrentValue.CheckAutomatically)
                 {
                     continue;

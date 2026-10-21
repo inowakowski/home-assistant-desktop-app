@@ -25,7 +25,7 @@ public sealed class IpcMessageStream(Stream stream)
     /// version 9 whether a Home Assistant may be connected to unencrypted over the internet, its local address,
     /// and signing in through Home Assistant.
     /// </summary>
-    public const int ProtocolVersion = 9;
+    public const int ProtocolVersion = 10;
 
     /// <summary>Caps how much memory a misbehaving peer can make the other side allocate.</summary>
     public const int MaxMessageBytes = 256 * 1024;

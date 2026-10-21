@@ -27,7 +27,7 @@
                         TextWrapping="Wrap" />
                 </StackPanel>
 
-                <!--  Updates: the service's to check, so its switches take an administrator.  -->
+                <!--  Updates: the service's to check. Its switches are saved at once, by anyone: they only decide what it asks GitHub.  -->
                 <TextBlock Classes="subtitle" Text="{l:Tr Preferences_Updates}" />
                 <Border Classes="card">
                     <StackPanel>
@@ -131,7 +131,7 @@
                                     VerticalAlignment="Center"
                                     AutomationProperties.Name="{l:Tr Preferences_AutoCheck}"
                                     IsChecked="{Binding Settings.CheckUpdatesAutomatically}"
-                                    IsEnabled="{Binding Settings.CanEdit}"
+                                    IsEnabled="{Binding Settings.CanChangeUpdates}"
                                     OffContent="{l:Tr Common_Off}"
                                     OnContent="{l:Tr Common_On}" />
                             </Grid>
@@ -151,7 +151,7 @@
                                     VerticalAlignment="Center"
                                     AutomationProperties.Name="{l:Tr Preferences_Prereleases}"
                                     IsChecked="{Binding Settings.IncludePrereleases}"
-                                    IsEnabled="{Binding Settings.CanEdit}"
+                                    IsEnabled="{Binding Settings.CanChangeUpdates}"
                                     OffContent="{l:Tr Common_Off}"
                                     OnContent="{l:Tr Common_On}" />
                             </Grid>
@@ -159,7 +159,17 @@
                     </StackPanel>
                 </Border>
 
-                <c:SettingsNotices LockedText="{l:Tr Preferences_LockedMessage}" />
+                <!--  Nothing here needs unlocking; only a switch that could not be saved has something to say.  -->
+                <Border
+                    Background="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}}"
+                    BorderBrush="{Binding Settings.Feedback.Severity, Converter={StaticResource SeverityBrush}, ConverterParameter=edge}"
+                    Classes="message"
+                    IsVisible="{Binding Settings.Feedback.IsOpen}">
+                    <StackPanel>
+                        <TextBlock Classes="strong" Text="{Binding Settings.Feedback.Title}" />
+                        <TextBlock Text="{Binding Settings.Feedback.Message}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
                 <!--  This user's own: kept for them, not in the service.  -->
                 <StackPanel Margin="0,12,0,0">

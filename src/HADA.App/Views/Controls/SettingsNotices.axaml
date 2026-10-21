@@ -6,7 +6,6 @@
     x:Class="HADA.App.Views.Controls.SettingsNotices"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:c="using:HADA.App.Views.Controls"
     xmlns:fi="using:FluentIcons.Avalonia"
     xmlns:l="using:HADA.App.Localization"
     xmlns:vm="using:HADA.Presentation.ViewModels"
@@ -35,7 +34,7 @@
                     <TextBlock Classes="strong" Text="{l:Tr Settings_LockedTitle}" />
                     <TextBlock
                         Classes="caption secondary"
-                        Text="{Binding $parent[c:SettingsNotices].LockedText}"
+                        Text="{l:Tr Settings_LockedMessage}"
                         TextWrapping="Wrap" />
                 </StackPanel>
                 <Button

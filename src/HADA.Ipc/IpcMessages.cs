@@ -15,6 +15,7 @@ namespace HADA.Ipc;
 [JsonDerivedType(typeof(GetSettingsRequest), "getSettings")]
 [JsonDerivedType(typeof(SettingsResponse), "settings")]
 [JsonDerivedType(typeof(SaveSettingsRequest), "saveSettings")]
+[JsonDerivedType(typeof(SaveUpdateSettingsRequest), "saveUpdateSettings")]
 [JsonDerivedType(typeof(TestConnectionRequest), "testConnection")]
 [JsonDerivedType(typeof(OperationResponse), "operation")]
 [JsonDerivedType(typeof(GetLogsRequest), "getLogs")]
@@ -55,6 +56,12 @@ public sealed record SettingsResponse(Guid RequestId, SettingsSnapshot Settings)
 
 /// <summary>Requires an elevated administrator.</summary>
 public sealed record SaveSettingsRequest(Guid RequestId, SettingsUpdate Settings) : IpcRequest(RequestId);
+
+/// <summary>
+/// Saves only how the service looks for newer versions. Needs no administrator rights: it decides what the service
+/// asks GitHub, never what is downloaded or installed.
+/// </summary>
+public sealed record SaveUpdateSettingsRequest(Guid RequestId, UpdateSettings Updates) : IpcRequest(RequestId);
 
 /// <summary>Requires an elevated administrator, because the test may send stored secrets to the given address.</summary>
 /// <param name="ServerId">Which MQTT server of the settings to test; the first one when <see langword="null"/>.</param>

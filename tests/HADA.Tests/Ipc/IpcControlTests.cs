@@ -1,9 +1,12 @@
 using System.Runtime.Versioning;
 using System.Security.Principal;
+using HADA.Core;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Messaging;
 using HADA.Ipc;
+using HADA.Presentation;
+using HADA.Presentation.ViewModels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -88,11 +91,39 @@ public sealed class IpcControlTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Changing_how_updates_are_looked_for_needs_no_elevation()
+    {
+        await _server.StartAsync(CancellationToken.None);
+
+        var result = await _client.SaveUpdateSettingsAsync(new UpdateSettings(CheckAutomatically: false, IncludePrereleases: true));
+
+        Assert.True(result.Success);
+        Assert.Equal(new UpdateSettings(CheckAutomatically: false, IncludePrereleases: true), _control.SavedUpdates);
+    }
+
+    [Fact]
+    public async Task The_window_saves_an_update_switch_at_once_without_being_unlocked()
+    {
+        await _server.StartAsync(CancellationToken.None);
+        var settings = new SettingsViewModel(_client, new NoDesktop(), isElevated: false);
+        await settings.LoadAsync();
+
+        settings.CheckUpdatesAutomatically = false;
+        await WaitUntilAsync(() => _control.SavedUpdates is not null);
+
+        Assert.False(settings.CanEdit);
+        Assert.True(settings.CanChangeUpdates);
+        Assert.False(settings.IsDirty);
+        Assert.Equal(new UpdateSettings(CheckAutomatically: false, IncludePrereleases: true), _control.SavedUpdates);
+        Assert.Equal(0, _control.SaveCalls);
+    }
+
+    [Fact]
     public async Task Saving_settings_requires_an_elevated_administrator()
     {
         await _server.StartAsync(CancellationToken.None);
         var update = new SettingsUpdate(
-            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], [new HomeAssistantServerUpdate(FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged)], [], [], [], new UpdateSettings());
+            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], [new HomeAssistantServerUpdate(FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged)], [], [], []);
 
         if (IsElevatedAdministrator())
         {
@@ -120,7 +151,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         var before = _control.SaveCalls;
 
         var update = new SettingsUpdate(
-            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], [new HomeAssistantServerUpdate(FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged)], [], [], [], new UpdateSettings());
+            [new MqttServerUpdate(FakeServiceControl.Mqtt, SecretUpdate.Unchanged)], [new HomeAssistantServerUpdate(FakeServiceControl.HomeAssistant, SecretUpdate.Unchanged)], [], [], []);
         Assert.True((await client.SaveSettingsAsync(update)).Success);
         Assert.True((await client.TestConnectionAsync(ConnectionTarget.Mqtt, update)).Success);
 
@@ -168,6 +199,8 @@ public sealed class IpcControlTests : IAsyncDisposable
 
         public int SaveCalls { get; private set; }
 
+        public UpdateSettings? SavedUpdates { get; private set; }
+
         public int TestCalls { get; private set; }
 
         public Task<ServiceStatus> GetStatusAsync(CancellationToken cancellationToken) =>
@@ -188,6 +221,12 @@ public sealed class IpcControlTests : IAsyncDisposable
             return Task.FromResult(new OperationResult(true));
         }
 
+        public Task<OperationResult> SaveUpdateSettingsAsync(UpdateSettings updates, CancellationToken cancellationToken)
+        {
+            SavedUpdates = updates;
+            return Task.FromResult(new OperationResult(true));
+        }
+
         public Task<OperationResult> TestConnectionAsync(
             ConnectionTarget target, SettingsUpdate settings, string? serverId, CancellationToken cancellationToken)
         {
@@ -200,5 +239,28 @@ public sealed class IpcControlTests : IAsyncDisposable
 
         public Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken) =>
             Task.FromResult(new UpdateCheckResult(UpdateCheckOutcome.UpdateAvailable, DateTimeOffset.Now, "9.9.9", "https://example.com/v9.9.9"));
+    }
+
+    private sealed class NoDesktop : IDesktop
+    {
+        public bool StartsWithSystem { get; set; }
+
+        public void CopyText(string text)
+        {
+        }
+
+        public void OpenInBrowser(Uri address)
+        {
+        }
+
+        public void StartInstaller(string path)
+        {
+        }
+
+        public IReadOnlyList<InstalledBrowser> InstalledBrowsers() => [];
+
+        public IReadOnlyList<UsbDeviceOption> ConnectedUsbDevices() => [];
+
+        public IReadOnlyList<string> ConnectedNetworks() => [];
     }
 }

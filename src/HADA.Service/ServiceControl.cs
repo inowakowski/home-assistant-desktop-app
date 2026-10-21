@@ -52,6 +52,9 @@ public sealed partial class ServiceControl(
 
     private static readonly DateTimeOffset StartedAt = GetProcessStartTime();
 
+    // The settings and the update switches are saved by different windows, perhaps at once; each keeps what the other saved.
+    private readonly Lock _saving = new();
+
     public Task<ServiceStatus> GetStatusAsync(CancellationToken cancellationToken)
     {
         var filter = entityOptions.CurrentValue.ToFilter();
@@ -113,12 +116,14 @@ public sealed partial class ServiceControl(
             DisabledEntities = [.. settings.DisabledEntities.Distinct(StringComparer.Ordinal)],
             EnabledEntities = [.. settings.EnabledEntities.Distinct(StringComparer.Ordinal)],
             CustomSensors = [.. settings.CustomSensors.Select(sensor => sensor.Normalize())],
-            Updates = settings.Updates,
         };
 
         try
         {
-            store.Save(stored);
+            lock (_saving)
+            {
+                store.Save(stored with { Updates = store.Load().Updates });
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -132,6 +137,38 @@ public sealed partial class ServiceControl(
         // Engines pick the new values up through their options monitors and restart if needed.
         storedSettings.Reload();
         LogSettingsSaved(logger, store.FilePath);
+        return Task.FromResult(new OperationResult(true));
+    }
+
+    public Task<OperationResult> SaveUpdateSettingsAsync(UpdateSettings updates, CancellationToken cancellationToken)
+    {
+        if (updates is null)
+        {
+            return Task.FromResult(new OperationResult(false, "The update settings are missing."));
+        }
+
+        // Nothing is written when nothing changes, so that pressing a switch to where it is costs nothing.
+        if (updates == new UpdateSettings(updateOptions.CurrentValue.CheckAutomatically, updateOptions.CurrentValue.IncludePrereleases))
+        {
+            return Task.FromResult(new OperationResult(true));
+        }
+
+        try
+        {
+            lock (_saving)
+            {
+                store.Save(store.Load() with { Updates = updates });
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LogSaveFailed(logger, ex, store.FilePath);
+            return Task.FromResult(new OperationResult(false, $"Could not write {store.FilePath}: {ex.Message}"));
+        }
+
+        // The update checker looks again at once when one of the two changed.
+        storedSettings.Reload();
+        LogUpdateSettingsSaved(logger, updates.CheckAutomatically, updates.IncludePrereleases);
         return Task.FromResult(new OperationResult(true));
     }
 
@@ -208,11 +245,6 @@ public sealed partial class ServiceControl(
         if (target is not null)
         {
             return null;
-        }
-
-        if (settings.Updates is null)
-        {
-            return "The update settings are missing.";
         }
 
         if (settings.DisabledEntities.Count > MaxDisabledEntities || settings.EnabledEntities.Count > MaxDisabledEntities)
@@ -578,6 +610,9 @@ public sealed partial class ServiceControl(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Settings saved to {Path}.")]
     private static partial void LogSettingsSaved(ILogger logger, string path);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Update settings saved; checking automatically: {CheckAutomatically}, pre-releases: {IncludePrereleases}.")]
+    private static partial void LogUpdateSettingsSaved(ILogger logger, bool checkAutomatically, bool includePrereleases);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Saving settings to {Path} failed.")]
     private static partial void LogSaveFailed(ILogger logger, Exception exception, string path);

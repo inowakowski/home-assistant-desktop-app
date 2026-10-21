@@ -18,7 +18,8 @@ namespace HADA.Ipc;
 /// <remarks>
 /// Any interactive user can connect, so clients are not trusted: sensor clients may not replace entities the
 /// service registered itself, and may only report readings for entities they registered.
-/// Saving settings and testing connections also require the client to be an elevated administrator.
+/// Saving settings and testing connections also require the client to be an elevated administrator; changing how
+/// updates are looked for does not.
 /// <para>
 /// With several users signed in, every user's tray connects and registers the same entities. Only one of them is
 /// reported to Home Assistant at a time: the tray of the session on the computer's own screen, or else of a
@@ -360,6 +361,8 @@ public sealed partial class IpcServer(
                 GetLogsRequest logs => new LogsResponse(
                     request.RequestId, control.GetLogs(logs.AfterSequence, MaxLogEntriesPerResponse)),
                 SaveSettingsRequest save => await SaveSettingsAsync(save, clientName, cancellationToken).ConfigureAwait(false),
+                SaveUpdateSettingsRequest save => new OperationResponse(
+                    request.RequestId, await control.SaveUpdateSettingsAsync(save.Updates, cancellationToken).ConfigureAwait(false)),
                 CheckForUpdateRequest => new UpdateCheckResponse(
                     request.RequestId, await control.CheckForUpdateAsync(cancellationToken).ConfigureAwait(false)),
                 TestConnectionRequest test => new OperationResponse(

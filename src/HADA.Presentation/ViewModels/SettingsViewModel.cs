@@ -45,6 +45,7 @@ public sealed class SettingsViewModel : ObservableObject
     private HomeAssistantServerViewModel? _selectedHomeAssistantServer;
     private bool _checkUpdatesAutomatically = true;
     private bool _includePrereleases;
+    private bool _isSavingUpdates;
     private readonly IDesktop _desktop;
 
     /// <param name="isElevated">
@@ -179,9 +180,15 @@ public sealed class SettingsViewModel : ObservableObject
 
     public bool HasOneHomeAssistantServer => !HasSeveralHomeAssistantServers;
 
-    public bool CheckUpdatesAutomatically { get => _checkUpdatesAutomatically; set => SetSetting(ref _checkUpdatesAutomatically, value); }
+    /// <summary>
+    /// Whether the update switches can be changed: in every window, once the settings were read. They are saved the
+    /// moment they are changed, with no administrator rights, since they decide only what the service asks GitHub.
+    /// </summary>
+    public bool CanChangeUpdates => IsLoaded;
 
-    public bool IncludePrereleases { get => _includePrereleases; set => SetSetting(ref _includePrereleases, value); }
+    public bool CheckUpdatesAutomatically { get => _checkUpdatesAutomatically; set => SetUpdateSetting(ref _checkUpdatesAutomatically, value); }
+
+    public bool IncludePrereleases { get => _includePrereleases; set => SetUpdateSetting(ref _includePrereleases, value); }
 
     public ICommand SaveCommand => _saveCommand;
 
@@ -383,6 +390,69 @@ public sealed class SettingsViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Saves the update switches as they are now, and again for as long as they keep changing; when saving fails,
+    /// they go back to what is saved.
+    /// </summary>
+    private async Task SaveUpdateSettingsAsync()
+    {
+        // One save at a time: a switch changed while one is under way is taken up by the same loop.
+        if (_isSavingUpdates)
+        {
+            return;
+        }
+
+        _isSavingUpdates = true;
+        try
+        {
+            while (_snapshot is { } snapshot)
+            {
+                var updates = new UpdateSettings(CheckUpdatesAutomatically, IncludePrereleases);
+                if (updates == snapshot.Updates)
+                {
+                    return;
+                }
+
+                try
+                {
+                    var result = await _client.SaveUpdateSettingsAsync(updates);
+                    if (result.Success)
+                    {
+                        _snapshot = _snapshot with { Updates = updates };
+                        continue;
+                    }
+
+                    Feedback.Show(Loc.Get("Save_FailureTitle"), result.Message ?? string.Empty, Severity.Error);
+                }
+                catch (Exception ex) when (ServiceErrors.IsExpected(ex))
+                {
+                    Feedback.Show(Loc.Get("Save_FailureTitle"), ServiceErrors.Describe(ex), Severity.Error);
+                }
+
+                ShowUpdateSettings(_snapshot.Updates);
+                return;
+            }
+        }
+        finally
+        {
+            _isSavingUpdates = false;
+        }
+    }
+
+    private void ShowUpdateSettings(UpdateSettings updates)
+    {
+        _isApplying = true;
+        try
+        {
+            CheckUpdatesAutomatically = updates.CheckAutomatically;
+            IncludePrereleases = updates.IncludePrereleases;
+        }
+        finally
+        {
+            _isApplying = false;
+        }
+    }
+
     private async Task<bool> TestAsync(ConnectionTarget target)
     {
         var result = target == ConnectionTarget.Mqtt ? MqttTest : HomeAssistantTest;
@@ -482,6 +552,7 @@ public sealed class SettingsViewModel : ObservableObject
 
         OnPropertyChanged(nameof(IsLoaded));
         OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanChangeUpdates));
         OnPropertyChanged(nameof(HasSeveralMqttServers));
         OnPropertyChanged(nameof(HasOneMqttServer));
         OnPropertyChanged(nameof(HasSeveralHomeAssistantServers));
@@ -504,8 +575,7 @@ public sealed class SettingsViewModel : ObservableObject
         ],
         [.. _disabledEntities.Order(StringComparer.Ordinal)],
         [.. PendingCustomSensors()],
-        [.. _enabledEntities.Order(StringComparer.Ordinal)],
-        new UpdateSettings(CheckUpdatesAutomatically, IncludePrereleases));
+        [.. _enabledEntities.Order(StringComparer.Ordinal)]);
 
     /// <summary>The servers as they would be saved. One that nothing was typed into is not a server yet.</summary>
     private IEnumerable<MqttServerViewModel> PendingMqttServers() => MqttServers.Where(server => !server.IsBlank);
@@ -717,11 +787,11 @@ public sealed class SettingsViewModel : ObservableObject
     // Without an id of its own, the computer is known by its name.
     private static string DeviceOf(string deviceId) => deviceId.Trim() is { Length: > 0 } id ? id : Environment.MachineName;
 
-    private void SetSetting<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    private void SetUpdateSetting(ref bool field, bool value, [CallerMemberName] string? propertyName = null)
     {
-        if (SetProperty(ref field, value, propertyName))
+        if (SetProperty(ref field, value, propertyName) && !_isApplying)
         {
-            UpdateDirty();
+            _ = SaveUpdateSettingsAsync();
         }
     }
 
@@ -742,7 +812,6 @@ public sealed class SettingsViewModel : ObservableObject
         && update.HomeAssistantServers.All(server => server.AccessToken.Change == SecretChange.Keep)
         && update.DisabledEntities.SequenceEqual(snapshot.DisabledEntities.Order(StringComparer.Ordinal))
         && update.EnabledEntities.SequenceEqual(snapshot.EnabledEntities.Order(StringComparer.Ordinal))
-        && update.Updates == snapshot.Updates
         && update.CustomSensors.SequenceEqual(snapshot.CustomSensors);
 
     private void SetTesting(ConnectionTarget target, bool isTesting)
