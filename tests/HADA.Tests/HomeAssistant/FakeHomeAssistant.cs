@@ -60,8 +60,12 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
 
     /// <summary>
     /// While set and not completed, updates of sensors are taken but not answered: what the engine reports
-    /// meanwhile has to wait, as it does with a Home Assistant that is slow or far away.
+    /// meanwhile has to wait, as it does with a Home Assistant that is slow or far away. Whether an update is held
+    /// is settled as it arrives, before it is on record: one a test sees there is held or not for good.
     /// </summary>
+    /// <remarks>
+    /// On the WebSocket, a held update keeps everything sent after it from being read until it is answered.
+    /// </remarks>
     public Task? UpdatesHeld { get; set; }
 
     /// <summary>How many times a token was asked for at <c>/auth/token</c>.</summary>
@@ -398,6 +402,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
         {
             var webhookId = path[webhookPrefix.Length..];
             using var document = await JsonDocument.ParseAsync(request.InputStream);
+            var held = UpdatesHeld;
             lock (_webhookCalls)
             {
                 _webhookCalls.Add(new WebhookCall(webhookId, request.Headers["Authorization"], document.RootElement.Clone()));
@@ -439,9 +444,9 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                         answer = new { success = true };
                         break;
                     case "update_sensor_states":
-                        if (UpdatesHeld is { } heldRequest)
+                        if (held is not null)
                         {
-                            await heldRequest;
+                            await held;
                         }
 
                         var results = new Dictionary<string, object>();
@@ -507,6 +512,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
 
             while (await ReceiveAsync(socket) is { } message)
             {
+                var held = UpdatesHeld;
                 Record(message);
                 var id = message.TryGetProperty("id", out var idProperty) ? idProperty.GetInt32() : 0;
                 switch (message.GetProperty("type").GetString())
@@ -558,9 +564,9 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
                         await SendAsync(socket, new { id, type = "result", success = true, result = new { ignored = Ignored(message.GetProperty("entities")) } });
                         break;
                     case "hada/update":
-                        if (UpdatesHeld is { } heldMessage)
+                        if (held is not null)
                         {
-                            await heldMessage;
+                            await held;
                         }
 
                         lock (_integrationEntities)
