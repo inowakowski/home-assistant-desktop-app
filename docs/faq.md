@@ -10,7 +10,7 @@ A Windows service cannot see a user's desktop: the focused window, the volume, t
 
 ## Why does changing settings need administrator rights?
 
-The settings decide what a service running with system rights does, including which PowerShell commands it runs. If any signed-in user could change them, any user could run anything as the system. Reading status and logs needs no special rights; the **Settings** page does not either: your personal settings, and (*not released yet*) how updates are looked for, which decides only what HADA asks GitHub.
+The settings decide what a service running with system rights does, including which PowerShell commands it runs. If any signed-in user could change them, any user could run anything as the system. Reading status and logs needs no special rights; the **Settings** page does not either: your personal settings, and (*new in 1.14.0*) how updates are looked for, which decides only what HADA asks GitHub.
 
 ## Some entities are *unavailable*. Why?
 
