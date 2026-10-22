@@ -17,7 +17,7 @@ On the **Settings** page:
 - **Check for updates automatically** turns the daily request off or on. **Check now** works either way.
 - **Offer test versions too** decides whether versions marked as pre-release count. They have the newest features and have been tried less. Off by default.
 
-*Not released yet.* Anyone signed in may change these two switches, without **Unlock editing**, and they apply the moment they are changed. They decide only what HADA asks GitHub, never what is downloaded or installed, and they apply to the whole computer, for every user. Changing them back and forth asks GitHub at most once every half a minute.
+*New in 1.14.0.* Anyone signed in may change these two switches, without **Unlock editing**, and they apply the moment they are changed. They decide only what HADA asks GitHub, never what is downloaded or installed, and they apply to the whole computer, for every user. Changing them back and forth asks GitHub at most once every half a minute.
 
 The check sees only what GitHub shows without signing in. While the repository is private there is nothing to compare with; **Check now** says so, and `update_available` stays off.
 

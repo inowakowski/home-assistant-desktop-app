@@ -2,7 +2,9 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## Unreleased
+## 1.14.0
+
+The **Settings** page without **Unlock editing**, and your own settings in the administrator window. A stable version.
 
 - **The update switches no longer need Unlock editing.** **Check for updates automatically** and **Offer test versions too** on the **Settings** page are changed by anyone signed in, in the window opened from the tray icon, and apply at once, with no **Save**. They decide only what HADA asks GitHub, never what is downloaded or installed; installing still asks for administrator rights. Saving the other settings leaves them as they are.
 - **Your own settings can be changed in the administrator window too**, the one **Unlock editing** opens: **Start with Windows**, the language, the dashboards, the time until `user_active` turns off, the browser for notifications and **New window (preview)**. Before, they were read-only there. They stay read-only when the window runs as another account, as when a standard user typed an administrator's name and password into the prompt: changed there, they would be that account's.
@@ -15,6 +17,8 @@ Fixes, and the documentation brought up to date. A stable version.
 - **Windows Server** no longer gets the **Silence notifications** switch: setting the quiet hours there crashes the service that also shows notifications. The `do_not_disturb` sensor stays.
 - **Updates on Linux and macOS:** the window no longer offers **Download and install** there, nor speaks of a portable ZIP. **What is new** opens the release page, and the window says what to do with the package from it. On Windows nothing changes.
 - **The documentation** was checked against the program: wrong and stale pages are corrected, the settings of the direct connection are listed, and a new page, [Linux and macOS](getting-started/linux-macos.md), says what the untested packages do and how they differ from Windows. Updating a portable copy now means replacing its `app` folder too, which the page and the window say.
+
+## 1.13.0
 
 A switch for Do not disturb, and the quick actions' shortcuts on Linux and macOS. A stable version, which also brings everything new in the previews 1.6.0 to 1.12.0 to those who use stable versions: the new window, the same on every system, and HADA for Linux and macOS, whose packages are still untested by hand.
 
