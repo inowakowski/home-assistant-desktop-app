@@ -111,6 +111,8 @@ public sealed class UpdateViewModelTests : IAsyncLifetime
 
         public bool StartsWithSystem { get; set; }
 
+        public bool RunsAsSessionUser => true;
+
         public void CopyText(string text)
         {
         }

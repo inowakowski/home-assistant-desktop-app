@@ -18,6 +18,8 @@ internal sealed class WindowsDesktop : IDesktop
         set => Autostart.IsEnabled = value;
     }
 
+    public bool RunsAsSessionUser => Elevation.RunsAsSessionUser();
+
     public void OpenInBrowser(Uri address) => Shell.OpenInBrowser(address);
 
     public void CopyText(string text)

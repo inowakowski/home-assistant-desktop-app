@@ -64,17 +64,19 @@ public sealed class DashboardServerViewModel(ServerDashboard dashboard, Action<S
 /// without administrator rights.
 /// </summary>
 /// <param name="isElevated">
-/// Whether this is the administrator copy of the window. It may run under another account, where these switches
-/// would change that account's choices instead of the user's, so they are read-only there.
+/// Whether this is the administrator copy of the window. An administrator who only confirmed the UAC prompt is
+/// still the same account there, and changes these as in the ordinary window. A standard user who typed an
+/// administrator's name and password runs it as that administrator, where these switches would change that
+/// account's choices instead of the user's, so they are read-only there.
 /// </param>
 /// <param name="isPortable">Whether this is a portable copy, where starting with Windows means something else.</param>
 public sealed class PreferencesViewModel(IDesktop desktop, bool isElevated, bool isPortable = false) : ObservableObject
 {
     private readonly string _languageAtStart = UserPreferences.Language;
 
-    public bool CanChange { get; } = !isElevated;
+    public bool CanChange { get; } = !isElevated || desktop.RunsAsSessionUser;
 
-    public string Note { get; } = Loc.Get(isElevated ? "Preferences_PersonalElevated" : "Preferences_PersonalDetail");
+    public string Note => Loc.Get(CanChange ? "Preferences_PersonalDetail" : "Preferences_PersonalElevated");
 
     /// <summary>"Start with Windows" on Windows; elsewhere HADA starts when the user signs in.</summary>
     public string AutostartTitle { get; } = Loc.Get(OperatingSystem.IsWindows() ? "Autostart_Title" : "Autostart_TitleSignIn");
@@ -172,8 +174,8 @@ public sealed class PreferencesViewModel(IDesktop desktop, bool isElevated, bool
 
     /// <summary>
     /// Brings the dashboards up to date with the servers that are saved now; called whenever the settings were
-    /// read. The administrator copy of the window shows them without writing anything down, as it may be
-    /// another account's preferences it would write to.
+    /// read. An administrator window that runs as another account shows them without writing anything down, as
+    /// it is that account's preferences it would write to.
     /// </summary>
     public void SyncDashboards(IEnumerable<HomeAssistantSettings> servers)
     {

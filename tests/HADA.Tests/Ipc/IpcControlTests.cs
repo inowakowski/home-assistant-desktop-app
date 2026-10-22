@@ -245,6 +245,8 @@ public sealed class IpcControlTests : IAsyncDisposable
     {
         public bool StartsWithSystem { get; set; }
 
+        public bool RunsAsSessionUser => true;
+
         public void CopyText(string text)
         {
         }
