@@ -24,7 +24,7 @@ public sealed class MqttEngineTests : IAsyncLifetime
     private readonly EntityRegistry _registry;
     private readonly List<ObservedMessage> _observed = [];
     private readonly SemaphoreSlim _messageArrived = new(0);
-    private readonly int _port = GetFreePort();
+    private int _port;
     private MqttServer _broker = null!;
     private IMqttClient _observer = null!;
 
@@ -32,14 +32,7 @@ public sealed class MqttEngineTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var serverFactory = new MqttServerFactory();
-        _broker = serverFactory.CreateMqttServer(serverFactory.CreateServerOptionsBuilder()
-            .WithDefaultEndpoint()
-            .WithDefaultEndpointBoundIPAddress(IPAddress.Loopback)
-            .WithDefaultEndpointBoundIPV6Address(IPAddress.IPv6Loopback)
-            .WithDefaultEndpointPort(_port)
-            .Build());
-        await _broker.StartAsync();
+        await StartBrokerAsync();
 
         _observer = new MqttClientFactory().CreateMqttClient();
         _observer.ApplicationMessageReceivedAsync += e =>
@@ -637,6 +630,36 @@ public sealed class MqttEngineTests : IAsyncLifetime
         while (engine.State != EngineConnectionState.Connected)
         {
             await Task.Delay(20, timeout.Token);
+        }
+    }
+
+    /// <summary>
+    /// The broker listens on 127.0.0.1 and ::1, so that <c>localhost</c> finds it either way, at a port found free
+    /// on 127.0.0.1 a moment ago. It may be taken on ::1, or since then by a test running alongside; then another
+    /// port is tried.
+    /// </summary>
+    private async Task StartBrokerAsync()
+    {
+        var serverFactory = new MqttServerFactory();
+        for (var attempt = 1; ; attempt++)
+        {
+            _port = GetFreePort();
+            _broker = serverFactory.CreateMqttServer(serverFactory.CreateServerOptionsBuilder()
+                .WithDefaultEndpoint()
+                .WithDefaultEndpointBoundIPAddress(IPAddress.Loopback)
+                .WithDefaultEndpointBoundIPV6Address(IPAddress.IPv6Loopback)
+                .WithDefaultEndpointPort(_port)
+                .Build());
+            try
+            {
+                await _broker.StartAsync();
+                return;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse && attempt < 10)
+            {
+                // Lets go of the address that was bound before the one that was taken.
+                _broker.Dispose();
+            }
         }
     }
 

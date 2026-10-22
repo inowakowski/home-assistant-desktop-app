@@ -118,6 +118,10 @@ public sealed class IntegrationTests : IAsyncLifetime
         JsonElement[] UpdatesOf(string state) =>
             [.. Updates().Where(m => m.GetProperty("states").EnumerateArray().Any(s => s.TryGetProperty("state", out var value) && value.GetRawText() == state))];
 
+        // Connecting ends with what every sensor says, sent once the integration has answered. Held, that message
+        // would keep the first reading, sent behind it, from being read at all; so the hold starts once it is in.
+        await WaitUntilAsync(() => Updates().Length == 1);
+
         // Home Assistant takes the first reading and is slow to answer; three more are reported meanwhile.
         var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _homeAssistant.UpdatesHeld = held.Task;
