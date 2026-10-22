@@ -21,6 +21,12 @@ public interface IDesktop
     /// <summary>Whether HADA starts when the user signs in.</summary>
     bool StartsWithSystem { get; set; }
 
+    /// <summary>
+    /// Whether the window runs as the user signed in to the system, whose preferences it then changes. An
+    /// administrator window opened with another account's name and password runs as that account.
+    /// </summary>
+    bool RunsAsSessionUser { get; }
+
     /// <summary>The web browsers on this computer, sorted by name, for opening the addresses of notifications in one of them.</summary>
     IReadOnlyList<InstalledBrowser> InstalledBrowsers();
 

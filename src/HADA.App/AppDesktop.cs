@@ -41,6 +41,9 @@ internal sealed class AppDesktop(TopLevel window) : IDesktop
         }
     }
 
+    /// <summary>Elsewhere there is no administrator window: the window is the user's.</summary>
+    public bool RunsAsSessionUser => !OperatingSystem.IsWindows() || Elevation.RunsAsSessionUser();
+
     public void CopyText(string text) => _ = window.Clipboard?.SetTextAsync(text);
 
     public void OpenInBrowser(Uri address)

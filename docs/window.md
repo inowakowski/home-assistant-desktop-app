@@ -13,6 +13,8 @@ Open it by double-clicking the HADA tray icon, or choose **Open HADA** from its 
 
 **Changing settings requires administrator rights.** Anyone signed in can see status and logs, but the pages are read-only until you choose **Unlock editing**. That reopens the window as administrator (a UAC prompt). The service checks this itself, so a non-elevated client cannot save settings or run connection tests. The **Settings** page needs no unlocking (*not released yet*: before, its two update switches did).
 
+Your own settings on the **Settings** page can be changed in the administrator window too, as long as it runs as your account (*not released yet*: before, they were read-only there). It does when you are an administrator and only confirm the prompt. When a standard user types an administrator's name and password instead, the window runs as that administrator, and these settings stay read-only in it: changed there, they would be that account's, not yours.
+
 Saved settings take effect immediately: the affected connection restarts. Passwords and tokens are never shown again. Leave the field empty to keep the saved value, or tick **Remove the saved value** to clear it.
 
 

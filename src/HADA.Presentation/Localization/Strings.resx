@@ -59,7 +59,7 @@
   <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Versions marked as pre-release: they have the newest features, and have been tried less.</value></data>
   <data name="Preferences_Personal" xml:space="preserve"><value>For you</value></data>
   <data name="Preferences_PersonalDetail" xml:space="preserve"><value>These apply to your account only, take effect at once and need no administrator rights.</value></data>
-  <data name="Preferences_PersonalElevated" xml:space="preserve"><value>These are your personal settings. Change them in the HADA window opened from the tray icon, not in this administrator window.</value></data>
+  <data name="Preferences_PersonalElevated" xml:space="preserve"><value>This administrator window runs under an account other than yours, so changes made here would apply to that account. Change these settings in the HADA window opened from the tray icon.</value></data>
   <data name="Preferences_NewWindow" xml:space="preserve"><value>New window (preview)</value></data>
   <data name="Preferences_NewWindowDetail" xml:space="preserve"><value>The tray icon opens this window. Turn it off to have it open the previous one. This window is still at hand as "HADA (new window, preview)" in the Start menu, or as "New window (preview).cmd" in a portable copy.</value></data>
   <data name="Preferences_Language" xml:space="preserve"><value>Language</value></data>

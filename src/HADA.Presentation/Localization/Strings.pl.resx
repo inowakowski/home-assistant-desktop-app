@@ -59,7 +59,7 @@
   <data name="Preferences_PrereleasesDetail" xml:space="preserve"><value>Wersje oznaczone jako pre-release: mają najnowsze funkcje, ale są słabiej sprawdzone.</value></data>
   <data name="Preferences_Personal" xml:space="preserve"><value>Dla Ciebie</value></data>
   <data name="Preferences_PersonalDetail" xml:space="preserve"><value>Dotyczą tylko Twojego konta, działają od razu i nie wymagają uprawnień administratora.</value></data>
-  <data name="Preferences_PersonalElevated" xml:space="preserve"><value>To Twoje ustawienia osobiste. Zmień je w oknie HADA otwartym z ikony w zasobniku, a nie w tym oknie administratora.</value></data>
+  <data name="Preferences_PersonalElevated" xml:space="preserve"><value>To okno administratora działa na innym koncie niż Twoje, więc zmiany wprowadzone tutaj dotyczyłyby tamtego konta. Zmień te ustawienia w oknie HADA otwartym z ikony w zasobniku.</value></data>
   <data name="Preferences_NewWindow" xml:space="preserve"><value>Nowe okno (preview)</value></data>
   <data name="Preferences_NewWindowDetail" xml:space="preserve"><value>Ikona w zasobniku otwiera to okno. Wyłącz, by otwierała poprzednie. To okno nadal otworzysz skrótem „HADA (new window, preview)” w menu Start, a w kopii przenośnej plikiem „New window (preview).cmd”.</value></data>
   <data name="Preferences_Language" xml:space="preserve"><value>Język</value></data>

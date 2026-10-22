@@ -5,6 +5,7 @@ Installers are on the [releases page](https://github.com/inowakowski/home-assist
 ## Unreleased
 
 - **The update switches no longer need Unlock editing.** **Check for updates automatically** and **Offer test versions too** on the **Settings** page are changed by anyone signed in, in the window opened from the tray icon, and apply at once, with no **Save**. They decide only what HADA asks GitHub, never what is downloaded or installed; installing still asks for administrator rights. Saving the other settings leaves them as they are.
+- **Your own settings can be changed in the administrator window too**, the one **Unlock editing** opens: **Start with Windows**, the language, the dashboards, the time until `user_active` turns off, the browser for notifications and **New window (preview)**. Before, they were read-only there. They stay read-only when the window runs as another account, as when a standard user typed an administrator's name and password into the prompt: changed there, they would be that account's.
 
 ## 1.13.1
 
