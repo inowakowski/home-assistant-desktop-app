@@ -8,6 +8,9 @@ Installers are on the [releases page](https://github.com/inowakowski/home-assist
 - **Idle time**: how long nobody has used the keyboard or mouse, in minutes, beside `user_active`.
 - **Network download and upload**: how fast data comes in and goes out over the connection the computer routes through, in kB/s.
 - **The battery's details**, as attributes of `battery_level`: the time left, its health, its cycle count and the power going in or out, where the battery's driver tells them.
+- **Full-screen app**: on while a game, a film or a slide show fills the screen, to dim the lights by. On Linux only in an X11 session; not on macOS.
+- **Dark mode**: a switch for the dark and the light look of Windows, GNOME, KDE and macOS.
+- **Sign out**: a button that signs out whoever is at the computer. Off until switched on, like the power buttons.
 
 ## 1.14.0
 

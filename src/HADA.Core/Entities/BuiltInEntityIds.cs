@@ -55,6 +55,9 @@ public static class BuiltInEntityIds
     public const string NetworkDownload = "network_download";
     public const string NetworkUpload = "network_upload";
     public const string KeepAwake = "keep_awake";
+    public const string FullScreenApp = "fullscreen_app";
+    public const string DarkMode = "dark_mode";
+    public const string SignOut = "sign_out";
 
     private const string DiskPrefix = "disk_";
     private const string DiskSuffix = "_usage";
@@ -111,6 +114,9 @@ public static class BuiltInEntityIds
         NetworkDownload,
         NetworkUpload,
         KeepAwake,
+        FullScreenApp,
+        DarkMode,
+        SignOut,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>

@@ -47,6 +47,8 @@ public static class SessionServices
         services.AddSingleton<IDoNotDisturb, WindowsDoNotDisturb>();
         services.AddSingleton<IMediaSessions, WindowsMediaSessions>();
         services.AddHostedService<MediaPlaybackSensor>();
+        services.AddSingleton<IFullScreen, WindowsFullScreen>();
+        services.AddHostedService<FullScreenSensor>();
 
         // What Home Assistant can do in it.
         services.AddSingleton<NotificationPresenter>();
@@ -59,6 +61,10 @@ public static class SessionServices
         services.AddHostedService<LaunchAction>();
         services.AddSingleton<IKeyboard, WindowsKeyboard>();
         services.AddHostedService<KeyPressAction>();
+        services.AddSingleton<IDarkMode, WindowsDarkMode>();
+        services.AddHostedService<DarkModeControl>();
+        services.AddSingleton<ISignOut, WindowsSignOut>();
+        services.AddHostedService<SignOutAction>();
 
         // What the user can tell Home Assistant from here.
         services.AddSingleton<QuickActions>();

@@ -58,6 +58,7 @@ Entity IDs are the same as on Windows; see [Sensors](../features/sensors.md) and
 | `display_on`, `turn_off_display`, `wake_display` | Yes: through GNOME on Wayland and X11, through KDE (which switches the screens but does not say how they are), and on other X11 desktops | Yes. With the Mac set to ask for the password at once, turning the screens off locks it too |
 | `screen_brightness` | Yes, of a laptop's screen | Yes, of the Mac's own screen |
 | `active_window` | Only in an X11 session: Wayland does not tell apps which window is in front | The app in front, by its name |
+| `fullscreen_app` | Only in an X11 session, from the window in front; `kind` is always `app` | — |
 | `audio_volume`, `audio_device`, `microphone_muted`, `volume_level`, `audio_mute`, `microphone_mute` | Yes | Yes. The microphone is muted by setting its input volume to zero |
 | `microphone_in_use`, `camera_in_use` | Yes, and for which app | Yes, but macOS does not say which app |
 | `media_playback`, `media_player`, `media_stop` | Yes: what plays in any player that the desktop's media controls show | — |
@@ -67,6 +68,8 @@ Entity IDs are the same as on Windows; see [Sensors](../features/sensors.md) and
 | `restart_required` | Yes | — |
 | `lock_screen`, `sleep`, `shutdown`, `restart` | Yes. The last three are off until you switch them on | Yes, in the same way. The first time Home Assistant shuts the Mac down or restarts it, macOS asks whether HADA may control the login window |
 | `keep_awake` | Yes, through systemd-logind, as `systemd-inhibit --list` shows | Yes, through `caffeinate`, as `pmset -g assertions` shows |
+| `dark_mode` | Yes, on GNOME (its colour scheme) and KDE (Breeze Dark and Breeze Light) | Yes. The first time, macOS asks whether HADA may control System Events |
+| `sign_out` | Yes, on GNOME and KDE; off until you switch it on | Yes; off until you switch it on |
 | `hibernate` | Yes, off until switched on | — A Mac cannot hibernate on demand |
 | Buttons that press keys | Only in an X11 session: Wayland does not let apps type into others | Yes, once HADA is allowed under **System Settings → Privacy & Security → Accessibility**; until then nothing is pressed, and the log says why |
 | Keyboard shortcuts of quick actions | Only in an X11 session. X11 keeps `Ctrl+Alt` with `F1` to `F12` for switching to a text console | Yes |

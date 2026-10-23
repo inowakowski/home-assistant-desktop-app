@@ -34,6 +34,7 @@ What HADA tells Home Assistant about the computer. Every sensor can be turned of
 | `camera_in_use` | binary sensor | Tray | On while an app uses the camera. The apps are listed in the `apps` attribute |
 | `do_not_disturb` | binary sensor | Tray | On while Windows holds notifications back. `mode` (`off`, `priority_only`, `alarms_only`) is an attribute |
 | `external_display` | binary sensor | Tray | On while a monitor other than the built-in one is connected. `displays` and `external_displays` (counts) are attributes. A monitor without power is not seen |
+| `fullscreen_app` | binary sensor | Tray | *Not released yet.* On while an app fills the screen: a game, a film, a slide show, as Windows tells apps that ask whether to show a notification now. `kind` (`app`, `game`, `presentation`, `none`) is an attribute |
 
 Need something that is not in the list? Add it without code as a [custom sensor](custom-entities.md), or [in code](../development/adding-entities.md).
 

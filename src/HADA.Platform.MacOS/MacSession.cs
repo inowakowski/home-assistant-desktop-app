@@ -36,6 +36,12 @@ public static class MacSession
         services.AddSingleton<IScreenBrightness, MacScreenBrightness>();
         services.AddHostedService<ScreenBrightnessControl>();
 
+        // The dark look, and signing out.
+        services.AddSingleton<IDarkMode>(_ => new MacDarkMode());
+        services.AddHostedService<DarkModeControl>();
+        services.AddSingleton<ISignOut>(_ => new MacSignOut());
+        services.AddHostedService<SignOutAction>();
+
         // Keys pressed for the service's buttons, and the media keys, once allowed under Accessibility.
         services.AddSingleton<IKeyboard, MacKeyboard>();
         services.AddHostedService<KeyPressAction>();

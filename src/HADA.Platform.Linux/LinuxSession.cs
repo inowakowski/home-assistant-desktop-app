@@ -139,12 +139,19 @@ public static class LinuxSession
 
         // The screens, the window in front, quiet hours, and the backlight.
         services.AddSingleton<LinuxHardware>(_ => new LinuxHardware());
-        services.AddSingleton<IDisplayReadings>(provider => new LinuxDisplayReadings(provider.GetRequiredService<LinuxHardware>()));
+        services.AddSingleton<LinuxDisplayReadings>(provider => new LinuxDisplayReadings(provider.GetRequiredService<LinuxHardware>()));
+        services.AddSingleton<IDisplayReadings>(provider => provider.GetRequiredService<LinuxDisplayReadings>());
+        services.AddSingleton<IFullScreen>(provider => provider.GetRequiredService<LinuxDisplayReadings>());
         services.AddDisplayEntities();
+        services.AddHostedService<FullScreenSensor>();
         services.AddHostedService(provider => new DoNotDisturbSensor(
             provider.GetRequiredService<Core.Abstractions.IEventBus>(), provider.GetRequiredService<Core.Abstractions.IEntityRegistry>()));
         services.AddSingleton<IDoNotDisturb>(_ => new LinuxDoNotDisturb());
         services.AddHostedService<DoNotDisturbControl>();
+        services.AddSingleton<IDarkMode>(_ => new LinuxDarkMode());
+        services.AddHostedService<DarkModeControl>();
+        services.AddSingleton<ISignOut>(_ => new LinuxSignOut());
+        services.AddHostedService<SignOutAction>();
         services.AddSingleton<IScreenBrightness>(provider => new LinuxBacklight(provider.GetRequiredService<LinuxHardware>()));
         services.AddHostedService<ScreenBrightnessControl>();
 

@@ -589,4 +589,11 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="EntityHint_network_upload" xml:space="preserve"><value>Jak szybko dane wychodzą połączeniem, przez które Windows kieruje ruch, w kB/s z ostatnich 10 sekund.</value></data>
   <data name="EntityHint_network_upload_Unix" xml:space="preserve"><value>Jak szybko dane wychodzą połączeniem, przez które komputer kieruje ruch, w kB/s z ostatnich 10 sekund.</value></data>
   <data name="EntityHint_keep_awake" xml:space="preserve"><value>Pozwala Home Assistant nie dopuścić, by komputer sam zasnął, np. w trakcie długiego pobierania. Ekran może się nadal wyłączyć. Wyłączony po każdym starcie HADA.</value></data>
+  <data name="EntityHint_fullscreen_app" xml:space="preserve"><value>Włączony, gdy aplikacja wypełnia ekran: gra, film albo pokaz slajdów. Co go wypełnia (app, game albo presentation), mówi atrybut kind.</value></data>
+  <data name="EntityHint_fullscreen_app_Unix" xml:space="preserve"><value>Włączony, gdy okno na wierzchu wypełnia ekran, jak film albo gra. Tylko w sesji X11.</value></data>
+  <data name="EntityHint_dark_mode" xml:space="preserve"><value>Pozwala Home Assistant przełączać Windows i aplikacje między wyglądem ciemnym a jasnym.</value></data>
+  <data name="EntityHint_dark_mode_Unix" xml:space="preserve"><value>Pozwala Home Assistant przełączać pulpit między wyglądem ciemnym a jasnym: schemat kolorów GNOME albo Breeze Dark i Breeze Light w KDE.</value></data>
+  <data name="EntityHint_dark_mode_MacOS" xml:space="preserve"><value>Pozwala Home Assistant przełączać Maca między wyglądem ciemnym a jasnym. Za pierwszym razem macOS pyta, czy HADA może sterować System Events.</value></data>
+  <data name="EntityHint_sign_out" xml:space="preserve"><value>Pozwala Home Assistant wylogować osobę przy komputerze. Wyłączony, dopóki go nie włączysz; aplikacje z niezapisaną pracą mogą to wstrzymać.</value></data>
+  <data name="EntityHint_sign_out_Unix" xml:space="preserve"><value>Pozwala Home Assistant wylogować osobę przy komputerze, w GNOME i KDE. Wyłączony, dopóki go nie włączysz; aplikacje z niezapisaną pracą mogą to wstrzymać.</value></data>
 </root>
