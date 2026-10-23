@@ -130,6 +130,18 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool CloseHandle(nint handle);
 
+    /// <summary>Returns INVALID_HANDLE_VALUE (-1) on failure.</summary>
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    public static partial nint PowerCreateRequest(ref ReasonContext context);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PowerSetRequest(nint request, int requestType);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PowerClearRequest(nint request, int requestType);
+
     [LibraryImport("ole32.dll")]
     public static partial int PropVariantClear(ref PropVariant value);
 
@@ -271,6 +283,21 @@ internal struct DisplayConfigPath
     /// <summary>Non-zero while a monitor is connected to this output.</summary>
     [FieldOffset(60)]
     public int TargetAvailable;
+}
+
+/// <summary>
+/// REASON_CONTEXT with a simple string: the version and flags, then a union whose other member, three fields after
+/// the string's place, makes it as large as it is in Windows.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+internal struct ReasonContext
+{
+    public uint Version;
+    public uint Flags;
+    public nint SimpleReasonString;
+    private uint _localizedReasonId;
+    private uint _reasonStringCount;
+    private nint _reasonStrings;
 }
 
 [StructLayout(LayoutKind.Sequential)]

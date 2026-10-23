@@ -57,7 +57,20 @@ public readonly record struct CpuSample(long Busy, long Total)
 public readonly record struct WifiStatus(bool HasAdapter, string? Ssid, int? SignalPercent, bool IsConnectedUnnamed = false);
 
 /// <param name="BatteryPercent"><see langword="null"/> when the system does not know the charge level.</param>
-public readonly record struct PowerStatus(bool HasBattery, int? BatteryPercent, bool IsCharging, bool IsPluggedIn);
+public readonly record struct PowerStatus(bool HasBattery, int? BatteryPercent, bool IsCharging, bool IsPluggedIn)
+{
+    /// <summary>How long the charge lasts at the present draw, or while charging how long until full; <see langword="null"/> when not known.</summary>
+    public TimeSpan? TimeRemaining { get; init; }
+
+    /// <summary>What the battery holds when full now, as a share of what it was made to hold, 0-100; <see langword="null"/> when not known.</summary>
+    public int? HealthPercent { get; init; }
+
+    /// <summary>How many times the battery was charged through in all; <see langword="null"/> when not known.</summary>
+    public int? CycleCount { get; init; }
+
+    /// <summary>The power going into the battery or coming out of it, in watts, either way positive; <see langword="null"/> when not known.</summary>
+    public double? PowerWatts { get; init; }
+}
 
 /// <param name="Key">What the entity id is made of: a drive letter on Windows, such as <c>c</c>; a name made of the mount point elsewhere, such as <c>root</c> or <c>home</c>.</param>
 /// <param name="Label">What the entity is called after: <c>C</c>, <c>/</c>, <c>/home</c>.</param>

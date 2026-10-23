@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Globalization;
 using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
 using HADA.Core.Sensors;
@@ -19,6 +20,7 @@ public static class MacPlatform
         services.AddSingleton<ISystemReadings, MacSystemReadings>();
         services.AddSingleton<IPowerControl, MacPowerControl>();
         services.AddSingleton<IScreenLock, MacScreenLock>();
+        services.AddSingleton<IKeepAwake>(_ => MacKeepAwake.Create());
         services.AddSingleton<IDeviceDirectory>(_ => new MacUsbDevices());
         services.AddSingleton<IHardwareReadings>(_ => new MacHardware());
         services.AddSystemEntities();
@@ -34,14 +36,42 @@ public static class MacPlatform
 [SupportedOSPlatform("macos")]
 public sealed class MacSystemReadings(MacNetwork network, Func<string, string[], ToolResult?>? run = null) : ISystemReadings
 {
+    private static readonly TimeSpan BatteryFresh = TimeSpan.FromMinutes(1);
+
     private readonly Func<string, string[], ToolResult?> _run = run ?? Tools.Run;
+    private (DateTime At, MacBattery Details) _battery = (DateTime.MinValue, default);
 
     public CpuSample? ReadCpu() => MacNative.ReadCpuTicks() is { } ticks ? new CpuSample(ticks.Busy, ticks.Total) : null;
 
     public int? ReadMemoryLoadPercent() => MacNative.ReadMemoryLoadPercent();
 
-    public PowerStatus? ReadPower() =>
-        _run("pmset", ["-g", "batt"]) is { Succeeded: true } result ? MacParsers.ParsePmsetBattery(result.Output) : null;
+    public PowerStatus? ReadPower()
+    {
+        if (_run("pmset", ["-g", "batt"]) is not { Succeeded: true } result || MacParsers.ParsePmsetBattery(result.Output) is not { } power)
+        {
+            return null;
+        }
+
+        if (!power.HasBattery)
+        {
+            return power;
+        }
+
+        // The battery's own counts change slowly, and ioreg is a process of its own: asked once a minute.
+        if (DateTime.UtcNow - _battery.At > BatteryFresh)
+        {
+            _battery = (DateTime.UtcNow, _run("ioreg", ["-a", "-r", "-c", "AppleSmartBattery"]) is { Succeeded: true } ioreg
+                ? MacParsers.ParseSmartBattery(ioreg.Output)
+                : default);
+        }
+
+        return power with
+        {
+            HealthPercent = _battery.Details.HealthPercent,
+            CycleCount = _battery.Details.CycleCount,
+            PowerWatts = _battery.Details.PowerWatts,
+        };
+    }
 
     public DateTimeOffset? ReadBootTime() => MacNative.ReadBootTime();
 
@@ -80,6 +110,17 @@ public sealed class MacSystemReadings(MacNetwork network, Func<string, string[],
 
     private ConsoleSession? ReadConsole() =>
         _run("ioreg", ["-a", "-n", "Root", "-d", "1"]) is { Succeeded: true } result ? MacParsers.ParseConsoleUsers(result.Output) : null;
+}
+
+/// <summary>
+/// Holds sleep off with <c>caffeinate</c>, which keeps the Mac from sleeping by itself until HADA ends; the screen may
+/// still turn off.
+/// </summary>
+public static class MacKeepAwake
+{
+    public static KeepAwakeProcess Create() => new("caffeinate", Arguments);
+
+    public static IReadOnlyList<string> Arguments(int processId) => ["-i", "-w", processId.ToString(CultureInfo.InvariantCulture)];
 }
 
 /// <summary>

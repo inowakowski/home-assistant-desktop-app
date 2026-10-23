@@ -49,9 +49,10 @@ Entity IDs are the same as on Windows; see [Sensors](../features/sensors.md) and
 
 | Entity | Linux | macOS |
 |---|---|---|
-| `cpu_load`, `memory_usage`, `battery_level`, `battery_charging`, `plugged_in`, `last_boot`, `active_user`, `session_locked`, `user_active` | Yes | Yes |
+| `cpu_load`, `memory_usage`, `battery_level`, `battery_charging`, `plugged_in`, `last_boot`, `active_user`, `session_locked`, `user_active`, `idle_time` | Yes | Yes |
 | `disk_…_usage` | Yes: `disk_root_usage`, `disk_home_usage` and so on, by mount point | Yes |
 | `ip_address` | Yes | Yes |
+| `network_download`, `network_upload` | Yes | Yes |
 | `wifi_network` | Yes, with the signal strength | Yes. macOS shows the network's name only to apps allowed to know the location; without it the sensor says `connected` |
 | `lid_open`, `external_display`, `gpu_load` | Yes. The GPU load of AMD cards, and of NVIDIA's through `nvidia-smi` | Yes |
 | `display_on`, `turn_off_display`, `wake_display` | Yes: through GNOME on Wayland and X11, through KDE (which switches the screens but does not say how they are), and on other X11 desktops | Yes. With the Mac set to ask for the password at once, turning the screens off locks it too |
@@ -65,6 +66,7 @@ Entity IDs are the same as on Windows; see [Sensors](../features/sensors.md) and
 | `notification` | Yes, as the desktop's own notifications, with a picture and buttons; a pressed button goes back to Home Assistant | In Notification Center, with the title and the text, without pictures or buttons |
 | `restart_required` | Yes | — |
 | `lock_screen`, `sleep`, `shutdown`, `restart` | Yes. The last three are off until you switch them on | Yes, in the same way. The first time Home Assistant shuts the Mac down or restarts it, macOS asks whether HADA may control the login window |
+| `keep_awake` | Yes, through systemd-logind, as `systemd-inhibit --list` shows | Yes, through `caffeinate`, as `pmset -g assertions` shows |
 | `hibernate` | Yes, off until switched on | — A Mac cannot hibernate on demand |
 | Buttons that press keys | Only in an X11 session: Wayland does not let apps type into others | Yes, once HADA is allowed under **System Settings → Privacy & Security → Accessibility**; until then nothing is pressed, and the log says why |
 | Keyboard shortcuts of quick actions | Only in an X11 session. X11 keeps `Ctrl+Alt` with `F1` to `F12` for switching to a text console | Yes |

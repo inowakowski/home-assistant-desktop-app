@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.Versioning;
 using HADA.Core.Abstractions;
 using HADA.Core.Sensors;
@@ -19,6 +20,7 @@ public static class LinuxPlatform
         services.AddSingleton<ISystemReadings, LinuxSystemReadings>();
         services.AddSingleton<IPowerControl, LinuxPowerControl>();
         services.AddSingleton<IScreenLock, LinuxScreenLock>();
+        services.AddSingleton<IKeepAwake>(_ => LinuxKeepAwake.Create());
         services.AddSingleton<IDeviceDirectory>(_ => new LinuxUsbDevices());
         services.AddSingleton<LinuxHardware>(_ => new LinuxHardware());
         services.AddSingleton<IHardwareReadings>(provider => provider.GetRequiredService<LinuxHardware>());
@@ -79,6 +81,28 @@ public sealed class LinuxPowerControl : IPowerControl
         var result = Tools.Run("systemctl", verb);
         return result is { Succeeded: true } ? null : Tools.Describe($"systemctl {verb}", result);
     }
+}
+
+/// <summary>
+/// Holds sleep off through systemd-logind, as a video player does: <c>systemd-inhibit</c> blocks sleeping by itself
+/// for as long as the command it runs, which waits for HADA to end. Allowed without a password to whoever sits at the
+/// computer, as sleeping is.
+/// </summary>
+public static class LinuxKeepAwake
+{
+    public static KeepAwakeProcess Create() => new("systemd-inhibit", Arguments);
+
+    public static IReadOnlyList<string> Arguments(int processId) =>
+    [
+        "--what=sleep:idle",
+        "--who=HADA",
+        "--why=Home Assistant keeps this computer awake",
+        "--mode=block",
+        Tools.Find("tail") ?? "tail",
+        $"--pid={processId.ToString(CultureInfo.InvariantCulture)}",
+        "-f",
+        "/dev/null",
+    ];
 }
 
 /// <summary>Locks the session on the computer's screen through systemd-logind, which has the desktop show its lock screen.</summary>

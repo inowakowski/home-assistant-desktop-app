@@ -67,6 +67,41 @@ public sealed class LinuxReaderTests : IDisposable
     }
 
     [Fact]
+    public void A_battery_tells_its_health_cycles_power_and_time_left()
+    {
+        // 45 Wh of 60 Wh made, 30 Wh left, 15 W out: two hours to go.
+        Supply(
+            "BAT0",
+            ("type", "Battery"), ("capacity", "67"), ("status", "Discharging"), ("energy_now", "30000000"), ("energy_full", "45000000"),
+            ("energy_full_design", "60000000"), ("power_now", "15000000"), ("cycle_count", "312"));
+
+        var power = Assert.NotNull(PowerSupplies.Read(_root));
+
+        Assert.Equal(TimeSpan.FromHours(2), power.TimeRemaining);
+        Assert.Equal(75, power.HealthPercent);
+        Assert.Equal(312, power.CycleCount);
+        Assert.Equal(15, power.PowerWatts);
+    }
+
+    [Fact]
+    public void A_battery_counted_in_charge_tells_the_same_from_current_and_voltage()
+    {
+        // 1 Ah to fill at 0.5 A and 12 V: two hours, 6 W. A cycle count of 0 is a count the battery does not keep.
+        Supply(
+            "BAT1",
+            ("type", "Battery"), ("capacity", "75"), ("status", "Charging"), ("charge_now", "3000000"), ("charge_full", "4000000"),
+            ("charge_full_design", "5000000"), ("current_now", "500000"), ("voltage_now", "12000000"), ("cycle_count", "0"));
+        Supply("AC", ("type", "Mains"), ("online", "1"));
+
+        var power = Assert.NotNull(PowerSupplies.Read(_root));
+
+        Assert.Equal(TimeSpan.FromHours(2), power.TimeRemaining);
+        Assert.Equal(80, power.HealthPercent);
+        Assert.Null(power.CycleCount);
+        Assert.Equal(6, power.PowerWatts);
+    }
+
+    [Fact]
     public void A_desktop_has_no_battery_and_is_plugged_in()
     {
         Supply("hidpp_battery_0", ("type", "Battery"), ("scope", "Device"), ("capacity", "60"));

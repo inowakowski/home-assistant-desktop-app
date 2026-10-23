@@ -132,6 +132,7 @@ public static class LinuxSession
             provider.GetRequiredService<Core.Abstractions.IEntityRegistry>(),
             provider.GetRequiredService<ISessionReadings>(),
             activeWindow));
+        services.AddHostedService<IdleTimeSensor>();
 
         // Whether the camera and the microphone record, and for whom.
         services.AddHostedService<MediaCaptureSensor>();

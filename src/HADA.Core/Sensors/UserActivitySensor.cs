@@ -1,3 +1,4 @@
+using System.Globalization;
 using HADA.Core.Abstractions;
 using HADA.Core.Entities;
 using HADA.Core.Hosting;
@@ -52,6 +53,51 @@ public sealed class UserActivitySensor(IEventBus bus, IEntityRegistry registry, 
             {
                 await publisher.PublishAsync(
                     EntityId, BinaryState.From(idle < (activeWindow?.Invoke() ?? DefaultActiveWindow)), cancellationToken: stoppingToken);
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+}
+
+/// <summary>
+/// Publishes how long nobody has used the keyboard or mouse, in whole minutes, so 0 while someone is at the computer.
+/// Must run in the user's session. Left out where the system does not tell.
+/// </summary>
+public sealed class IdleTimeSensor(IEventBus bus, IEntityRegistry registry, ISessionReadings session) : EagerBackgroundService
+{
+    public const string EntityId = BuiltInEntityIds.IdleTime;
+
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        if (session.ReadIdleTime() is null)
+        {
+            return;
+        }
+
+        await registry.RegisterAsync(
+            new EntityDescriptor
+            {
+                Id = EntityId,
+                Name = "Idle time",
+                Kind = EntityKind.Sensor,
+                DeviceClass = "duration",
+                UnitOfMeasurement = "min",
+                StateClass = "measurement",
+                Icon = "mdi:timer-sand",
+            },
+            stoppingToken);
+
+        // Whole minutes change at most once a minute while nobody is there, and not at all while somebody is.
+        var publisher = new ChangeOnlyPublisher(bus);
+        using var timer = new PeriodicTimer(PollInterval);
+        do
+        {
+            if (session.ReadIdleTime() is { } idle)
+            {
+                await publisher.PublishAsync(
+                    EntityId, ((long)idle.TotalMinutes).ToString(CultureInfo.InvariantCulture), cancellationToken: stoppingToken);
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));

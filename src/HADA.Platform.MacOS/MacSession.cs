@@ -22,6 +22,7 @@ public static class MacSession
             provider.GetRequiredService<IEntityRegistry>(),
             provider.GetRequiredService<ISessionReadings>(),
             activeWindow));
+        services.AddHostedService<IdleTimeSensor>();
 
         // Whether the microphone and the camera record, though not for whom.
         services.AddHostedService<MediaCaptureSensor>();

@@ -583,4 +583,10 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="EntityHint_silence_notifications_Unix" xml:space="preserve"><value>Lets Home Assistant turn Do not disturb on and off: GNOME's by switching notification banners off, KDE's for as long as HADA runs.</value></data>
   <data name="Custom_ValueQuickActionLinux" xml:space="preserve"><value>Keyboard shortcut (optional, X11 sessions only)</value></data>
   <data name="Custom_QuickActionNoteMacOS" xml:space="preserve"><value>A quick action does nothing on this computer by itself. It appears in the menu of HADA's icon in the menu bar and as a trigger of this device in Home Assistant; build an automation on that trigger to say what it does.</value></data>
+  <data name="EntityHint_idle_time" xml:space="preserve"><value>How long nobody has used the keyboard or mouse, in whole minutes; 0 while someone is at the computer.</value></data>
+  <data name="EntityHint_network_download" xml:space="preserve"><value>How fast data comes in over the connection Windows routes through, in kB/s over the last 10 seconds.</value></data>
+  <data name="EntityHint_network_download_Unix" xml:space="preserve"><value>How fast data comes in over the connection the computer routes through, in kB/s over the last 10 seconds.</value></data>
+  <data name="EntityHint_network_upload" xml:space="preserve"><value>How fast data goes out over the connection Windows routes through, in kB/s over the last 10 seconds.</value></data>
+  <data name="EntityHint_network_upload_Unix" xml:space="preserve"><value>How fast data goes out over the connection the computer routes through, in kB/s over the last 10 seconds.</value></data>
+  <data name="EntityHint_keep_awake" xml:space="preserve"><value>Lets Home Assistant keep the computer from going to sleep by itself, e.g. through a long download. The screen may still turn off. Off whenever HADA starts.</value></data>
 </root>

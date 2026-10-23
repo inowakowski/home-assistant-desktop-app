@@ -8,7 +8,8 @@ public static class SystemEntities
 {
     /// <summary>
     /// Adds them to the service. The system adds its <see cref="Abstractions.ISystemReadings"/>,
-    /// <see cref="Abstractions.IPowerControl"/> and <see cref="Abstractions.IScreenLock"/> first.
+    /// <see cref="Abstractions.IPowerControl"/>, <see cref="Abstractions.IScreenLock"/> and
+    /// <see cref="Abstractions.IKeepAwake"/> first.
     /// </summary>
     public static IServiceCollection AddSystemEntities(this IServiceCollection services)
     {
@@ -19,10 +20,12 @@ public static class SystemEntities
         services.AddHostedService<LastBootSensor>();
         services.AddHostedService<ActiveUserSensor>();
         services.AddHostedService<NetworkSensor>();
+        services.AddHostedService<NetworkTrafficSensor>();
         services.AddHostedService<DiskUsageSensor>();
         services.AddHostedService<RestartRequiredSensor>();
         services.AddHostedService<LockScreenAction>();
         services.AddHostedService<PowerActions>();
+        services.AddHostedService<KeepAwakeControl>();
         return services;
     }
 

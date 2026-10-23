@@ -2,6 +2,13 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## Unreleased
+
+- **Keep awake**: a switch with which Home Assistant keeps the computer from going to sleep by itself, e.g. through a long download. Sleeping on purpose still works, and the screen may still turn off. It is off whenever HADA starts.
+- **Idle time**: how long nobody has used the keyboard or mouse, in minutes, beside `user_active`.
+- **Network download and upload**: how fast data comes in and goes out over the connection the computer routes through, in kB/s.
+- **The battery's details**, as attributes of `battery_level`: the time left, its health, its cycle count and the power going in or out, where the battery's driver tells them.
+
 ## 1.14.0
 
 The **Settings** page without **Unlock editing**, and your own settings in the administrator window. A stable version.
