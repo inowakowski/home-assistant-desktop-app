@@ -2,7 +2,9 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## Unreleased
+## 1.15.0
+
+Seven new entities: keep the computer awake, idle time, the network's traffic, a full-screen app, dark mode and signing out, with more about the battery; and a fix for the direct connection. A stable version. On Linux and macOS the new entities are untested by hand, like the packages.
 
 - **Keep awake**: a switch with which Home Assistant keeps the computer from going to sleep by itself, e.g. through a long download. Sleeping on purpose still works, and the screen may still turn off. It is off whenever HADA starts.
 - **Idle time**: how long nobody has used the keyboard or mouse, in minutes, beside `user_active`.
