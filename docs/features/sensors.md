@@ -12,20 +12,20 @@ What HADA tells Home Assistant about the computer. Every sensor can be turned of
 | `disk_c_usage`, `disk_d_usage`, … | sensor (%) | Service | One per built-in drive: how full it is. `free_gb` and `total_gb` are attributes |
 | `ip_address` | sensor | Service | The IPv4 address of the connection Windows routes through. `interface`, `connection_type` (`ethernet`, `wifi`, `other`) and `mac_address`, which Wake-on-LAN needs, are attributes |
 | `wifi_network` | sensor | Service | Only on computers with Wi-Fi. The name of the connected network, `not_connected` otherwise. `signal` (%) is an attribute |
-| `network_download`, `network_upload` | sensor (kB/s) | Service | *Not released yet.* How fast data comes in and goes out over the connection Windows routes through, the one `ip_address` names, averaged over 10 seconds. `interface` is an attribute |
+| `network_download`, `network_upload` | sensor (kB/s) | Service | *New in 1.15.0.* How fast data comes in and goes out over the connection Windows routes through, the one `ip_address` names, averaged over 10 seconds. `interface` is an attribute |
 | `display_on` | binary sensor | Service | On while the screen is on. `display_state` (`on`, `dimmed`, `off`) is an attribute. Reported the moment it changes |
 | `session_locked` | binary sensor | Service | On while Windows is locked or showing the sign-in screen |
 | `active_user` | sensor | Service | The account name of whoever is signed in at the computer's own screen; `none` on the sign-in screen |
 | `last_boot` | sensor (timestamp) | Service | When Windows was started |
 | `restart_required` | binary sensor | Service | *New in 1.5.0.* On while Windows waits for a restart to finish installing updates. `reason` is an attribute: `windows_update`, `servicing`, or both |
-| `battery_level` | sensor (%) | Service | Only on computers with a battery. *Not released yet:* `time_remaining` (minutes until empty, or until full while charging; Windows estimates only the first), `health` (what the battery holds when full, as a share of what it was made to hold, %), `cycle_count` and `power` (W going in or out) are attributes, where the battery's driver tells them |
+| `battery_level` | sensor (%) | Service | Only on computers with a battery. *New in 1.15.0:* `time_remaining` (minutes until empty, or until full while charging; Windows estimates only the first), `health` (what the battery holds when full, as a share of what it was made to hold, %), `cycle_count` and `power` (W going in or out) are attributes, where the battery's driver tells them |
 | `battery_charging` | binary sensor | Service | Only on computers with a battery |
 | `plugged_in` | binary sensor | Service | Only on computers with a battery |
 | `lid_open` | binary sensor | Service | Only on computers with a battery. Reported the moment it changes |
 | `update_available` | binary sensor | Service | On when a newer HADA was released; the Overview page then offers to download and install it. `installed_version`, `latest_version` and `release_url` are attributes. See [Updates](../getting-started/updating.md) |
 | `active_window` | sensor | Tray | Title of the focused window. The process name is an attribute |
 | `user_active` | binary sensor | Tray | On when the keyboard or mouse was used in the last 60 seconds. Each user can change that time on the **Settings** page |
-| `idle_time` | sensor (min) | Tray | *Not released yet.* How long nobody has used the keyboard or mouse, in whole minutes; 0 while someone is at the computer |
+| `idle_time` | sensor (min) | Tray | *New in 1.15.0.* How long nobody has used the keyboard or mouse, in whole minutes; 0 while someone is at the computer |
 | `audio_volume` | sensor (%) | Tray | Default playback device volume. `muted` is an attribute |
 | `audio_device` | sensor | Tray | Name of the default playback device, e.g. to tell headphones from speakers. The default microphone is the `microphone` attribute |
 | `media_playback` | sensor | Tray | `playing`, `paused`, `stopped` or `idle`: what Windows' own media controls show. `title`, `artist`, `album` and `app` are attributes |
@@ -34,7 +34,7 @@ What HADA tells Home Assistant about the computer. Every sensor can be turned of
 | `camera_in_use` | binary sensor | Tray | On while an app uses the camera. The apps are listed in the `apps` attribute |
 | `do_not_disturb` | binary sensor | Tray | On while Windows holds notifications back. `mode` (`off`, `priority_only`, `alarms_only`) is an attribute |
 | `external_display` | binary sensor | Tray | On while a monitor other than the built-in one is connected. `displays` and `external_displays` (counts) are attributes. A monitor without power is not seen |
-| `fullscreen_app` | binary sensor | Tray | *Not released yet.* On while an app fills the screen: a game, a film, a slide show, as Windows tells apps that ask whether to show a notification now. `kind` (`app`, `game`, `presentation`, `none`) is an attribute |
+| `fullscreen_app` | binary sensor | Tray | *New in 1.15.0.* On while an app fills the screen: a game, a film, a slide show, as Windows tells apps that ask whether to show a notification now. `kind` (`app`, `game`, `presentation`, `none`) is an attribute |
 
 Need something that is not in the list? Add it without code as a [custom sensor](custom-entities.md), or [in code](../development/adding-entities.md).
 
