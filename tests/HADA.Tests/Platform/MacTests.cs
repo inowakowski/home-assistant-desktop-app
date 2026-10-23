@@ -10,13 +10,48 @@ public sealed class MacTests
 {
 
     [Theory]
-    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t85%; charging; 1:10 remaining present: true\n", 85, true, true)]
-    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t99%; finishing charge; 0:05 remaining present: true\n", 99, true, true)]
-    [InlineData("Now drawing from 'Battery Power'\n -InternalBattery-0 (id=4653155)\t62%; discharging; 4:31 remaining present: true\n", 62, false, false)]
-    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t80%; AC attached; not charging present: true\n", 80, false, true)]
-    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t100%; charged; 0:00 remaining present: true\n", 100, false, true)]
-    public void Pmset_says_where_the_power_comes_from_and_how_full_the_battery_is(string output, int percent, bool charging, bool pluggedIn) =>
-        Assert.Equal(new PowerStatus(HasBattery: true, percent, charging, pluggedIn), MacParsers.ParsePmsetBattery(output));
+    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t85%; charging; 1:10 remaining present: true\n", 85, true, true, 70)]
+    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t99%; finishing charge; 0:05 remaining present: true\n", 99, true, true, 5)]
+    [InlineData("Now drawing from 'Battery Power'\n -InternalBattery-0 (id=4653155)\t62%; discharging; 4:31 remaining present: true\n", 62, false, false, 271)]
+    [InlineData("Now drawing from 'Battery Power'\n -InternalBattery-0 (id=4653155)\t62%; discharging; (no estimate) present: true\n", 62, false, false, 0)]
+    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t80%; AC attached; not charging present: true\n", 80, false, true, 0)]
+    [InlineData("Now drawing from 'AC Power'\n -InternalBattery-0 (id=4653155)\t100%; charged; 0:00 remaining present: true\n", 100, false, true, 0)]
+    public void Pmset_says_where_the_power_comes_from_how_full_the_battery_is_and_for_how_long(
+        string output, int percent, bool charging, bool pluggedIn, int minutesRemaining) =>
+        Assert.Equal(
+            new PowerStatus(HasBattery: true, percent, charging, pluggedIn) { TimeRemaining = minutesRemaining > 0 ? TimeSpan.FromMinutes(minutesRemaining) : null },
+            MacParsers.ParsePmsetBattery(output));
+
+    [Fact]
+    public void The_io_registry_tells_the_batterys_health_cycles_and_power()
+    {
+        // Apple silicon: MaxCapacity is a percentage, AppleRawMaxCapacity the mAh; a current out of the battery is negative.
+        const string AppleSilicon = """
+            <plist version="1.0"><array><dict>
+              <key>CycleCount</key><integer>312</integer>
+              <key>DesignCapacity</key><integer>5000</integer>
+              <key>MaxCapacity</key><integer>100</integer>
+              <key>AppleRawMaxCapacity</key><integer>4400</integer>
+              <key>InstantAmperage</key><integer>-1500</integer>
+              <key>Voltage</key><integer>12000</integer>
+            </dict></array></plist>
+            """;
+        Assert.Equal(new MacBattery(88, 312, 18), MacParsers.ParseSmartBattery(AppleSilicon));
+
+        // Intel: MaxCapacity in mAh, and the negative current written as its unsigned 64 bits.
+        const string Intel = """
+            <plist version="1.0"><array><dict>
+              <key>CycleCount</key><integer>800</integer>
+              <key>DesignCapacity</key><integer>6000</integer>
+              <key>MaxCapacity</key><integer>4800</integer>
+              <key>Amperage</key><integer>18446744073709550616</integer>
+              <key>Voltage</key><integer>11000</integer>
+            </dict></array></plist>
+            """;
+        Assert.Equal(new MacBattery(80, 800, 11), MacParsers.ParseSmartBattery(Intel));
+
+        Assert.Equal(default, MacParsers.ParseSmartBattery("ioreg: nothing"));
+    }
 
     [Fact]
     public void A_mac_without_a_battery_only_draws_from_the_mains()

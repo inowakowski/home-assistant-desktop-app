@@ -118,6 +118,10 @@ public static class EntityVisuals
         "audio_mute" => Glyph.SpeakerMute,
         "microphone_mute" => Glyph.MicOff,
         "notification" => Glyph.Alert,
+        "idle_time" => Glyph.Timer,
+        "network_download" => Glyph.ArrowDownload,
+        "network_upload" => Glyph.ArrowUpload,
+        "keep_awake" => Glyph.DrinkCoffee,
         _ when entity.Id.StartsWith("disk_", StringComparison.Ordinal) && entity.Id.EndsWith("_usage", StringComparison.Ordinal)
             => Glyph.Database,
         _ => entity.Kind switch

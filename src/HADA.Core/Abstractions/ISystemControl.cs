@@ -18,6 +18,19 @@ public interface IPowerControl
     bool Supports(PowerCommand command) => true;
 }
 
+/// <summary>
+/// Keeps the computer from going to sleep by itself, for as long as it is held. Sleeping on purpose, from the menu or
+/// with the lid, still works, and so does the screen turning off.
+/// </summary>
+public interface IKeepAwake
+{
+    /// <summary>Holds sleep off. Returns <see langword="null"/> when it is held, otherwise why not.</summary>
+    string? Hold();
+
+    /// <summary>Lets the computer sleep by itself again.</summary>
+    void Release();
+}
+
 /// <summary>Locks the session at the computer's own screen.</summary>
 public interface IScreenLock
 {

@@ -36,6 +36,12 @@ public class SystemReaderTests
         {
             Assert.False(power.IsCharging);
         }
+
+        // What the battery's driver tells besides, where it tells it.
+        Assert.InRange(power.HealthPercent ?? 0, 0, 100);
+        Assert.InRange(power.CycleCount ?? 0, 0, 100_000);
+        Assert.InRange(power.PowerWatts ?? 0, 0, 500);
+        Assert.True(power.TimeRemaining is null || power.TimeRemaining > TimeSpan.Zero);
     }
 
     [WindowsFact]

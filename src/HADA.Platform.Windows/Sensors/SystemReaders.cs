@@ -11,6 +11,7 @@ public static class SystemPower
     private const byte Unknown = 255;
     private const byte ChargingFlag = 8;
     private const byte NoBatteryFlag = 128;
+    private const uint UnknownLifeTime = 0xFFFFFFFF;
 
     public static PowerStatus? TryRead()
     {
@@ -20,11 +21,16 @@ public static class SystemPower
         }
 
         var hasBattery = status.BatteryFlag != Unknown && (status.BatteryFlag & NoBatteryFlag) == 0;
-        return new PowerStatus(
+        var power = new PowerStatus(
             hasBattery,
             hasBattery && status.BatteryLifePercent <= 100 ? status.BatteryLifePercent : null,
             hasBattery && (status.BatteryFlag & ChargingFlag) != 0,
-            status.AcLineStatus == 1);
+            status.AcLineStatus == 1)
+        {
+            // Only while discharging: Windows does not estimate the time until full.
+            TimeRemaining = hasBattery && status.BatteryLifeTime != UnknownLifeTime ? TimeSpan.FromSeconds(status.BatteryLifeTime) : null,
+        };
+        return hasBattery ? BatteryDetails.AddTo(power) : power;
     }
 }
 

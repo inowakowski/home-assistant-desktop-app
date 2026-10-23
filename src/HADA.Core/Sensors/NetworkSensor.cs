@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -14,6 +16,10 @@ namespace HADA.Core.Sensors;
 /// <param name="MacAddress">The adapter's hardware address as <c>AA:BB:CC:DD:EE:FF</c>, which Wake-on-LAN needs; empty when it has none.</param>
 public sealed record NetworkAddressInfo(string Address, string InterfaceName, string ConnectionType, string MacAddress = "");
 
+/// <summary>What has come in and gone out over a connection since the system started it, in bytes.</summary>
+/// <param name="InterfaceName">The connection's name in the system, as in <see cref="NetworkAddressInfo.InterfaceName"/>.</param>
+public readonly record struct NetworkTraffic(string InterfaceName, long BytesReceived, long BytesSent);
+
 public static class NetworkAddress
 {
     // Any address beyond the local network will do; nothing is sent to it.
@@ -24,6 +30,59 @@ public static class NetworkAddress
     /// Wi-Fi, a VPN, virtual switches) is the one that matters. Returns <see langword="null"/> without a network.
     /// </summary>
     public static NetworkAddressInfo? TryRead()
+    {
+        if (RoutedAddress() is not { } local)
+        {
+            return null;
+        }
+
+        try
+        {
+            if (AdapterWith(local) is { } adapter)
+            {
+                return new NetworkAddressInfo(
+                    local.ToString(),
+                    adapter.Name,
+                    TypeOf(adapter),
+                    string.Join(':', adapter.GetPhysicalAddress().GetAddressBytes().Select(part => part.ToString("X2", CultureInfo.InvariantCulture))));
+            }
+        }
+        catch (NetworkInformationException)
+        {
+            // The address is still worth reporting.
+        }
+
+        return new NetworkAddressInfo(local.ToString(), string.Empty, "other");
+    }
+
+    /// <summary>
+    /// What has come in and gone out so far over the connection the system routes through, the one
+    /// <see cref="TryRead"/> names. Returns <see langword="null"/> without a network, or where the system does not count it.
+    /// </summary>
+    public static NetworkTraffic? TryReadTraffic()
+    {
+        if (RoutedAddress() is not { } local)
+        {
+            return null;
+        }
+
+        try
+        {
+            if (AdapterWith(local) is not { } adapter)
+            {
+                return null;
+            }
+
+            var statistics = adapter.GetIPStatistics();
+            return new NetworkTraffic(adapter.Name, statistics.BytesReceived, statistics.BytesSent);
+        }
+        catch (Exception ex) when (ex is NetworkInformationException or PlatformNotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    private static IPAddress? RoutedAddress()
     {
         IPAddress local;
         try
@@ -38,32 +97,12 @@ public static class NetworkAddress
             return null;
         }
 
-        if (IPAddress.IsLoopback(local) || local.Equals(IPAddress.Any))
-        {
-            return null;
-        }
-
-        try
-        {
-            foreach (var adapter in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (adapter.GetIPProperties().UnicastAddresses.Any(candidate => candidate.Address.Equals(local)))
-                {
-                    return new NetworkAddressInfo(
-                        local.ToString(),
-                        adapter.Name,
-                        TypeOf(adapter),
-                        string.Join(':', adapter.GetPhysicalAddress().GetAddressBytes().Select(part => part.ToString("X2", System.Globalization.CultureInfo.InvariantCulture))));
-                }
-            }
-        }
-        catch (NetworkInformationException)
-        {
-            // The address is still worth reporting.
-        }
-
-        return new NetworkAddressInfo(local.ToString(), string.Empty, "other");
+        return IPAddress.IsLoopback(local) || local.Equals(IPAddress.Any) ? null : local;
     }
+
+    private static NetworkInterface? AdapterWith(IPAddress local) =>
+        NetworkInterface.GetAllNetworkInterfaces()
+            .FirstOrDefault(adapter => adapter.GetIPProperties().UnicastAddresses.Any(candidate => candidate.Address.Equals(local)));
 
     // Linux reports a Wi-Fi adapter as Ethernet; the kernel's wireless folder for it tells them apart.
     private static string TypeOf(NetworkInterface adapter) =>
@@ -144,4 +183,82 @@ public sealed class NetworkSensor(IEventBus bus, IEntityRegistry registry, ISyst
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
+}
+
+/// <summary>
+/// Publishes how fast data comes in and goes out over the connection the system routes through, the one
+/// <c>ip_address</c> names, in kB/s over the last 10 seconds. Runs in the service.
+/// </summary>
+/// <param name="read">Reads the connection's counters; <see cref="NetworkAddress.TryReadTraffic"/> unless a test gives another.</param>
+public sealed class NetworkTrafficSensor(IEventBus bus, IEntityRegistry registry, Func<NetworkTraffic?>? read = null) : EagerBackgroundService
+{
+    public const string DownloadEntityId = BuiltInEntityIds.NetworkDownload;
+    public const string UploadEntityId = BuiltInEntityIds.NetworkUpload;
+
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(10);
+
+    private readonly Func<NetworkTraffic?> _read = read ?? NetworkAddress.TryReadTraffic;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // Left out where the system has a network but does not count what goes through it.
+        var previous = _read();
+        if (previous is null && NetworkAddress.TryRead() is not null)
+        {
+            return;
+        }
+
+        await registry.RegisterAsync(Descriptor(DownloadEntityId, "Network download", "mdi:download-network"), stoppingToken);
+        await registry.RegisterAsync(Descriptor(UploadEntityId, "Network upload", "mdi:upload-network"), stoppingToken);
+
+        var publisher = new ChangeOnlyPublisher(bus);
+        var previousAt = Stopwatch.GetTimestamp();
+        using var timer = new PeriodicTimer(PollInterval);
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            var current = _read();
+            var now = Stopwatch.GetTimestamp();
+            if (Rates(previous, current, Stopwatch.GetElapsedTime(previousAt, now)) is { } rates)
+            {
+                var attributes = new Dictionary<string, object?> { ["interface"] = current!.Value.InterfaceName };
+                await publisher.PublishAsync(DownloadEntityId, Format(rates.Download), attributes, stoppingToken);
+                await publisher.PublishAsync(UploadEntityId, Format(rates.Upload), attributes, stoppingToken);
+            }
+
+            previous = current;
+            previousAt = now;
+        }
+    }
+
+    /// <summary>
+    /// kB/s in and out between two readings of the same connection; <see langword="null"/> when there is nothing to
+    /// compare, as after the computer moved to another connection or its counters started over.
+    /// </summary>
+    public static (double Download, double Upload)? Rates(NetworkTraffic? previous, NetworkTraffic? current, TimeSpan elapsed)
+    {
+        if (previous is not { } before || current is not { } after || elapsed <= TimeSpan.Zero
+            || before.InterfaceName != after.InterfaceName
+            || after.BytesReceived < before.BytesReceived || after.BytesSent < before.BytesSent)
+        {
+            return null;
+        }
+
+        return (
+            (after.BytesReceived - before.BytesReceived) / 1000.0 / elapsed.TotalSeconds,
+            (after.BytesSent - before.BytesSent) / 1000.0 / elapsed.TotalSeconds);
+    }
+
+    private static string Format(double kilobytesPerSecond) =>
+        Math.Round(kilobytesPerSecond, MidpointRounding.AwayFromZero).ToString(CultureInfo.InvariantCulture);
+
+    private static EntityDescriptor Descriptor(string id, string name, string icon) => new()
+    {
+        Id = id,
+        Name = name,
+        Kind = EntityKind.Sensor,
+        DeviceClass = "data_rate",
+        UnitOfMeasurement = "kB/s",
+        StateClass = "measurement",
+        Icon = icon,
+    };
 }

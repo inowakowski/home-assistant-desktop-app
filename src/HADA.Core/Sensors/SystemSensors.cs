@@ -151,7 +151,7 @@ public sealed class BatterySensor(IEventBus bus, IEntityRegistry registry, ISyst
 
             if (power.BatteryPercent is { } percent)
             {
-                await publisher.PublishAsync(LevelEntityId, percent.ToString(CultureInfo.InvariantCulture), cancellationToken: stoppingToken);
+                await publisher.PublishAsync(LevelEntityId, percent.ToString(CultureInfo.InvariantCulture), Details(power), stoppingToken);
             }
 
             await publisher.PublishAsync(ChargingEntityId, BinaryState.From(power.IsCharging), cancellationToken: stoppingToken);
@@ -159,6 +159,18 @@ public sealed class BatterySensor(IEventBus bus, IEntityRegistry registry, ISyst
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
+
+    /// <summary>
+    /// What the system tells about the battery besides its level, as attributes of it; <see langword="null"/> for what
+    /// it does not tell. Rounded so that they change about as often as the level does.
+    /// </summary>
+    public static Dictionary<string, object?> Details(PowerStatus power) => new()
+    {
+        ["time_remaining"] = power.TimeRemaining is { } remaining ? (int)remaining.TotalMinutes : null,
+        ["health"] = power.HealthPercent,
+        ["cycle_count"] = power.CycleCount,
+        ["power"] = power.PowerWatts is { } watts ? Math.Round(watts, MidpointRounding.AwayFromZero) : null,
+    };
 }
 
 /// <summary>Publishes when the system was started, as a timestamp Home Assistant can show as "3 hours ago".</summary>

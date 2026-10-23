@@ -583,4 +583,10 @@ Potrzebne jest środowisko Microsoft Edge WebView2 Runtime, które Windows 11 za
   <data name="EntityHint_silence_notifications_Unix" xml:space="preserve"><value>Pozwala Home Assistant włączać i wyłączać tryb Nie przeszkadzać: w GNOME przez wyłączenie banerów powiadomień, w KDE dopóki HADA działa.</value></data>
   <data name="Custom_ValueQuickActionLinux" xml:space="preserve"><value>Skrót klawiszowy (opcjonalnie, tylko sesje X11)</value></data>
   <data name="Custom_QuickActionNoteMacOS" xml:space="preserve"><value>Szybka akcja sama nic nie robi na tym komputerze. Pojawia się w menu ikony HADA na pasku menu oraz jako wyzwalacz tego urządzenia w Home Assistant; to, co robi, określasz automatyzacją opartą na tym wyzwalaczu.</value></data>
+  <data name="EntityHint_idle_time" xml:space="preserve"><value>Jak długo nikt nie używa klawiatury ani myszy, w pełnych minutach; 0, gdy ktoś siedzi przy komputerze.</value></data>
+  <data name="EntityHint_network_download" xml:space="preserve"><value>Jak szybko dane przychodzą połączeniem, przez które Windows kieruje ruch, w kB/s z ostatnich 10 sekund.</value></data>
+  <data name="EntityHint_network_download_Unix" xml:space="preserve"><value>Jak szybko dane przychodzą połączeniem, przez które komputer kieruje ruch, w kB/s z ostatnich 10 sekund.</value></data>
+  <data name="EntityHint_network_upload" xml:space="preserve"><value>Jak szybko dane wychodzą połączeniem, przez które Windows kieruje ruch, w kB/s z ostatnich 10 sekund.</value></data>
+  <data name="EntityHint_network_upload_Unix" xml:space="preserve"><value>Jak szybko dane wychodzą połączeniem, przez które komputer kieruje ruch, w kB/s z ostatnich 10 sekund.</value></data>
+  <data name="EntityHint_keep_awake" xml:space="preserve"><value>Pozwala Home Assistant nie dopuścić, by komputer sam zasnął, np. w trakcie długiego pobierania. Ekran może się nadal wyłączyć. Wyłączony po każdym starcie HADA.</value></data>
 </root>

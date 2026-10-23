@@ -9,6 +9,11 @@ namespace HADA.Platform.MacOS;
 /// <param name="UserName">Empty while the login window is on the screen.</param>
 public readonly record struct ConsoleSession(string UserName, bool IsLocked);
 
+/// <summary>The battery's own counts, as the I/O Registry has them; <see langword="null"/> for what it does not say.</summary>
+/// <param name="HealthPercent">What it holds when full now, as a share of what it was made to hold.</param>
+/// <param name="PowerWatts">The power going into it or coming out of it, either way positive.</param>
+public readonly record struct MacBattery(int? HealthPercent, int? CycleCount, double? PowerWatts);
+
 /// <summary>A network port of the Mac, as System Settings names it: <c>Wi-Fi</c> on <c>en0</c>, <c>Thunderbolt Ethernet</c> on <c>en5</c>.</summary>
 public readonly record struct HardwarePort(string Name, string Device)
 {
@@ -50,7 +55,45 @@ public static partial class MacParsers
         // "charging", but not "discharging" nor "not charging" (plugged in, held below full by the Mac).
         var states = battery.Split(';', StringSplitOptions.TrimEntries);
         var charging = states.Any(state => state == "charging" || state.StartsWith("finishing charge", StringComparison.Ordinal));
-        return new PowerStatus(HasBattery: true, percent is null ? null : Math.Clamp(percent.Value, 0, 100), charging, pluggedIn);
+
+        // "1:10 remaining": until empty, or until full while charging. "(no estimate)" while the Mac is working it out.
+        TimeSpan? remaining = BatteryRemaining().Match(battery) is { Success: true } time
+            ? new TimeSpan(int.Parse(time.Groups[1].Value, CultureInfo.InvariantCulture), int.Parse(time.Groups[2].Value, CultureInfo.InvariantCulture), 0)
+            : null;
+        return new PowerStatus(HasBattery: true, percent is null ? null : Math.Clamp(percent.Value, 0, 100), charging, pluggedIn)
+        {
+            TimeRemaining = remaining is { TotalMinutes: > 0 } ? remaining : null,
+        };
+    }
+
+    /// <summary>
+    /// Reads <c>ioreg -a -r -c AppleSmartBattery</c>, the battery's own counts as a property list: <c>CycleCount</c>,
+    /// what it holds when full (<c>AppleRawMaxCapacity</c>, or <c>MaxCapacity</c> where that is in mAh, as on Intel
+    /// Macs) against <c>DesignCapacity</c>, and the current and voltage, whose product is the power.
+    /// </summary>
+    public static MacBattery ParseSmartBattery(string plist)
+    {
+        var battery = ReadPropertyList(plist) switch
+        {
+            List<object?> list => list.OfType<Dictionary<string, object?>>().FirstOrDefault(),
+            Dictionary<string, object?> single => single,
+            _ => null,
+        };
+        if (battery is null)
+        {
+            return default;
+        }
+
+        long? Number(string key) => battery.GetValueOrDefault(key) as long?;
+
+        var design = Number("DesignCapacity");
+        var full = Number("AppleRawMaxCapacity") ?? (Number("MaxCapacity") is > 100 and var max ? max : null);
+        var amperage = Number("InstantAmperage") ?? Number("Amperage");
+        var voltage = Number("Voltage");
+        return new MacBattery(
+            design is > 0 && full is > 0 ? (int)Math.Clamp(Math.Round(100.0 * full.Value / design.Value), 0, 100) : null,
+            Number("CycleCount") is { } cycles ? (int)cycles : null,
+            amperage is { } current && voltage is { } volts ? Math.Abs(current * volts) / 1e6 : null);
     }
 
     /// <summary>Reads <c>ioreg -r -k AppleClamshellState -d 4</c>: <c>"AppleClamshellState" = Yes</c> while the lid is closed. A Mac without a lid has no such line.</summary>
@@ -232,7 +275,10 @@ public static partial class MacParsers
         "dict" => Dictionary(element),
         "array" => element.Elements().Select(Value).ToList(),
         "string" => element.Value,
-        "integer" => long.TryParse(element.Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number) ? number : null,
+        "integer" => long.TryParse(element.Value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number) ? number
+            // A negative count written as its unsigned 64 bits, as ioreg writes a battery's current while discharging.
+            : ulong.TryParse(element.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var unsigned) ? unchecked((long)unsigned)
+            : null,
         "real" => double.TryParse(element.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var real) ? real : null,
         "true" => true,
         "false" => false,
@@ -261,6 +307,9 @@ public static partial class MacParsers
 
     [GeneratedRegex(@"(\d{1,3})%")]
     private static partial Regex BatteryPercent();
+
+    [GeneratedRegex(@"(\d+):(\d{2}) remaining")]
+    private static partial Regex BatteryRemaining();
 
     [GeneratedRegex(@"""AppleClamshellState""\s*=\s*(Yes|No)")]
     private static partial Regex ClamshellState();

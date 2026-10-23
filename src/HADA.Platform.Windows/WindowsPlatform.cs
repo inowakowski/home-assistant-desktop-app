@@ -25,6 +25,7 @@ public static class WindowsPlatform
         services.AddSingleton<ISystemReadings, WindowsSystemReadings>();
         services.AddSingleton<IPowerControl, WindowsPowerControl>();
         services.AddSingleton<IScreenLock, WindowsScreenLock>();
+        services.AddSingleton<IKeepAwake, Actions.WindowsKeepAwake>();
 
         // What every system has, then what Windows has besides.
         services.AddSystemEntities();

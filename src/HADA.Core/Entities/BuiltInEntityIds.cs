@@ -51,6 +51,10 @@ public static class BuiltInEntityIds
     public const string RestartRequired = "restart_required";
     public const string ScreenBrightness = "screen_brightness";
     public const string SilenceNotifications = "silence_notifications";
+    public const string IdleTime = "idle_time";
+    public const string NetworkDownload = "network_download";
+    public const string NetworkUpload = "network_upload";
+    public const string KeepAwake = "keep_awake";
 
     private const string DiskPrefix = "disk_";
     private const string DiskSuffix = "_usage";
@@ -103,6 +107,10 @@ public static class BuiltInEntityIds
         RestartRequired,
         ScreenBrightness,
         SilenceNotifications,
+        IdleTime,
+        NetworkDownload,
+        NetworkUpload,
+        KeepAwake,
     }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>

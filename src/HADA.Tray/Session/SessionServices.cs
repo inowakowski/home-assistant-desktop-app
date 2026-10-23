@@ -38,6 +38,7 @@ public static class SessionServices
             provider.GetRequiredService<IEntityRegistry>(),
             provider.GetRequiredService<ISessionReadings>(),
             () => TimeSpan.FromSeconds(UserPreferences.IdleSeconds)));
+        services.AddHostedService<IdleTimeSensor>();
         services.AddHostedService<MediaCaptureSensor>();
         services.AddHostedService<MicrophoneMuteSensor>();
         services.AddHostedService<Platform.Windows.Sensors.ExternalDisplaySensor>();

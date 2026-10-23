@@ -11,6 +11,7 @@ What Home Assistant can do to the computer. With the MQTT engine, and with the [
 | `screen_brightness` | number (0–100 %) | Service | *New in 1.5.0.* Shows and sets the brightness of the built-in screen. Only on computers with a screen Windows can dim, a laptop's as a rule; external monitors are not covered |
 | `volume_level` | number (0–100 %) | Tray | Sets the volume of the default playback device |
 | `audio_mute` | switch | Tray | Mutes the default playback device |
+| `keep_awake` | switch | Service | *Not released yet.* While on, the computer does not go to sleep by itself, e.g. through a long download; sleeping on purpose still works, and the screen may still turn off. Windows lists it under `powercfg /requests`. Off whenever HADA starts |
 | `microphone_mute` | switch | Tray | Mutes the default microphone in Windows |
 | `silence_notifications` | switch | Tray | *New in 1.13.0.* Turns Do not disturb on and off, as the switch in Windows' notification settings does. The `do_not_disturb` sensor shows the state. Windows reads and changes it through a state that is not documented, and Windows Server does not get the switch; see [Known limitations](../reference/limitations.md) |
 | `media_player` | media player | Tray | *New in 1.5.0.* What is playing, play, pause, next, previous, stop, volume and mute in one entity. **Through the HADA integration only**; see [below](#the-media-player) |
