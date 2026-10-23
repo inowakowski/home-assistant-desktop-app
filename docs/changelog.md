@@ -11,6 +11,7 @@ Installers are on the [releases page](https://github.com/inowakowski/home-assist
 - **Full-screen app**: on while a game, a film or a slide show fills the screen, to dim the lights by. On Linux only in an X11 session; not on macOS.
 - **Dark mode**: a switch for the dark and the light look of Windows, GNOME, KDE and macOS.
 - **Sign out**: a button that signs out whoever is at the computer. Off until switched on, like the power buttons.
+- Fixed: on the direct connection, a reading, the list of entities, an event or the answer to a command could be lost when HADA sent it at the same moment as something else. Home Assistant ignores a message numbered lower than the one before it, the two could go out in the wrong order, and nothing sent the lost one again.
 
 ## 1.14.0
 

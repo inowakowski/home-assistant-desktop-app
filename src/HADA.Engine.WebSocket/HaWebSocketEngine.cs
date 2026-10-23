@@ -434,8 +434,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
             }
         }
 
-        var subscriptionId = connection.NextId();
-        await connection.SendAsync(new { id = subscriptionId, type = "subscribe_events", event_type = commandEventType }, token)
+        var subscriptionId = await connection.SendCommandAsync(id => new { id, type = "subscribe_events", event_type = commandEventType }, token)
             .ConfigureAwait(false);
         using (var result = await ReceiveRequiredAsync(connection, token).ConfigureAwait(false))
         {
@@ -493,7 +492,7 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                     return;
                 }
 
-                await connection.SendAsync(new { id = connection.NextId(), type = "ping" }, cancellationToken).ConfigureAwait(false);
+                await connection.SendCommandAsync(id => new { id, type = "ping" }, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (ex is OperationCanceledException or WebSocketException or InvalidOperationException)
@@ -645,10 +644,10 @@ public sealed partial class HaWebSocketEngine : ICommunicationEngine
                     if (!await TrySendIntegrationEventAsync(connection, deviceEvent, cancellationToken).ConfigureAwait(false)
                         && !await TryFireThroughWebhookAsync(deviceEvent, cancellationToken).ConfigureAwait(false))
                     {
-                        await connection.SendAsync(
-                                new
+                        await connection.SendCommandAsync(
+                                id => new
                                 {
-                                    id = connection.NextId(),
+                                    id,
                                     type = "fire_event",
                                     event_type = _options.DeviceEventType,
                                     event_data = new { device_id = _deviceId, name = deviceEvent.Name, value = deviceEvent.Value },

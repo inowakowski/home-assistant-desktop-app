@@ -181,10 +181,10 @@ public sealed partial class HaWebSocketEngine
 
         try
         {
-            await connection.SendAsync(
-                    new
+            await connection.SendCommandAsync(
+                    id => new
                     {
-                        id = connection.NextId(),
+                        id,
                         type = "hada/command_result",
                         device_id = _deviceId,
                         command_id = commandId,
@@ -253,10 +253,10 @@ public sealed partial class HaWebSocketEngine
             return false;
         }
 
-        await connection.SendAsync(
-                new
+        await connection.SendCommandAsync(
+                id => new
                 {
-                    id = connection.NextId(),
+                    id,
                     type = "hada/event",
                     device_id = _deviceId,
                     name = deviceEvent.Name,
