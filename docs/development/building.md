@@ -57,10 +57,22 @@ The packages for [Linux and macOS](../getting-started/linux-macos.md) are built 
 
 Every version is a GitHub release tagged `vX.Y.Z`, equal to `<Version>` in `Directory.Build.props`. A **stable** release is the `--latest` one: the landing page and the app's update check follow it. A **preview** is a pre-release titled `HADA X.Y.Z (preview)`, for a batch of features that someone should try before it becomes stable.
 
+Which place of the number goes up says which kind of release it is (from 1.15.0 on):
+
+| Release | Goes up | Example, after 1.15.0 |
+|---|---|---|
+| Preview | the third place | 1.15.1 (preview), 1.15.2 (preview) |
+| Stable version | the second place, and the third goes back to 0 | 1.16.0 |
+| A change that makes HADA anew, such as one that needs setting up again | the first place | 2.0.0 |
+
+- A stable version brings what the previews since the last one carried. It is a release of its own, with the next number in the second place, made from `main` once the previews have been tried; a preview is not marked stable in place.
+- A fix for a stable version, while no preview has come out since, is the next number in the third place, published as stable: 1.16.1. The number alone does not tell it from a preview; the title "(preview)" and the pre-release mark do. Once previews are out, a fix goes into the next one.
+- A number that was published is never changed or used again: installed copies update only to a higher one.
+
 The list is kept short by one rule: **one preview at a time**. A preview contains everything the earlier ones did, so:
 
 - publishing a new preview deletes the previous one;
-- publishing a stable version deletes every preview older than it, and a preview made stable (`gh release edit vX.Y.Z --prerelease=false --latest`) replaces the previews before it.
+- publishing a stable version deletes every preview older than it.
 
 Only the release is deleted, never the tag: `gh release delete vX.Y.Z --yes` without `--cleanup-tag`. An old version can still be built from its tag, and what it brought stays in the [changelog](../changelog.md), which keeps a heading for every version, previews included. Before deleting, save the release's notes and `SHA256SUMS.txt` (for example in `artifacts\release-archive\vX.Y.Z`, which is not tracked). The files themselves are lost with the release.
 
