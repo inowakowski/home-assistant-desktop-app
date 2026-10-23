@@ -6,12 +6,14 @@ What Home Assistant can do to the computer. With the MQTT engine, and with the [
 |---|---|---|---|
 | `lock_screen` | button | Service | Locks the interactive session |
 | `sleep`, `hibernate`, `shutdown`, `restart` | button | Service | **Off until you switch them on** on the Entities page. Nothing is forced: apps with unsaved work can still object, as when shutting down from the Start menu |
+| `sign_out` | button | Tray | *Not released yet.* **Off until you switch it on**, like the power buttons. Signs out whoever is at the computer, as the Start menu does: an app with unsaved work can still hold it up |
 | `turn_off_display`, `wake_display` | button | Tray | Turns the screen off, or back on as moving the mouse would |
 | `media_play_pause`, `media_next`, `media_previous`, `media_stop` | button | Tray | Press the multimedia keys; whichever app handles them reacts |
 | `screen_brightness` | number (0–100 %) | Service | *New in 1.5.0.* Shows and sets the brightness of the built-in screen. Only on computers with a screen Windows can dim, a laptop's as a rule; external monitors are not covered |
 | `volume_level` | number (0–100 %) | Tray | Sets the volume of the default playback device |
 | `audio_mute` | switch | Tray | Mutes the default playback device |
 | `keep_awake` | switch | Service | *Not released yet.* While on, the computer does not go to sleep by itself, e.g. through a long download; sleeping on purpose still works, and the screen may still turn off. Windows lists it under `powercfg /requests`. Off whenever HADA starts |
+| `dark_mode` | switch | Tray | *Not released yet.* Switches Windows and its apps between the dark and the light look, as **Choose your mode** in the settings does, and shows which is on |
 | `microphone_mute` | switch | Tray | Mutes the default microphone in Windows |
 | `silence_notifications` | switch | Tray | *New in 1.13.0.* Turns Do not disturb on and off, as the switch in Windows' notification settings does. The `do_not_disturb` sensor shows the state. Windows reads and changes it through a state that is not documented, and Windows Server does not get the switch; see [Known limitations](../reference/limitations.md) |
 | `media_player` | media player | Tray | *New in 1.5.0.* What is playing, play, pause, next, previous, stop, volume and mute in one entity. **Through the HADA integration only**; see [below](#the-media-player) |
@@ -19,7 +21,7 @@ What Home Assistant can do to the computer. With the MQTT engine, and with the [
 
 ## The power buttons are off by default
 
-`sleep`, `hibernate`, `shutdown` and `restart` do not exist in Home Assistant until you switch them on: open the HADA window, choose **Entities**, **Unlock editing**, turn on the ones you want and **Save**. Whoever can press a button in Home Assistant can then switch this computer off, so turn on only what you use.
+`sleep`, `hibernate`, `shutdown`, `restart` and (*not released yet*) `sign_out` do not exist in Home Assistant until you switch them on: open the HADA window, choose **Entities**, **Unlock editing**, turn on the ones you want and **Save**. Whoever can press a button in Home Assistant can then switch this computer off, so turn on only what you use.
 
 Nothing is forced. Shutting down and restarting go through Windows the same way the Start menu does: an app with unsaved work can still object and hold it up.
 

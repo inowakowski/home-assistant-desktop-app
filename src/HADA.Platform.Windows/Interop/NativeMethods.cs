@@ -142,6 +142,17 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool PowerClearRequest(nint request, int requestType);
 
+    /// <summary>Returns an HRESULT, 0 when the state was read.</summary>
+    [LibraryImport("shell32.dll")]
+    public static partial int SHQueryUserNotificationState(out int state);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool ExitWindowsEx(uint flags, uint reason);
+
+    [LibraryImport("user32.dll", EntryPoint = "SendMessageTimeoutW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial nint SendMessageTimeout(nint window, uint message, nint wParam, string lParam, uint flags, uint timeout, out nint result);
+
     [LibraryImport("ole32.dll")]
     public static partial int PropVariantClear(ref PropVariant value);
 

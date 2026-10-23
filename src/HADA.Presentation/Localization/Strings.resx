@@ -589,4 +589,11 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="EntityHint_network_upload" xml:space="preserve"><value>How fast data goes out over the connection Windows routes through, in kB/s over the last 10 seconds.</value></data>
   <data name="EntityHint_network_upload_Unix" xml:space="preserve"><value>How fast data goes out over the connection the computer routes through, in kB/s over the last 10 seconds.</value></data>
   <data name="EntityHint_keep_awake" xml:space="preserve"><value>Lets Home Assistant keep the computer from going to sleep by itself, e.g. through a long download. The screen may still turn off. Off whenever HADA starts.</value></data>
+  <data name="EntityHint_fullscreen_app" xml:space="preserve"><value>On while an app fills the screen: a game, a film or a slide show. What fills it (app, game or presentation) is the attribute kind.</value></data>
+  <data name="EntityHint_fullscreen_app_Unix" xml:space="preserve"><value>On while the window in front fills the screen, as a film or a game does. Only in an X11 session.</value></data>
+  <data name="EntityHint_dark_mode" xml:space="preserve"><value>Lets Home Assistant switch Windows and its apps between the dark and the light look.</value></data>
+  <data name="EntityHint_dark_mode_Unix" xml:space="preserve"><value>Lets Home Assistant switch the desktop between the dark and the light look: GNOME's colour scheme, or KDE's Breeze Dark and Breeze Light.</value></data>
+  <data name="EntityHint_dark_mode_MacOS" xml:space="preserve"><value>Lets Home Assistant switch the Mac between the dark and the light look. The first time, macOS asks whether HADA may control System Events.</value></data>
+  <data name="EntityHint_sign_out" xml:space="preserve"><value>Lets Home Assistant sign out whoever is at the computer. Off until you switch it on; apps with unsaved work can still hold it up.</value></data>
+  <data name="EntityHint_sign_out_Unix" xml:space="preserve"><value>Lets Home Assistant sign out whoever is at the computer, on GNOME and KDE. Off until you switch it on; apps with unsaved work can still hold it up.</value></data>
 </root>

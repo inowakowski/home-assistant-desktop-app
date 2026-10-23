@@ -122,6 +122,9 @@ public static class EntityVisuals
         "network_download" => Glyph.ArrowDownload,
         "network_upload" => Glyph.ArrowUpload,
         "keep_awake" => Glyph.DrinkCoffee,
+        "fullscreen_app" => Glyph.FullScreenMaximize,
+        "dark_mode" => Glyph.DarkTheme,
+        "sign_out" => Glyph.SignOut,
         _ when entity.Id.StartsWith("disk_", StringComparison.Ordinal) && entity.Id.EndsWith("_usage", StringComparison.Ordinal)
             => Glyph.Database,
         _ => entity.Kind switch

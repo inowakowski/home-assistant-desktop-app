@@ -22,6 +22,11 @@ public sealed partial class X11ActiveWindow : IDisposable
     private readonly ulong _windowName;
     private readonly ulong _utf8;
     private readonly ulong _pid;
+    private readonly ulong _state;
+    private readonly ulong _fullScreen;
+
+    // One display, asked by the sensors of the window in front and of the full screen, each on a thread of its own.
+    private readonly Lock _lock = new();
 
     private X11ActiveWindow(IntPtr display)
     {
@@ -31,6 +36,8 @@ public sealed partial class X11ActiveWindow : IDisposable
         _windowName = XInternAtom(display, "_NET_WM_NAME", false);
         _utf8 = XInternAtom(display, "UTF8_STRING", false);
         _pid = XInternAtom(display, "_NET_WM_PID", false);
+        _state = XInternAtom(display, "_NET_WM_STATE", false);
+        _fullScreen = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", false);
     }
 
     /// <summary>The X11 session's display, where this session is one; <see langword="null"/> on Wayland or without a display.</summary>
@@ -40,6 +47,42 @@ public sealed partial class X11ActiveWindow : IDisposable
     /// <summary>The window in front; <see langword="null"/> while there is none, as on an empty desktop.</summary>
     public ActiveWindowInfo? Read()
     {
+        lock (_lock)
+        {
+            return ActiveWindow() is { } window ? Describe(window) : null;
+        }
+    }
+
+    /// <summary>
+    /// Whether the window in front fills its screen, as its <c>_NET_WM_STATE</c> says: a film, a game or a slide
+    /// show made full screen. <see langword="false"/> while there is no window in front.
+    /// </summary>
+    public bool ReadFullScreen()
+    {
+        lock (_lock)
+        {
+            if (ActiveWindow() is not { } window || ReadProperty(window, _state) is not { } atoms)
+            {
+                return false;
+            }
+
+            // Atoms of format 32, a C long each.
+            for (var offset = 0; offset + 8 <= atoms.Length; offset += 8)
+            {
+                if ((ulong)BitConverter.ToInt64(atoms, offset) == _fullScreen)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    public void Dispose() => _ = X11Session.XCloseDisplay(_display);
+
+    private ulong? ActiveWindow()
+    {
         if (ReadProperty(_root, _activeWindow) is not { Length: >= 8 } active)
         {
             return null;
@@ -47,11 +90,11 @@ public sealed partial class X11ActiveWindow : IDisposable
 
         // Format 32 comes as a C long, 64 bits wide here.
         var window = (ulong)BitConverter.ToInt64(active, 0);
-        if (window == 0)
-        {
-            return null;
-        }
+        return window == 0 ? null : window;
+    }
 
+    private ActiveWindowInfo Describe(ulong window)
+    {
         var title = ReadProperty(window, _windowName) is { } name ? Encoding.UTF8.GetString(name) : string.Empty;
         string? processName = null;
         if (ReadProperty(window, _pid) is { Length: >= 8 } pid)
@@ -61,8 +104,6 @@ public sealed partial class X11ActiveWindow : IDisposable
 
         return new ActiveWindowInfo(title, processName);
     }
-
-    public void Dispose() => _ = X11Session.XCloseDisplay(_display);
 
     private byte[]? ReadProperty(ulong window, ulong property)
     {

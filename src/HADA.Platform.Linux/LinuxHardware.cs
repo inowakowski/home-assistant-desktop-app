@@ -165,9 +165,12 @@ public sealed class LinuxHardware(string root = "/", Func<string, string[], Tool
 /// for as long as the agent runs.
 /// </summary>
 [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-public sealed class LinuxDisplayReadings(LinuxHardware hardware) : IDisplayReadings, IDisposable
+public sealed class LinuxDisplayReadings(LinuxHardware hardware) : IDisplayReadings, IFullScreen, IDisposable
 {
     private readonly X11ActiveWindow? _windows = X11ActiveWindow.Open();
+
+    /// <summary>On X11, from the window in front; Wayland does not tell, as it does not tell which window that is.</summary>
+    FullScreenKind? IFullScreen.Read() => _windows is null ? null : _windows.ReadFullScreen() ? FullScreenKind.App : FullScreenKind.None;
 
     public DisplayCount? ReadDisplays() => hardware.ReadDisplays();
 
