@@ -363,6 +363,46 @@ public sealed class IntegrationTests : IAsyncLifetime
         [.. _homeAssistant.SocketMessages.Where(m => m.GetProperty("type").GetString() == "hada/command_result")];
 
     [Fact]
+    public async Task What_is_sent_from_several_loops_at_once_goes_out_with_ids_that_only_go_up()
+    {
+        await using var engine = CreateEngine(heartbeatInterval: TimeSpan.FromMilliseconds(200));
+        await engine.StartAsync(CancellationToken.None);
+        await WaitUntilConnectedAsync(engine);
+
+        // Each loop of the engine sends at once with the others, in bursts: readings, an entity going away and coming
+        // back, the list of entities, what happens on the computer, the answers to Home Assistant's commands, and
+        // the heartbeat's pings in between.
+        const int count = 100;
+        const int last = count - 1;
+        static async Task InBurstsAsync(Func<int, Task> send)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                await send(i);
+                if (i % 5 == 4)
+                {
+                    await Task.Delay(20);
+                }
+            }
+        }
+
+        await Task.WhenAll(
+            Task.Run(() => InBurstsAsync(i => _bus.PublishAsync(new TelemetryEvent { SensorId = "cpu_load", State = $"{i}" }).AsTask())),
+            Task.Run(() => InBurstsAsync(i => _registry.SetAvailabilityAsync("display_on", isAvailable: i % 2 == 1).AsTask())),
+            Task.Run(() => InBurstsAsync(i => _registry.RegisterAsync(new EntityDescriptor { Id = $"sensor_{i}", Name = $"Sensor {i}", Kind = EntityKind.Sensor }).AsTask())),
+            Task.Run(() => InBurstsAsync(i => _bus.PublishAsync(new DeviceEvent { Name = DeviceEvent.NotificationAction, Value = $"action_{i}", Target = "websocket (Home)" }).AsTask())),
+            Task.Run(() => InBurstsAsync(i => _homeAssistant.SendIntegrationCommandAsync(new { command_id = $"c{i}", command = "press", entity = "lock_screen" }))));
+
+        // A message Home Assistant ignored would be lost: no retry brings back a reading, a list or an answer.
+        await WaitUntilAsync(() => _homeAssistant.RejectedMessages.Length > 0
+            || (Results().Count == count
+                && _homeAssistant.SocketMessages.Any(m => m.GetProperty("type").GetString() == "hada/event" && m.GetProperty("value").GetString() == $"action_{last}")
+                && _homeAssistant.IntegrationEntity("cpu_load")?.State == $"{last}"
+                && _homeAssistant.IntegrationEntity($"sensor_{last}") is not null));
+        Assert.Empty(_homeAssistant.RejectedMessages);
+    }
+
+    [Fact]
     public async Task An_entity_whose_source_is_away_is_unavailable_and_keeps_what_it_said()
     {
         await using var engine = CreateEngine();
@@ -474,7 +514,7 @@ public sealed class IntegrationTests : IAsyncLifetime
         Assert.DoesNotContain(_homeAssistant.WebhookCalls, call => call.Body.GetProperty("type").GetString() == "register_sensor");
     }
 
-    private HaWebSocketEngine CreateEngine(bool notifications = false, IEntityFilter? filter = null) => new(
+    private HaWebSocketEngine CreateEngine(bool notifications = false, IEntityFilter? filter = null, TimeSpan? heartbeatInterval = null) => new(
         _bus,
         _registry,
         Options.Create(new HaWebSocketOptions
@@ -489,6 +529,7 @@ public sealed class IntegrationTests : IAsyncLifetime
             SensorMode = HomeAssistantSensorMode.Integration,
             IntegrationRetryInterval = TimeSpan.FromMilliseconds(100),
             MinReconnectDelay = TimeSpan.FromMilliseconds(50),
+            HeartbeatInterval = heartbeatInterval ?? TimeSpan.FromSeconds(30),
         }),
         NullLogger<HaWebSocketEngine>.Instance,
         filter,

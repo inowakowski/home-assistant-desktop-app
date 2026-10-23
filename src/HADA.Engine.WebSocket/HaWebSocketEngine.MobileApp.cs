@@ -145,12 +145,21 @@ public sealed partial class HaWebSocketEngine
     /// <param name="message">Makes the command, given its id.</param>
     private async Task<JsonElement?> RequestAsync(HaConnection connection, Func<int, object> message, TimeSpan timeout)
     {
-        var id = connection.NextId();
+        var id = 0;
         var pending = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _pendingRequests[id] = pending;
         try
         {
-            await connection.SendAsync(message(id), _stoppingToken).ConfigureAwait(false);
+            await connection.SendCommandAsync(
+                    next =>
+                    {
+                        // Waited for before the command goes out: the answer is read by another thread, and may be
+                        // there before sending returns.
+                        id = next;
+                        _pendingRequests[id] = pending;
+                        return message(id);
+                    },
+                    _stoppingToken)
+                .ConfigureAwait(false);
             return await pending.Task.WaitAsync(timeout, _stoppingToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is TimeoutException or OperationCanceledException
@@ -266,9 +275,8 @@ public sealed partial class HaWebSocketEngine
     private async Task<(int SubscriptionId, string? Error)> SubscribeToPushAsync(
         HaConnection connection, string webhookId, CancellationToken cancellationToken)
     {
-        var id = connection.NextId();
-        await connection.SendAsync(
-                new { id, type = "mobile_app/push_notification_channel", webhook_id = webhookId, support_confirm = true }, cancellationToken)
+        var id = await connection.SendCommandAsync(
+                next => new { id = next, type = "mobile_app/push_notification_channel", webhook_id = webhookId, support_confirm = true }, cancellationToken)
             .ConfigureAwait(false);
 
         while (true)
@@ -320,10 +328,10 @@ public sealed partial class HaWebSocketEngine
         {
             try
             {
-                await connection.SendAsync(
-                        new
+                await connection.SendCommandAsync(
+                        id => new
                         {
-                            id = connection.NextId(),
+                            id,
                             type = "mobile_app/push_notification_confirm",
                             webhook_id = registration.WebhookId,
                             confirm_id = confirm.GetString(),

@@ -44,6 +44,7 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
     private readonly Task _acceptLoop;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private readonly List<JsonElement> _socketMessages = [];
+    private readonly List<JsonElement> _rejectedMessages = [];
     private readonly List<StateWrite> _stateWrites = [];
     private readonly List<JsonElement> _registrations = [];
     private readonly List<WebhookCall> _webhookCalls = [];
@@ -271,6 +272,21 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
             lock (_socketMessages)
             {
                 return [.. _socketMessages];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Messages refused for an id no larger than the one before it on the connection. Home Assistant answers such
+    /// a message with <c>id_reuse</c> and does nothing else with it; it is in <see cref="SocketMessages"/> all the same.
+    /// </summary>
+    public JsonElement[] RejectedMessages
+    {
+        get
+        {
+            lock (_rejectedMessages)
+            {
+                return [.. _rejectedMessages];
             }
         }
     }
@@ -510,11 +526,26 @@ internal sealed class FakeHomeAssistant : IAsyncDisposable
             await SendAsync(socket, new { type = "auth_ok", ha_version = Version });
             _socket = socket;
 
+            var lastId = 0;
             while (await ReceiveAsync(socket) is { } message)
             {
                 var held = UpdatesHeld;
                 Record(message);
                 var id = message.TryGetProperty("id", out var idProperty) ? idProperty.GetInt32() : 0;
+
+                // As websocket_api's ActiveConnection has it: the ids of a connection only go up.
+                if (id <= lastId)
+                {
+                    lock (_rejectedMessages)
+                    {
+                        _rejectedMessages.Add(message);
+                    }
+
+                    await SendAsync(socket, new { id, type = "result", success = false, error = new { code = "id_reuse", message = "Identifier values have to increase." } });
+                    continue;
+                }
+
+                lastId = id;
                 switch (message.GetProperty("type").GetString())
                 {
                     case "subscribe_events" when !IsAdministrator:
