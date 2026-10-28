@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HADA – Home Assistant Desktop App for Windows</title>
-  <meta name="description" content="HADA connects a Windows computer to Home Assistant: it reports what the computer is doing and lets Home Assistant control it. Free and open source.">
+  <title>HADA – Home Assistant Desktop App for Windows, Linux and macOS</title>
+  <meta name="description" content="HADA connects a Windows, Linux or macOS computer to Home Assistant: it reports what the computer is doing and lets Home Assistant control it. Free and open source.">
   <link rel="canonical" href="{{SITE_URL}}/">
   <link rel="alternate" hreflang="en" href="{{SITE_URL}}/">
   <link rel="alternate" hreflang="pl" href="{{SITE_URL}}/pl/">
   <link rel="alternate" hreflang="x-default" href="{{SITE_URL}}/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="HADA – Home Assistant Desktop App">
-  <meta property="og:description" content="Connects a Windows computer to Home Assistant.">
+  <meta property="og:description" content="Connects a Windows, Linux or macOS computer to Home Assistant.">
   <meta property="og:url" content="{{SITE_URL}}/">
   <meta property="og:image" content="{{SITE_URL}}/img/overview.png">
   <link rel="icon" href="/img/logo.png">
@@ -32,18 +32,74 @@
 
   <main>
     <div class="hero wrap">
-      <h1>Your Windows computer in Home Assistant</h1>
-      <p class="lead">HADA runs in the background, tells Home Assistant what the computer is doing, and lets Home Assistant control it.</p>
+      <h1>Your computer in Home Assistant</h1>
+      <p class="lead">HADA runs in the background on Windows, Linux and macOS, tells Home Assistant what the computer is doing, and lets Home Assistant control it.</p>
       <div class="buttons">
-        <a class="button" data-asset="-x64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Download for x64</a>
-        <a class="button" data-asset="-arm64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Download for ARM64</a>
+        <a class="button" href="#download">Download</a>
         <a class="button secondary" href="{{DOCS_URL}}/">Read the documentation</a>
       </div>
-      <p class="note">Version <span data-version>from the latest release</span> · Windows 10 (1809 or newer) and Windows 11 · free, MIT license · also as a <a href="{{DOCS_URL}}/getting-started/portable/">portable version</a></p>
+      <p class="note">Version <span data-version>from the latest release</span> · Windows 10 and 11, Linux and macOS as a preview · free, MIT license</p>
       <img class="shot" src="/img/overview.png" alt="The Overview page of the HADA window">
     </div>
 
-    <section class="alt">
+    <section class="alt" id="download">
+      <div class="wrap">
+        <h2>Download</h2>
+        <ul class="grid downloads">
+          <li class="card">
+            <h3>Windows</h3>
+            <p>Windows 10 (1809 or newer) and Windows 11.</p>
+            <dl class="files">
+              <dt>Installer</dt>
+              <dd>
+                <a class="button small" data-asset="-x64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">x64</a>
+                <a class="button small" data-asset="-arm64.msi" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">ARM64</a>
+              </dd>
+              <dt><a href="{{DOCS_URL}}/getting-started/portable/">Portable version</a>, without installing</dt>
+              <dd>
+                <a class="button small secondary" data-asset="-x64-portable.zip" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">x64</a>
+                <a class="button small secondary" data-asset="-arm64-portable.zip" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">ARM64</a>
+              </dd>
+            </dl>
+          </li>
+          <li class="card">
+            <h3>Linux <span class="badge">Preview</span></h3>
+            <p>GNOME and KDE. Checked by automated tests only; nobody has tried it by hand yet.</p>
+            <dl class="files">
+              <dt>AppImage, runs without installing</dt>
+              <dd>
+                <a class="button small secondary" data-asset="-linux-x64.AppImage" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">x64</a>
+                <a class="button small secondary" data-asset="-linux-arm64.AppImage" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">ARM64</a>
+              </dd>
+              <dt>.deb for Debian and Ubuntu</dt>
+              <dd>
+                <a class="button small secondary" data-asset="-linux-x64.deb" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">x64</a>
+                <a class="button small secondary" data-asset="-linux-arm64.deb" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">ARM64</a>
+              </dd>
+              <dt>.rpm for Fedora and openSUSE</dt>
+              <dd>
+                <a class="button small secondary" data-asset="-linux-x64.rpm" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">x64</a>
+                <a class="button small secondary" data-asset="-linux-arm64.rpm" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">ARM64</a>
+              </dd>
+            </dl>
+          </li>
+          <li class="card">
+            <h3>macOS <span class="badge">Preview</span></h3>
+            <p>macOS 14 Sonoma or newer. Checked by automated tests only; nobody has tried it by hand yet.</p>
+            <dl class="files">
+              <dt>Disk image</dt>
+              <dd>
+                <a class="button small secondary" data-asset="-macos-arm64.dmg" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Apple silicon</a>
+                <a class="button small secondary" data-asset="-macos-x64.dmg" href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">Intel</a>
+              </dd>
+            </dl>
+          </li>
+        </ul>
+        <p class="note">Version <span data-version>from the latest release</span> · x64 is for Intel and AMD processors · <a href="{{DOCS_URL}}/getting-started/linux-macos/">What works on Linux and macOS</a> · every file and its checksum on the <a href="https://github.com/inowakowski/home-assistant-desktop-app/releases/latest">releases page</a></p>
+      </div>
+    </section>
+
+    <section>
       <div class="wrap">
         <h2>What it does</h2>
         <ul class="grid">
@@ -57,43 +113,19 @@
           </li>
           <li class="card">
             <h3>Shows notifications</h3>
-            <p>Sent from Home Assistant, with pictures and buttons that start automations.</p>
+            <p>Sent from Home Assistant; on Windows and Linux with pictures and buttons that start automations.</p>
           </li>
           <li class="card">
             <h3>Your own sensors and buttons</h3>
-            <p>Without writing code: whether a program runs, whether a dock is connected, the output of a PowerShell command, a button that starts a program or presses keys.</p>
+            <p>Without writing code: whether a program runs, whether a dock is connected, the output of a PowerShell or shell command, a button that starts a program or presses keys.</p>
           </li>
           <li class="card">
             <h3>Quick actions</h3>
-            <p>Start automations from the tray icon's menu or with a keyboard shortcut.</p>
+            <p>Start automations from the menu of HADA's icon, in the tray or the menu bar, or with a keyboard shortcut.</p>
           </li>
           <li class="card">
             <h3>Your dashboard at hand</h3>
-            <p>A small window with your Home Assistant dashboard, opened from the tray icon.</p>
-          </li>
-        </ul>
-      </div>
-    </section>
-
-    <section>
-      <div class="wrap">
-        <h2>How it is built</h2>
-        <ul class="grid">
-          <li class="card">
-            <h3>A service and a small tray app</h3>
-            <p>The service keeps the connection and works with nobody signed in. The tray app adds what only a signed-in user's desktop can tell.</p>
-          </li>
-          <li class="card">
-            <h3>Light</h3>
-            <p>About 15 MB of memory for the service and 20 to 25 MB for the tray app. The window only exists while it is open.</p>
-          </li>
-          <li class="card">
-            <h3>MQTT discovery</h3>
-            <p>The computer shows up in Home Assistant as a device with all its entities; nothing to write in YAML. A direct WebSocket connection works too.</p>
-          </li>
-          <li class="card">
-            <h3>Yours to control</h3>
-            <p>Every entity has a switch. The buttons that switch the computer off stay off until you turn them on. Only an administrator can change settings.</p>
+            <p>Your Home Assistant dashboard, opened from HADA's icon: in a small window on Windows, in the browser on Linux and macOS.</p>
           </li>
         </ul>
       </div>
@@ -101,15 +133,39 @@
 
     <section class="alt">
       <div class="wrap">
+        <h2>How it is built</h2>
+        <ul class="grid">
+          <li class="card">
+            <h3>A service and a small app</h3>
+            <p>The service keeps the connection; the app beside it adds what only a signed-in user's desktop can tell. On Windows the service works with nobody signed in; on Linux and macOS it runs in your session, without root.</p>
+          </li>
+          <li class="card">
+            <h3>Light</h3>
+            <p>About 15 MB of memory for the service and 20 to 25 MB for the tray app, measured on Windows. The window only exists while it is open.</p>
+          </li>
+          <li class="card">
+            <h3>MQTT discovery</h3>
+            <p>The computer shows up in Home Assistant as a device with all its entities; nothing to write in YAML. A direct WebSocket connection works too.</p>
+          </li>
+          <li class="card">
+            <h3>Yours to control</h3>
+            <p>Every entity has a switch. The buttons that switch the computer off stay off until you turn them on. On Windows only an administrator can change settings.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
         <h2>Start here</h2>
         <ul class="grid steps">
           <li class="card">
             <h3><a href="{{DOCS_URL}}/getting-started/installation/">Install HADA</a></h3>
-            <p>Run the installer, or unpack the portable version, which needs no administrator rights.</p>
+            <p>On Windows run the installer, or unpack the portable version, which needs no administrator rights. On <a href="{{DOCS_URL}}/getting-started/linux-macos/">Linux and macOS</a> take the package for your system.</p>
           </li>
           <li class="card">
             <h3><a href="{{DOCS_URL}}/getting-started/first-setup/">Connect it to Home Assistant</a></h3>
-            <p>Open HADA from the tray icon and set up a connection to your MQTT broker or straight to Home Assistant.</p>
+            <p>Open HADA from its icon and set up a connection to your MQTT broker or straight to Home Assistant.</p>
           </li>
           <li class="card">
             <h3><a href="{{DOCS_URL}}/home-assistant/examples/">Use it in automations</a></h3>
