@@ -20,11 +20,13 @@ public sealed class IpcOptions
     public TimeSpan PipeRetryDelay { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// Whether a client running as the same user as the server may change settings without being an elevated
-    /// administrator. For a portable copy, whose service is a process of the user: whatever its settings can make
-    /// it do, that user can do anyway.
+    /// Whether the service and its clients may be processes of the same user: a client of that user may then change
+    /// settings without being an elevated administrator, and a client takes a pipe of its own user for the
+    /// service's. So it is for a portable copy, and on Linux and macOS, where the service is a process of the user:
+    /// whatever its settings can make it do, that user can do anyway. Not for the installed service on Windows,
+    /// which runs as SYSTEM.
     /// </summary>
-    public bool TrustSameUser { get; set; }
+    public bool TrustSameUser { get; set; } = AppInstance.IsPortable || !OperatingSystem.IsWindows();
 
     /// <summary>How often the server checks whether another user's session came to the front.</summary>
     public TimeSpan SessionCheckInterval { get; set; } = TimeSpan.FromSeconds(2);

@@ -15,11 +15,13 @@ dotnet test
 
 ## Running during development
 
-Start the service and the tray in two terminals:
+Start the service and the tray in two terminals, the service's an **elevated** one on Windows:
 
 ```powershell
 dotnet run --project src/HADA.Service
 ```
+
+The tray and the window take only a pipe made by SYSTEM or an administrator for the service's, as they do when installed (a portable copy's take their own user's too). A service started from an ordinary terminal makes its pipe as you, and the tray refuses it, saying so in its log.
 
 ```powershell
 dotnet run --project src/HADA.Tray

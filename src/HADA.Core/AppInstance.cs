@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 
 namespace HADA.Core;
@@ -19,7 +20,12 @@ public static class AppInstance
     public const string MarkerFileName = "HADA.portable";
 
     /// <summary>The folder of the portable copy this process runs from, or <see langword="null"/> for the installed app.</summary>
-    public static string? PortableRoot { get; } = FindPortableRoot(AppContext.BaseDirectory);
+    /// <remarks>
+    /// Never one for a process running as SYSTEM: that is the installed service, and a portable copy's service runs
+    /// as the user who started it. Were it otherwise, a file added next to the installed program would move the
+    /// service's settings into a folder of no protection, which the service would then read and run commands from.
+    /// </remarks>
+    public static string? PortableRoot { get; } = RunsAsSystem() ? null : FindPortableRoot(AppContext.BaseDirectory);
 
     public static bool IsPortable => PortableRoot is not null;
 
@@ -65,6 +71,18 @@ public static class AppInstance
         {
             return null;
         }
+    }
+
+    /// <summary>Whether this process is the Windows system account, as the installed service is.</summary>
+    public static bool RunsAsSystem()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
+        using var identity = WindowsIdentity.GetCurrent();
+        return identity.IsSystem;
     }
 
     /// <summary>The suffix of the portable copy in <paramref name="root"/>: the same however the path is written.</summary>

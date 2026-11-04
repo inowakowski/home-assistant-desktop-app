@@ -44,6 +44,7 @@ You can also configure the service without the window, through `appsettings.json
 | `Mqtt:Host` | *(empty = MQTT engine off)* | Broker host name or IP. The window also accepts pasted addresses such as `mqtt://broker:1883` and splits them into host, port and TLS |
 | `Mqtt:Port` | `1883` | Usually `8883` with TLS |
 | `Mqtt:UseTls` | `false` | Use TLS for the broker connection |
+| `Mqtt:AllowUnencrypted` | `false` | *Not released yet.* Lets the connection be made without TLS to a broker at a public address, where the password can be read on the way; see [Security](security.md#the-connection-to-the-mqtt-broker) |
 | `Mqtt:Username` / `Mqtt:Password` | – | Broker credentials. See [Secrets](#secrets) |
 | `Mqtt:DiscoveryPrefix` | `homeassistant` | Must match the MQTT integration's discovery prefix |
 | `Mqtt:BaseTopic` | `hada` | Root of HADA's state, attributes, command and availability topics |

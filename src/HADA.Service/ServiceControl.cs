@@ -510,6 +510,7 @@ public sealed partial class ServiceControl(
     {
         Id = mqtt.Id ?? string.Empty,
         Name = mqtt.Name ?? string.Empty,
+        AllowUnencrypted = mqtt.AllowUnencrypted,
     };
 
     private static MqttSettings Normalize(MqttSettings settings) => MqttAddress.Apply(settings) with
@@ -540,6 +541,7 @@ public sealed partial class ServiceControl(
         Host = settings.Host,
         Port = settings.Port,
         UseTls = settings.UseTls,
+        AllowUnencrypted = settings.AllowUnencrypted,
         Username = settings.Username,
         Password = password,
         DeviceId = settings.DeviceId,

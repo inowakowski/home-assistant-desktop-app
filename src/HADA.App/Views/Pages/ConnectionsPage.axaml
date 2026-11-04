@@ -228,11 +228,24 @@
                                     </v:FieldRow>
                                     <v:FieldRow>
                                         <TextBlock Classes="label" Text="{l:Tr Field_UseTls}" />
-                                        <ToggleSwitch
-                                            Grid.Column="1"
-                                            IsChecked="{Binding UseTls}"
-                                            OffContent="{l:Tr Common_Off}"
-                                            OnContent="{l:Tr Common_On}" />
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <ToggleSwitch
+                                                IsChecked="{Binding UseTls}"
+                                                OffContent="{l:Tr Common_Off}"
+                                                OnContent="{l:Tr Common_On}" />
+                                            <TextBlock
+                                                MaxWidth="460"
+                                                HorizontalAlignment="Left"
+                                                Classes="caption secondary"
+                                                Classes.error="{Binding IsUnencryptedPublic}"
+                                                IsVisible="{Binding HasEncryptionNote}"
+                                                Text="{Binding EncryptionNote}"
+                                                TextWrapping="Wrap" />
+                                            <CheckBox
+                                                Content="{l:Tr Mqtt_AllowUnencrypted}"
+                                                IsChecked="{Binding AllowUnencrypted}"
+                                                IsVisible="{Binding CanAllowUnencrypted}" />
+                                        </StackPanel>
                                     </v:FieldRow>
                                     <v:FieldRow>
                                         <TextBlock Classes="label" Text="{l:Tr Field_Username}" />

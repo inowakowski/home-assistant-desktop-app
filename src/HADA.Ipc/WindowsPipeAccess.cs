@@ -36,10 +36,12 @@ internal sealed class WindowsPipeAccess : IPipeAccess
         new(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous, TokenImpersonationLevel.Identification);
 
     /// <summary>
-    /// Refuses a pipe not created by SYSTEM, an administrator or the current user, so another account cannot
-    /// create the pipe before the service starts and collect window titles.
+    /// Refuses a pipe not created by SYSTEM or an administrator, so another account cannot create the pipe before
+    /// the service starts and collect window titles. A pipe of the current user is refused too, unless
+    /// <paramref name="trustSameUser"/> says the service is that user's: else any program of the user could, while
+    /// the service is not running, pose as it and have the tray app start programs and press keys.
     /// </summary>
-    public void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName)
+    public void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName, bool trustSameUser)
     {
         var owner = pipe.GetAccessControl().GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier;
         using var identity = WindowsIdentity.GetCurrent();
@@ -47,7 +49,7 @@ internal sealed class WindowsPipeAccess : IPipeAccess
         var trusted = owner is not null
             && (owner.IsWellKnown(WellKnownSidType.LocalSystemSid)
                 || owner.IsWellKnown(WellKnownSidType.BuiltinAdministratorsSid)
-                || owner == identity.User);
+                || (trustSameUser && owner == identity.User));
         if (!trusted)
         {
             throw new UnauthorizedAccessException(

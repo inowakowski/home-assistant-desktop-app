@@ -36,10 +36,25 @@
         <StandardDirectory Id="ProgramMenuFolder" />
 
         <Feature Id="Main" Title="HADA">
+            <ComponentRef Id="InstallFolderPermissions" />
             <ComponentGroupRef Id="ServiceFiles" />
             <ComponentGroupRef Id="TrayFiles" />
             <ComponentGroupRef Id="AppFiles" />
         </Feature>
+
+        <!--
+            The service runs as SYSTEM from this folder, so nobody but the system and the administrators may change
+            what is in it. Program Files grants no more than that, but a folder named on the command line
+            (INSTALLFOLDER=…) would inherit the rights of wherever it is, and on a drive's root every signed-in user
+            may change what is in a new folder. So the folder gets rights of its own, not inherited: full control for
+            the system and the administrators, reading and running for users and for apps from the Store, as in
+            Program Files. What is installed below it inherits them.
+        -->
+        <Component Id="InstallFolderPermissions" Directory="INSTALLFOLDER" Guid="3F9C2A71-6B4E-4D8A-9E25-71C0B8D4A6F3">
+            <CreateFolder>
+                <PermissionEx Sddl="D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)(A;OICI;0x1200a9;;;AC)" />
+            </CreateFolder>
+        </Component>
 
         <ComponentGroup Id="ServiceFiles" Directory="ServiceFolder">
             <Component Id="ServiceExe">
@@ -141,11 +156,16 @@
             RebootPrompt="no"
             TerminateProcess="0" />
 
-        <!-- Welcome, folder, install. The licence page of the stock dialog set is skipped: there is no licence text to show. -->
+        <!--
+            Welcome, then install. The licence page of the stock dialog set is skipped, as there is no licence text to
+            show, and so is the page for choosing a folder: HADA always goes to Program Files, whose rights keep its
+            files out of ordinary users' reach. An administrator who must have it elsewhere can still pass
+            INSTALLFOLDER on the command line, and the folder is then given the same rights (see above).
+        -->
         <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
         <UI>
-            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="99" Condition="NOT Installed" />
-            <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="99" />
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="99" Condition="NOT Installed" />
+            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="99" Condition="NOT Installed" />
 
             <!--
                 Offered on the last page. The action runs in the installer's user interface process, so the tray

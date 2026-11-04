@@ -22,6 +22,13 @@ public sealed class MqttOptions
 
     public bool UseTls { get; set; }
 
+    /// <summary>
+    /// Whether a broker at an address out on the internet is connected to without <see cref="UseTls"/>, although
+    /// the password and everything sent can be read on the way there. Off unless the user chose it; a broker on
+    /// this computer or a private network is connected to either way.
+    /// </summary>
+    public bool AllowUnencrypted { get; set; }
+
     public string? Username { get; set; }
 
     /// <summary>
