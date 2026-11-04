@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace HADA.Tests.Platform;
 
 /// <summary>The "Keep awake" switch, and how each system holds sleep off.</summary>
+[Collection(ChildProcessCollection.Name)]
 public sealed class KeepAwakeTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);

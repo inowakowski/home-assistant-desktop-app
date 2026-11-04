@@ -71,7 +71,8 @@ public sealed class UnencryptedMqttTests
         await using var engine = new MqttEngine(
             bus,
             new EntityRegistry(bus),
-            Options.Create(new MqttOptions { Host = PublicAddress, MinReconnectDelay = TimeSpan.FromMilliseconds(50) }),
+            // A long wait before the next attempt: it would set the state back to Connecting, while the issue stays.
+            Options.Create(new MqttOptions { Host = PublicAddress, MinReconnectDelay = TimeSpan.FromMinutes(5) }),
             NullLogger<MqttEngine>.Instance);
 
         await engine.StartAsync(CancellationToken.None);

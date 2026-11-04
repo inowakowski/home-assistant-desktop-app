@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HADA.Tests.Service;
 
+[Collection(ChildProcessCollection.Name)]
 public sealed class CustomSensorTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
