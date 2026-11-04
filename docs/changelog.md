@@ -2,9 +2,9 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
-## Unreleased
+## 1.15.1 (preview)
 
-Security fixes, from a review of the whole app.
+Security fixes, from a review of the whole app. A preview, so that the new installer and the stricter MQTT rule get tried before a stable version carries them.
 
 - **The installer no longer asks for a folder**: HADA always goes to `C:\Program Files\HADA`. In a folder elsewhere, a drive's root for instance, every signed-in user could change the files of the service, which runs as SYSTEM, and so run anything with its rights. A folder named on the command line (`INSTALLFOLDER=…`) now gets rights of its own instead of those of where it is. A copy installed elsewhere moves to Program Files with the update.
 - **The installed service never takes itself for a portable copy.** A `HADA.portable` file next to its folder would have moved its settings to an unprotected folder.

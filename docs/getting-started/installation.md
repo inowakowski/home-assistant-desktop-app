@@ -15,7 +15,7 @@ Download the installer that matches the computer from the [releases page](https:
 
 Double-click the installer and follow the pages. It:
 
-- copies HADA to `C:\Program Files\HADA`. *Not released yet:* it no longer asks for a folder, since the service runs as SYSTEM from there and a folder elsewhere could let other users change it; see [Security](../reference/security.md#everything-else)
+- copies HADA to `C:\Program Files\HADA`. *New in 1.15.1:* it no longer asks for a folder, since the service runs as SYSTEM from there and a folder elsewhere could let other users change it; see [Security](../reference/security.md#everything-else)
 - registers the `HADA` service (LocalSystem, starts with Windows, restarts a minute after a crash) and starts it
 - starts the tray app at sign-in for every user, and adds **HADA** to the Start menu. Each user can turn this off with **Start with Windows** on the Settings page; the service itself always starts with Windows
 - offers to open the HADA window on the last page, where you choose **Unlock editing** and set up a connection
