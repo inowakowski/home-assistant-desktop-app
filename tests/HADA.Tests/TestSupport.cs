@@ -95,3 +95,15 @@ internal static class TestSetup
         }
     }
 }
+
+/// <summary>
+/// Tests that start a program and then look for it among this process's children, and tests that start the same
+/// program: never run at the same time, or one finds the other's. A shell started with <c>sh -c "sleep 120"</c>
+/// becomes <c>sleep</c> itself, so a hanging custom sensor's command is a <c>sleep</c> child just like the
+/// keep-awake test's.
+/// </summary>
+[CollectionDefinition(Name)]
+public sealed class ChildProcessCollection
+{
+    public const string Name = "Child processes";
+}
