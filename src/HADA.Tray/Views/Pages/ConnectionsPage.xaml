@@ -250,6 +250,30 @@
                                     FontTypography="Caption"
                                     Text="{l:Tr Field_Host}" />
                                 <ui:TextBox PlaceholderText="homeassistant.local" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <!--  What it means that the connection is not encrypted, as for a Home Assistant's address.  -->
+                                <ui:TextBlock
+                                    Margin="0,6,0,0"
+                                    FontTypography="Caption"
+                                    Text="{Binding EncryptionNote}"
+                                    TextWrapping="Wrap"
+                                    Visibility="{Binding HasEncryptionNote, Converter={StaticResource BooleanToVisibility}}">
+                                    <ui:TextBlock.Style>
+                                        <Style TargetType="ui:TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsUnencryptedPublic}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCautionBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ui:TextBlock.Style>
+                                </ui:TextBlock>
+                                <CheckBox
+                                    Margin="0,6,0,0"
+                                    Content="{l:Tr Mqtt_AllowUnencrypted}"
+                                    IsChecked="{Binding AllowUnencrypted}"
+                                    Visibility="{Binding CanAllowUnencrypted, Converter={StaticResource BooleanToVisibility}}" />
                             </StackPanel>
 
                             <Grid

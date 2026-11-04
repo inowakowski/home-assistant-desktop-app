@@ -108,6 +108,12 @@ public sealed record MqttSettings(
     /// <summary>What the user calls the server, e.g. "Flat". Needed once there is more than one.</summary>
     public string Name { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Whether a broker at an address out on the internet is connected to without TLS, although the password and
+    /// everything sent can be read on the way there. Off unless the user chose it.
+    /// </summary>
+    public bool AllowUnencrypted { get; init; }
+
     /// <summary>A new id for a server added in the window.</summary>
     public static string NewId() => Guid.NewGuid().ToString("N")[..8];
 }

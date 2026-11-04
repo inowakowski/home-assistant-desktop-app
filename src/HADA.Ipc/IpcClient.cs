@@ -51,7 +51,7 @@ public sealed partial class IpcClient(
                 {
                     // Waits for as long as it takes the service to create the pipe.
                     await pipe.ConnectAsync(cancellationToken).ConfigureAwait(false);
-                    PipeAccess.Current.EnsureTrustedServer(pipe, options.Value.PipeName);
+                    PipeAccess.Current.EnsureTrustedServer(pipe, options.Value.PipeName, options.Value.TrustSameUser);
 
                     var stream = new IpcMessageStream(pipe);
                     await OpenSessionAsync(stream, cancellationToken).ConfigureAwait(false);

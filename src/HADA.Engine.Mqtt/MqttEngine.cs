@@ -132,6 +132,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
         try
         {
             location = await new BrokerLocator().LocateAsync(options.Host, options.Port, timeout.Token).ConfigureAwait(false);
+            EnsureEncryptedOrLocal(options, location.Address);
             await client.ConnectAsync(
                     CreateClientOptions(options, $"hada-test-{Guid.NewGuid():N}", location.Address).Build(), timeout.Token)
                 .ConfigureAwait(false);
@@ -239,6 +240,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
                 await ConnectAsync(cancellationToken).ConfigureAwait(false);
                 var connectedAt = Stopwatch.GetTimestamp();
                 _lastFailure = null;
+                _issue = null;
 
                 await _disconnected.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
                 _state = EngineConnectionState.Disconnected;
@@ -266,6 +268,7 @@ public sealed partial class MqttEngine : ICommunicationEngine
             catch (Exception ex)
             {
                 _state = EngineConnectionState.Faulted;
+                _issue = ex is MqttUnencryptedException ? IssueUnencrypted : null;
 
                 // A server that cannot be reached is nothing unusual for a computer that moves between places, and
                 // the attempts go on for as long as that lasts: said once, and again when the reason changes.
@@ -311,6 +314,9 @@ public sealed partial class MqttEngine : ICommunicationEngine
         }
 
         _lastAddress = location.Address;
+
+        // Checked against the address actually connected to, which may change from one attempt to the next.
+        EnsureEncryptedOrLocal(_options, location.Address);
         await _client.ConnectAsync(BuildClientOptions(location.Address), cancellationToken).ConfigureAwait(false);
         _locator.Remember(location.Address);
         await _client.SubscribeAsync(_topics.HomeAssistantStatus, MqttQualityOfServiceLevel.AtLeastOnce, cancellationToken)

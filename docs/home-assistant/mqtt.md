@@ -49,6 +49,7 @@ An IP address always works. A name works when Windows can find it:
 - A name often stands for several addresses, `.local` ones especially: one IPv4 address and one or more IPv6 ones, of which the broker may answer on only some. HADA tries the IPv4 ones first, gives each a few seconds, and remembers the one that answered. When the name cannot be found for a moment, it connects to that address.
 - The log says what the name stands for and where HADA connected, for instance *The broker's name 'homeassistant.local' stands for 192.168.1.20, fd00:1::20; connecting to 192.168.1.20.* If that is not your broker's address, the name belongs to another device; a router often answers to the name of the network.
 - With TLS, the broker's certificate is checked against the name you typed, not against the address it stands for.
+- *Not released yet.* Without TLS, HADA connects only to a broker on the computer itself or on a private network, such as `192.168.x`: the password and everything the computer reports travel as plain text. A broker at a public address is refused, and the **Overview** page says why. Turn TLS on, or tick **Connect to this broker without encryption** under the address if the way there is encrypted by something else, a VPN for instance. See [Security](../reference/security.md#the-connection-to-the-mqtt-broker).
 
 ## Topics
 

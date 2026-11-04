@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using HADA.Core;
 using HADA.Ipc;
 using HADA.Presentation.Localization;
 using HADA.Presentation.Mvvm;
@@ -18,6 +19,7 @@ public sealed class MqttServerViewModel : ObservableObject
     private string _host;
     private double? _port;
     private bool _useTls;
+    private bool _allowUnencrypted;
     private string _username;
     private string _password = string.Empty;
     private bool _clearPassword;
@@ -36,6 +38,7 @@ public sealed class MqttServerViewModel : ObservableObject
         _host = settings.Host;
         _port = settings.Port;
         _useTls = settings.UseTls;
+        _allowUnencrypted = settings.AllowUnencrypted;
         _username = settings.Username;
         _deviceId = settings.DeviceId;
         _deviceName = settings.DeviceName;
@@ -89,13 +92,57 @@ public sealed class MqttServerViewModel : ObservableObject
             if (SetSetting(ref _host, value))
             {
                 OnPropertyChanged(nameof(DisplayName));
+                OnEncryptionChanged();
             }
         }
     }
 
     public double? Port { get => _port; set => SetSetting(ref _port, value); }
 
-    public bool UseTls { get => _useTls; set => SetSetting(ref _useTls, value); }
+    public bool UseTls
+    {
+        get => _useTls;
+        set
+        {
+            if (SetSetting(ref _useTls, value))
+            {
+                OnEncryptionChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Says under the address what it means that what is sent there is not encrypted; empty while TLS is on, also
+    /// when the address itself asks for it (<c>mqtts://</c>), and until there is an address.
+    /// </summary>
+    public string EncryptionNote =>
+        MqttAddress.Parse(Host) is not { Host.Length: > 0 } address || (address.UseTls ?? UseTls) ? string.Empty
+        : NetworkScope.LooksLocal(address.Host) ? Loc.Get("Mqtt_UnencryptedLocal")
+        : Loc.Get(AllowUnencrypted ? "Mqtt_UnencryptedAllowed" : "Mqtt_UnencryptedPublic");
+
+    public bool HasEncryptionNote => EncryptionNote.Length > 0;
+
+    /// <summary>
+    /// A broker without TLS whose name reads like one out on the internet. Whether it is one is found out when
+    /// connecting, by the address the name stands for; this only decides how the note is worded and coloured.
+    /// </summary>
+    public bool IsUnencryptedPublic =>
+        MqttAddress.Parse(Host) is { Host.Length: > 0 } address && !(address.UseTls ?? UseTls) && !NetworkScope.LooksLocal(address.Host);
+
+    /// <summary>The switch is offered where it has a say, and stays in sight while it is on.</summary>
+    public bool CanAllowUnencrypted => IsUnencryptedPublic || AllowUnencrypted;
+
+    public bool AllowUnencrypted
+    {
+        get => _allowUnencrypted;
+        set
+        {
+            if (SetSetting(ref _allowUnencrypted, value))
+            {
+                OnEncryptionChanged();
+            }
+        }
+    }
 
     public string Username { get => _username; set => SetSetting(ref _username, value); }
 
@@ -126,6 +173,7 @@ public sealed class MqttServerViewModel : ObservableObject
         {
             Id = Id,
             Name = Name.Trim(),
+            AllowUnencrypted = AllowUnencrypted,
         }),
         SettingsViewModel.SecretUpdateFor(Password, ClearPassword));
 
@@ -149,6 +197,14 @@ public sealed class MqttServerViewModel : ObservableObject
         }
 
         return IsTopicPrefix(DiscoveryPrefix) && IsTopicPrefix(BaseTopic) ? null : Loc.Get("Validation_Topic");
+    }
+
+    private void OnEncryptionChanged()
+    {
+        OnPropertyChanged(nameof(EncryptionNote));
+        OnPropertyChanged(nameof(HasEncryptionNote));
+        OnPropertyChanged(nameof(IsUnencryptedPublic));
+        OnPropertyChanged(nameof(CanAllowUnencrypted));
     }
 
     private static bool IsTopicPrefix(string value)

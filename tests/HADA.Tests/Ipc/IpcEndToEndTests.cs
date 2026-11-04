@@ -17,11 +17,13 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
+    // The trays take the pipe of the user running the tests for the service's, as a portable copy's trays do.
     private readonly IpcOptions _options = new()
     {
         PipeName = "HADA.T." + Guid.NewGuid().ToString("N")[..12],
         ClientName = "test-tray",
         MinReconnectDelay = TimeSpan.FromMilliseconds(50),
+        TrustSameUser = true,
     };
 
     private readonly ChannelEventBus _trayBus = new();
@@ -393,7 +395,13 @@ public sealed class IpcEndToEndTests : IAsyncDisposable
             _client = new IpcClient(
                 Bus,
                 Registry,
-                Options.Create(new IpcOptions { PipeName = pipeName, ClientName = clientName, MinReconnectDelay = TimeSpan.FromMilliseconds(50) }),
+                Options.Create(new IpcOptions
+                {
+                    PipeName = pipeName,
+                    ClientName = clientName,
+                    MinReconnectDelay = TimeSpan.FromMilliseconds(50),
+                    TrustSameUser = true,
+                }),
                 NullLogger<IpcClient>.Instance);
         }
 

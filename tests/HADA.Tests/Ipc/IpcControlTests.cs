@@ -18,11 +18,13 @@ public sealed class IpcControlTests : IAsyncDisposable
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
+    // The server keeps to the installed service's rules on every system, so saving needs an elevated administrator.
     private readonly IpcOptions _options = new()
     {
         PipeName = "HADA.T." + Guid.NewGuid().ToString("N")[..12],
         ClientName = "test-tray",
         MinReconnectDelay = TimeSpan.FromMilliseconds(50),
+        TrustSameUser = false,
     };
 
     private readonly ChannelEventBus _serviceBus = new();
@@ -36,8 +38,20 @@ public sealed class IpcControlTests : IAsyncDisposable
         _serviceRegistry = new EntityRegistry(_serviceBus);
         _control = new FakeServiceControl(_serviceRegistry);
         _server = new IpcServer(_serviceBus, _serviceRegistry, Options.Create(_options), NullLogger<IpcServer>.Instance, _control);
-        _client = new ServiceControlClient(new IpcOptions { PipeName = _options.PipeName, ClientName = "test-window" });
+        _client = new ServiceControlClient(ClientOptions("test-window"));
     }
+
+    /// <summary>
+    /// The clients take the pipe of the user running the tests for the service's, as a portable copy's clients do;
+    /// the installed app's clients would refuse it, since their service is SYSTEM.
+    /// </summary>
+    private IpcOptions ClientOptions(string clientName) => new()
+    {
+        PipeName = _options.PipeName,
+        ClientName = clientName,
+        MinReconnectDelay = _options.MinReconnectDelay,
+        TrustSameUser = true,
+    };
 
     public async ValueTask DisposeAsync()
     {
@@ -53,7 +67,7 @@ public sealed class IpcControlTests : IAsyncDisposable
         await _server.StartAsync(CancellationToken.None);
         await using var trayBus = new ChannelEventBus();
         var trayRegistry = new EntityRegistry(trayBus);
-        using var tray = new IpcClient(trayBus, trayRegistry, Options.Create(_options), NullLogger<IpcClient>.Instance);
+        using var tray = new IpcClient(trayBus, trayRegistry, Options.Create(ClientOptions("test-tray")), NullLogger<IpcClient>.Instance);
         await tray.StartAsync(CancellationToken.None);
         await trayRegistry.RegisterAsync(new EntityDescriptor { Id = "audio_volume", Name = "Volume", Kind = EntityKind.Sensor });
         await WaitUntilAsync(() => _serviceRegistry.TryGet("audio_volume", out _));

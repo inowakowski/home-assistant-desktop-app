@@ -47,7 +47,8 @@ internal sealed class UnixPipeAccess : IPipeAccess
         new(".", SocketPath(pipeName), PipeDirection.InOut, PipeOptions.Asynchronous);
 
     /// <summary>Refuses a socket outside a folder that only this user may enter, where somebody else could have made it.</summary>
-    public void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName)
+    // The service is always the user's own here, so a socket of the user's is what is expected.
+    public void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName, bool trustSameUser)
     {
         var folder = Path.GetDirectoryName(SocketPath(pipeName))!;
         if (File.GetUnixFileMode(folder) != PrivateFolder)

@@ -39,6 +39,7 @@ public sealed class StoredSettingsConfigurationProvider(SettingsStore store) : C
                 data[prefix + nameof(mqtt.Host)] = mqtt.Host;
                 data[prefix + nameof(mqtt.Port)] = mqtt.Port.ToString(CultureInfo.InvariantCulture);
                 data[prefix + nameof(mqtt.UseTls)] = mqtt.UseTls ? "true" : "false";
+                data[prefix + nameof(mqtt.AllowUnencrypted)] = mqtt.AllowUnencrypted ? "true" : "false";
                 data[prefix + nameof(mqtt.Username)] = mqtt.Username;
                 data[prefix + nameof(mqtt.DeviceId)] = mqtt.DeviceId;
                 data[prefix + nameof(mqtt.DeviceName)] = mqtt.DeviceName;

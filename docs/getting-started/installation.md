@@ -13,9 +13,9 @@ Without installing anything, and without administrator rights, there is the [por
 
 Download the installer that matches the computer from the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases): `HADA-<version>-x64.msi` for Intel and AMD processors, `HADA-<version>-arm64.msi` for ARM64. Each release also has a `SHA256SUMS.txt` to check the download against. The installers are self-contained, so the computer needs no .NET.
 
-Double-click the installer and follow the three pages. It:
+Double-click the installer and follow the pages. It:
 
-- copies HADA to `C:\Program Files\HADA`
+- copies HADA to `C:\Program Files\HADA`. *Not released yet:* it no longer asks for a folder, since the service runs as SYSTEM from there and a folder elsewhere could let other users change it; see [Security](../reference/security.md#everything-else)
 - registers the `HADA` service (LocalSystem, starts with Windows, restarts a minute after a crash) and starts it
 - starts the tray app at sign-in for every user, and adds **HADA** to the Start menu. Each user can turn this off with **Start with Windows** on the Settings page; the service itself always starts with Windows
 - offers to open the HADA window on the last page, where you choose **Unlock editing** and set up a connection

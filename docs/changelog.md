@@ -2,6 +2,15 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews.
 
+## Unreleased
+
+Security fixes, from a review of the whole app.
+
+- **The installer no longer asks for a folder**: HADA always goes to `C:\Program Files\HADA`. In a folder elsewhere, a drive's root for instance, every signed-in user could change the files of the service, which runs as SYSTEM, and so run anything with its rights. A folder named on the command line (`INSTALLFOLDER=…`) now gets rights of its own instead of those of where it is. A copy installed elsewhere moves to Program Files with the update.
+- **The installed service never takes itself for a portable copy.** A `HADA.portable` file next to its folder would have moved its settings to an unprotected folder.
+- **The tray app and the window trust only a service pipe made by SYSTEM or an administrator.** Before, they also took one made by their own user, so that any program of that user could, while the service was not running, pose as it and have the tray app start programs and press keys. A portable copy's still accept their own user's, as their service is a process of that user.
+- **MQTT without TLS only on your own network.** As with a Home Assistant connected to directly, HADA no longer connects without TLS to a broker at a public address, where the password and everything the computer reports would travel in the open. The **Overview** page says so. Turn TLS on, or tick **Connect to this broker without encryption** on the Connections page if the way there is encrypted by something else.
+
 ## 1.15.0
 
 Seven new entities: keep the computer awake, idle time, the network's traffic, a full-screen app, dark mode and signing out, with more about the battery; and a fix for the direct connection. A stable version. On Linux and macOS the new entities are untested by hand, like the packages.

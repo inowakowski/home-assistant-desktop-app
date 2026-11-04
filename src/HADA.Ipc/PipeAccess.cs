@@ -15,9 +15,16 @@ public interface IPipeAccess
     /// <summary>Creates the client end, which the service may check the identity of but cannot act as.</summary>
     NamedPipeClientStream CreateClientPipe(string pipeName);
 
-    /// <summary>Refuses a pipe that somebody other than the service may have created to collect what the client sends.</summary>
+    /// <summary>
+    /// Refuses a pipe that somebody other than the service may have created, to collect what the client sends or to
+    /// give it commands to carry out.
+    /// </summary>
+    /// <param name="trustSameUser">
+    /// Whether a pipe made by the client's own user is the service's, as it is for a portable copy, whose service
+    /// is a process of that user. The installed service on Windows runs as SYSTEM, so there it is not.
+    /// </param>
     /// <exception cref="UnauthorizedAccessException">The pipe's creator is not trusted.</exception>
-    void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName);
+    void EnsureTrustedServer(NamedPipeClientStream pipe, string pipeName, bool trustSameUser);
 
     /// <summary>Whether the client may change the settings of an installed service. False when it cannot be told.</summary>
     bool IsElevatedAdministrator(NamedPipeServerStream pipe);
