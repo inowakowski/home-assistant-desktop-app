@@ -53,7 +53,7 @@ automation:
           entity_id: lock.front_door
 ```
 
-With [several Home Assistants](../home-assistant/mqtt.md#several-home-assistants-at-once), a press is reported only to the one that sent the notification.
+With [several Home Assistants](../home-assistant/mqtt.md#several-home-assistants-at-once), a press is reported only to the one that sent the notification. For a button that opens a door, see [Who pressed it](#who-pressed-it).
 
 A press is reported only while the tray app that showed the notification is still running. A notification found in the notification centre after the computer was restarted can no longer report its buttons.
 
@@ -90,6 +90,11 @@ automation:
         event_type: mobile_app_notification_action
         event_data:
           action: open_door
+          device_id: laptop
+    conditions:
+      # Who pressed it; see "Who pressed it" below.
+      - condition: template
+        value_template: "{{ trigger.event.context.user_id == '0123456789abcdef0123456789abcdef' }}"
     actions:
       - action: lock.unlock
         target:
@@ -121,16 +126,25 @@ data:
         title: Open
 ```
 
-A pressed button fires `hada_event`, with `name: notification_action` and the button's `action` as `value`:
+A pressed button fires `hada_event`, with `name: notification_action`, the button's `action` as `value` and the computer's Device ID as `device_id`:
 
 ```yaml
 triggers:
   - trigger: event
     event_type: hada_event
     event_data:
+      device_id: laptop
       name: notification_action
       value: open_door
 ```
+
+## Who pressed it
+
+A button that does something that matters, such as opening a door, should run only for the computer it was meant for:
+
+- **Name the computer.** Any user of Home Assistant may connect a computer of their own, and its buttons send the same `action`s. In an automation on `hada_event` or `mobile_app_notification_action`, put the Device ID in `device_id`; through MQTT, it is part of the topic.
+- **Check the user, too.** Home Assistant lets the companion app of any of its users fire any event with any data, `device_id` included. What it cannot make up is the user the event comes from: for a computer, the user whose token it connects with. A condition on `trigger.event.context.user_id`, as in the example above, keeps the door shut for everybody else. The id is shown under **Settings → People → Users** with advanced mode on. With the [HADA integration](../home-assistant/websocket.md) a computer fires `hada_event` only under its own Device ID, but a companion app can still fire one.
+- **Through MQTT**, whoever may publish to the broker can send a press. Give HADA a broker user of its own, and let only that user write to `hada/…`.
 
 `notify.send_message` works with that entity too, for a text and a title.
 
