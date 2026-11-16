@@ -1,6 +1,6 @@
 # The documentation site. Pages are the Markdown files in docs/; build with "mkdocs build", preview with "mkdocs serve".
 site_name: HADA
-site_description: Home Assistant Desktop App – connects a Windows, Linux or macOS computer to Home Assistant.
+site_description: Home Assistant Desktop App – connects a Windows or Linux computer to Home Assistant.
 # DOCS_SITE_URL is the address the documentation is published at; Cloudflare Pages sets it.
 site_url: !ENV [DOCS_SITE_URL, "https://inowakowski.github.io/home-assistant-desktop-app/"]
 repo_url: https://github.com/inowakowski/home-assistant-desktop-app
@@ -42,6 +42,10 @@ theme:
 # A page without a translation shows in English. To add a language, add it here and translate the pages.
 plugins:
   - search
+  # Pages that moved, so that old links still lead somewhere.
+  - redirects:
+      redirect_maps:
+        getting-started/linux-macos.md: getting-started/linux.md
   - i18n:
       docs_structure: suffix
       fallback_to_default: true
@@ -53,7 +57,7 @@ plugins:
         - locale: pl
           name: Polski
           build: true
-          site_description: Home Assistant Desktop App – łączy komputer z Windows, Linuksem lub macOS z Home Assistant.
+          site_description: Home Assistant Desktop App – łączy komputer z Windows lub Linuksem z Home Assistant.
           nav_translations:
             Home: Start
             Getting started: Pierwsze kroki
@@ -98,7 +102,7 @@ nav:
   - Getting started:
       - Installation: getting-started/installation.md
       - Portable version: getting-started/portable.md
-      - Linux and macOS (preview): getting-started/linux-macos.md
+      - Linux (preview): getting-started/linux.md
       - First setup: getting-started/first-setup.md
       - Updating: getting-started/updating.md
   - What it does:

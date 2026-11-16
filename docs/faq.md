@@ -45,11 +45,13 @@ Yes, with the [portable version](getting-started/portable.md): a folder to unpac
 
 ## Where are my settings, and how do I remove everything?
 
-Settings and logs are in `%ProgramData%\HADA`; personal settings under `HKCU\Software\HADA`. Uninstalling leaves both in place, so that updating keeps them. Delete them by hand to forget everything. On Linux and macOS the folders are listed under [Where it keeps things](getting-started/linux-macos.md#where-it-keeps-things).
+Settings and logs are in `%ProgramData%\HADA`; personal settings under `HKCU\Software\HADA`. Uninstalling leaves both in place, so that updating keeps them. Delete them by hand to forget everything. On Linux the folders are listed under [Where it keeps things](getting-started/linux.md#where-it-keeps-things).
 
-## Is there a macOS or Linux version?
+## Is there a Linux or macOS version?
 
-Yes, as a preview that nobody has tried by hand yet. HADA runs on Linux (GNOME and KDE; as an AppImage, a `.deb` or an `.rpm`) and on macOS 14 or newer, with most of what it does on Windows. The packages were built and checked by machines only, and their file names say `-untested`. See [Linux and macOS](getting-started/linux-macos.md) for what works where.
+For Linux, yes, as a preview that nobody has tried by hand yet: HADA runs on GNOME and KDE, as an AppImage, a `.deb` or an `.rpm`, with most of what it does on Windows. The packages were built and checked by machines only, and their file names say `-untested`. See [Linux](getting-started/linux.md) for what works there.
+
+For macOS, no. A Mac opens only apps signed with an Apple developer certificate, which HADA does not have, so no package for it is published.
 
 ## Something is wrong
 

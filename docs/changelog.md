@@ -2,6 +2,10 @@
 
 Installers are on the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases). Versions before 1.0 were previews. The page keeps the newest versions only; an older one can still be built from its tag. **Versions before 1.15.1 have security flaws that 1.15.1 fixes**: update to it or a later one.
 
+## Unreleased
+
+- **No more packages for macOS.** HADA is not signed with an Apple developer certificate, so a Mac does not open the disk images downloaded from a release. They are no longer published, the releases from 1.13.1 to 1.15.1 no longer carry them, and the website and these pages no longer offer them. The page for Linux is now [Linux](getting-started/linux.md); Linux stays a preview.
+
 ## 1.15.1
 
 Security fixes, from a review of the whole app. A stable version, first published as a preview the day before; everyone should update to it.
@@ -38,7 +42,7 @@ Fixes, and the documentation brought up to date. A stable version.
 - Fixed: on Windows, for a moment after a window or a portable copy's service had ended, HADA could still take it to be running, so that showing the window or stopping the service right then could reach nobody.
 - **Windows Server** no longer gets the **Silence notifications** switch: setting the quiet hours there crashes the service that also shows notifications. The `do_not_disturb` sensor stays.
 - **Updates on Linux and macOS:** the window no longer offers **Download and install** there, nor speaks of a portable ZIP. **What is new** opens the release page, and the window says what to do with the package from it. On Windows nothing changes.
-- **The documentation** was checked against the program: wrong and stale pages are corrected, the settings of the direct connection are listed, and a new page, [Linux and macOS](getting-started/linux-macos.md), says what the untested packages do and how they differ from Windows. Updating a portable copy now means replacing its `app` folder too, which the page and the window say.
+- **The documentation** was checked against the program: wrong and stale pages are corrected, the settings of the direct connection are listed, and a new page, [Linux and macOS](getting-started/linux.md), says what the untested packages do and how they differ from Windows. Updating a portable copy now means replacing its `app` folder too, which the page and the window say.
 
 ## 1.13.0
 

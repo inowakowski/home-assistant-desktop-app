@@ -1,6 +1,6 @@
 # HADA – Home Assistant Desktop App
 
-HADA runs in the background on Windows, and as an untested preview on Linux and macOS. It reports what your PC is doing to [Home Assistant](https://www.home-assistant.io/) and lets Home Assistant control it. A window opened from the tray icon shows live status and lets you configure everything.
+HADA runs in the background on Windows, and as an untested preview on Linux. It reports what your PC is doing to [Home Assistant](https://www.home-assistant.io/) and lets Home Assistant control it. A window opened from the tray icon shows live status and lets you configure everything.
 
 ![The Overview page of the HADA window](docs/assets/img/overview.png)
 
@@ -14,13 +14,13 @@ HADA runs in the background on Windows, and as an untested preview on Linux and 
 
 ## Install
 
-Download the installer for your computer from the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases), run it, then open HADA from the tray icon and set up a connection. Or take the [portable version](docs/getting-started/portable.md): a ZIP to unpack and run, without installing and without administrator rights. Step by step: [Installation](docs/getting-started/installation.md) and [First setup](docs/getting-started/first-setup.md). For Linux and macOS, see [Linux and macOS (preview)](docs/getting-started/linux-macos.md).
+Download the installer for your computer from the [releases page](https://github.com/inowakowski/home-assistant-desktop-app/releases), run it, then open HADA from the tray icon and set up a connection. Or take the [portable version](docs/getting-started/portable.md): a ZIP to unpack and run, without installing and without administrator rights. Step by step: [Installation](docs/getting-started/installation.md) and [First setup](docs/getting-started/first-setup.md). For Linux, see [Linux (preview)](docs/getting-started/linux.md).
 
 ## Documentation
 
 | | |
 |---|---|
-| **Getting started** | [Installation](docs/getting-started/installation.md) · [Portable version](docs/getting-started/portable.md) · [Linux and macOS](docs/getting-started/linux-macos.md) · [First setup](docs/getting-started/first-setup.md) · [Updating](docs/getting-started/updating.md) |
+| **Getting started** | [Installation](docs/getting-started/installation.md) · [Portable version](docs/getting-started/portable.md) · [Linux](docs/getting-started/linux.md) · [First setup](docs/getting-started/first-setup.md) · [Updating](docs/getting-started/updating.md) |
 | **What it does** | [Sensors](docs/features/sensors.md) · [Controls](docs/features/controls.md) · [Notifications](docs/features/notifications.md) · [Custom sensors and buttons](docs/features/custom-entities.md) · [Several users](docs/features/several-users.md) · [The HADA window](docs/window.md) |
 | **Home Assistant** | [Which connection to choose](docs/home-assistant/choosing.md) · [MQTT engine](docs/home-assistant/mqtt.md) · [WebSocket engine](docs/home-assistant/websocket.md) · [Automation examples](docs/home-assistant/examples.md) |
 | **Reference** | [Configuration](docs/reference/configuration.md) · [Logs](docs/reference/logs.md) · [Security](docs/reference/security.md) · [Known limitations](docs/reference/limitations.md) · [Troubleshooting](docs/reference/troubleshooting.md) · [FAQ](docs/faq.md) |

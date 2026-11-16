@@ -53,7 +53,9 @@ Tray command-line options:
 
 This creates `artifacts\installer\HADA-<version>-x64.msi` and `HADA-<version>-arm64.msi`, and next to them the [portable](../getting-started/portable.md) `HADA-<version>-<x64|arm64>-portable.zip`; either computer can build both architectures. The GitHub workflow in `.github/workflows/build.yml` builds the same files and attaches them to each run. The installer project (WiX) is in `installer/` and is deliberately not part of the solution, so `dotnet build` stays fast.
 
-The packages for [Linux and macOS](../getting-started/linux-macos.md) are built in CI by `scripts/package-linux.sh` (an AppImage, a `.deb` and an `.rpm` for x64 and arm64) and `scripts/package-macos.sh` (a `.dmg` for Apple silicon and one for Intel), in the jobs `linux-packages` and `macos-packages`; each starts HADA from what it built, without a screen. Their names carry `-untested` until someone has tried them by hand, and the update check looks for both names (`HadaReleases.PackageNames`). The tests run on Windows, Ubuntu and macOS.
+The packages for [Linux](../getting-started/linux.md) are built in CI by `scripts/package-linux.sh` (an AppImage, a `.deb` and an `.rpm` for x64 and arm64), in the job `linux-packages`, which starts HADA from what it built, without a screen. Their names carry `-untested` until someone has tried them by hand, and the update check looks for both names (`HadaReleases.PackageNames`). The tests run on Windows, Ubuntu and macOS.
+
+The job `macos-packages` builds a `.dmg` for Apple silicon and one for Intel with `scripts/package-macos.sh` and starts HADA from it the same way, but the disk images are **not released**: they are signed ad hoc, without an Apple developer certificate, and a Mac does not open such an app once it is downloaded. A release carries the Windows and Linux files only.
 
 ## Releases on GitHub
 

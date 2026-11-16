@@ -24,7 +24,7 @@ Saved settings take effect immediately: the affected connection restarts. Passwo
 
 *New in 1.7.0; the tray icon opens it since 1.8.0.*
 
-HADA has two windows with the same pages and the same settings. **The new window** is drawn with Avalonia, is the same on Windows, Linux and macOS, and is what the tray icon opens. **The previous window** is the one the screenshots on these pages show; it stays for as long as both come with HADA. On Windows you choose between them with **New window (preview)** on the **Settings** page: turn it off, and the tray icon opens the previous one. The new window is also **HADA (new window, preview)** in the Start menu, and **New window (preview).cmd** in a [portable copy](getting-started/portable.md).
+HADA has two windows with the same pages and the same settings. **The new window** is drawn with Avalonia, is the same on Windows and Linux, and is what the tray icon opens. **The previous window** is the one the screenshots on these pages show; it stays for as long as both come with HADA. On Windows you choose between them with **New window (preview)** on the **Settings** page: turn it off, and the tray icon opens the previous one. The new window is also **HADA (new window, preview)** in the Start menu, and **New window (preview).cmd** in a [portable copy](getting-started/portable.md).
 
 The pages are the same; what differs is the layout of two of them:
 
