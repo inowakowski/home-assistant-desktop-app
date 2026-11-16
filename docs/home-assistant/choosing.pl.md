@@ -8,7 +8,7 @@ HADA może rozmawiać z Home Assistant na trzy sposoby. Nie wykluczają się i �
 
 | | **MQTT** | **Połączenie bezpośrednie** | **Połączenie bezpośrednie z integracją HADA** |
 |---|---|---|---|
-| Co trzeba mieć | Broker MQTT, na przykład aplikację Mosquitto w Home Assistant | Nic poza Home Assistant | Integrację HADA, zainstalowaną w Home Assistant przez HACS |
+| Co trzeba mieć | Broker MQTT, na przykład aplikację Mosquitto w Home Assistant | Nic poza Home Assistant | Integrację HADA, zainstalowaną w Home Assistant z Marketplace |
 | Czujniki (ekran, bateria, co jest odtwarzane, …) | Tak | Tak | Tak |
 | Przyciski, przełączniki i suwaki do klikania w Home Assistant (blokada, głośność, wyciszenie, …) | Tak | **Nie** | Tak |
 | Powiadomienie z tekstem | Tak | Tak | Tak |
@@ -52,7 +52,7 @@ Dotychczasowy sposób połączenia bezpośredniego, **Jako stany**, jest pomini�
 
 **Nie mam brokera i chcę tylko widzieć, co robi komputer.** Wybierz połączenie bezpośrednie. Wpisujesz adres Home Assistant i token dostępu, i czujniki oraz powiadomienia już są. Nic do instalowania.
 
-**Nie mam brokera i chcę sterować komputerem z Home Assistant.** Wybierz połączenie bezpośrednie z integracją HADA. Instalacja przez HACS zajmuje kilka minut, a potem wszystko działa jak przy MQTT.
+**Nie mam brokera i chcę sterować komputerem z Home Assistant.** Wybierz połączenie bezpośrednie z integracją HADA. Instaluje się z Marketplace w Home Assistant w minutę, a potem wszystko działa jak przy MQTT.
 
 **Mój laptop często jest poza domem.** Wybierz jedno z dwóch połączeń bezpośrednich i podaj adres, pod którym Twój Home Assistant jest dostępny z zewnątrz.
 
@@ -79,7 +79,7 @@ HADA sama łączy się z Home Assistant, tak jak aplikacja Home Assistant na tel
 
 To samo połączenie, ale w Home Assistant jest zainstalowana część HADA, [integracja HADA](https://github.com/inowakowski/hada-homeassistant), która umie pokazać przyciski, przełączniki i suwaki.
 
-- W Home Assistant: zainstaluj integrację przez HACS i dodaj ją raz w **Ustawienia → Urządzenia i usługi**.
+- W Home Assistant: znajdź **HADA** w **Ustawienia → Marketplace** i wybierz **Zainstaluj**; nie trzeba dodawać żadnego repozytorium, a w konfiguracji, która otworzy się zaraz potem, nie ma nic do wpisania. W Home Assistant starszym niż 2026.11 zainstaluj ją przez HACS i dodaj raz w **Ustawienia → Urządzenia i usługi**.
 - W HADA: na stronie **Połączenia**, w części **Home Assistant (WebSocket)**, ustaw **Encje** na *Przez integrację HADA*.
 - Powiadomienia wysyłasz akcją `hada.notify`.
 - Zobacz [Encje przez integrację HADA](websocket.md#sensors-through-the-hada-integration).

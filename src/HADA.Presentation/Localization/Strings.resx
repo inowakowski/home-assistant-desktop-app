@@ -261,7 +261,7 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Ha_SensorsEntities" xml:space="preserve"><value>As entities of the device</value></data>
   <data name="Ha_SensorsStates" xml:space="preserve"><value>As states (the earlier way)</value></data>
   <data name="Ha_SensorsIntegration" xml:space="preserve"><value>Through the HADA integration</value></data>
-  <data name="Issue_integration_missing" xml:space="preserve"><value>The HADA integration is not installed in this Home Assistant, so the entities are not there. Install it with HACS, or choose another way for the sensors.</value></data>
+  <data name="Issue_integration_missing" xml:space="preserve"><value>The HADA integration is not installed in this Home Assistant, so the entities are not there. Install it from the Marketplace, under Settings → Marketplace, or choose another way for the sensors.</value></data>
   <data name="Issue_integration_not_set_up" xml:space="preserve"><value>The HADA integration is installed but not set up. In Home Assistant, go to Settings, Devices and services, Add integration, and choose HADA.</value></data>
   <data name="Issue_integration_unauthorized" xml:space="preserve"><value>Another Home Assistant user connected this Device ID first. Use that user's token or an administrator's, or another Device ID.</value></data>
   <data name="Issue_integration_unsupported" xml:space="preserve"><value>The HADA integration in this Home Assistant is too new for this version of HADA. Update HADA.</value></data>
@@ -276,11 +276,11 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Guide_DirectTitle" xml:space="preserve"><value>Direct connection</value></data>
   <data name="Guide_DirectText" xml:space="preserve"><value>Needs only the address of Home Assistant and an access token. Gives sensors, and notifications as on a phone, with pictures and buttons. There are no buttons or switches for the computer to click in Home Assistant. Below, set Entities to "As entities of the device".</value></data>
   <data name="Guide_IntegrationTitle" xml:space="preserve"><value>Direct connection with the HADA integration</value></data>
-  <data name="Guide_IntegrationText" xml:space="preserve"><value>Gives everything, as MQTT does, without a broker. The HADA integration has to be installed in Home Assistant first, with HACS. Below, set Entities to "Through the HADA integration".</value></data>
+  <data name="Guide_IntegrationText" xml:space="preserve"><value>Gives everything, as MQTT does, without a broker. The HADA integration has to be installed in Home Assistant first, from the Marketplace. Below, set Entities to "Through the HADA integration".</value></data>
   <data name="Guide_Mix" xml:space="preserve"><value>A common mix: MQTT for the entities, and a direct connection with Entities set to "Off", only for notifications with pictures from cameras.</value></data>
   <data name="Ha_SensorsDetail_Off" xml:space="preserve"><value>Nothing is sent through this connection. Choose this when this Home Assistant gets the entities through MQTT.</value></data>
   <data name="Ha_SensorsDetail_Entities" xml:space="preserve"><value>Sensors only, with nothing to install. The computer appears in Home Assistant under Mobile App. There are no buttons or switches to click there.</value></data>
-  <data name="Ha_SensorsDetail_Integration" xml:space="preserve"><value>Sensors, buttons, switches and sliders, as with MQTT. Needs the HADA integration installed in Home Assistant, with HACS; while it is missing, the Overview page says so.</value></data>
+  <data name="Ha_SensorsDetail_Integration" xml:space="preserve"><value>Sensors, buttons, switches and sliders, as with MQTT. Needs the HADA integration installed in Home Assistant, from the Marketplace; while it is missing, the Overview page says so.</value></data>
   <data name="Ha_SensorsDetail_States" xml:space="preserve"><value>The earlier way: sensors only, forgotten when Home Assistant restarts, and it needs an administrator’s token. Kept for connections set up before there was a choice.</value></data>
   <data name="Ha_UrlEncrypted" xml:space="preserve"><value>Encrypted: nobody on the way can read the access token or what is sent.</value></data>
   <data name="Ha_UrlUnencryptedLocal" xml:space="preserve"><value>Not encrypted. Fine on your own network; from outside it, use an https:// address.</value></data>
@@ -293,7 +293,7 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
   <data name="Mqtt_AllowUnencrypted" xml:space="preserve"><value>Connect to this broker without encryption</value></data>
   <data name="Issue_mqtt_unencrypted_public" xml:space="preserve"><value>HADA did not connect: TLS encryption is off and the broker's address is a public one, so the password and everything the computer reports would travel in the open. Turn TLS encryption on, or allow the unencrypted connection for this server on the Connections page.</value></data>
   <data name="Issue_unencrypted_public" xml:space="preserve"><value>HADA did not connect: the address is not encrypted (http) and is a public one, so the access token would travel in the open. Use an https:// address, or allow the unencrypted connection for this server on the Connections page.</value></data>
-  <data name="Issue_integration_outdated" xml:space="preserve"><value>The HADA integration in this Home Assistant is older than this version of HADA, and left some entities out. Update it in Home Assistant, with HACS, and restart Home Assistant.</value></data>
+  <data name="Issue_integration_outdated" xml:space="preserve"><value>The HADA integration in this Home Assistant is older than this version of HADA, and left some entities out. Update it in Home Assistant, under Settings → Updates, and restart Home Assistant.</value></data>
   <data name="Preferences_DashboardOther" xml:space="preserve"><value>Another address</value></data>
   <data name="Preferences_DashboardOtherDetail" xml:space="preserve"><value>For a Home Assistant connected through MQTT, or any other page. Leave empty if you do not need it.</value></data>
   <data name="Tray_DashboardNamed" xml:space="preserve"><value>Dashboard: {0}</value></data>
@@ -442,7 +442,7 @@ It needs the Microsoft Edge WebView2 Runtime, which Windows 11 includes and Wind
     <value>Sensors, and buttons, switches and sliders to click in Home Assistant; notifications as on a phone; the computer as a media player.</value>
   </data>
   <data name="Add_Way_integration_Needs" xml:space="preserve">
-    <value>the HADA integration in Home Assistant, installed through HACS in a few minutes</value>
+    <value>the HADA integration in Home Assistant, installed from the Marketplace in a minute</value>
   </data>
   <data name="Add_Way_direct_Title" xml:space="preserve">
     <value>Directly</value>

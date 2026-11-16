@@ -8,7 +8,7 @@ HADA can talk to Home Assistant in three ways. They do not exclude each other, a
 
 | | **MQTT** | **Direct connection** | **Direct connection with the HADA integration** |
 |---|---|---|---|
-| What you need | An MQTT broker, for example the Mosquitto app in Home Assistant | Nothing but Home Assistant | The HADA integration, installed in Home Assistant with HACS |
+| What you need | An MQTT broker, for example the Mosquitto app in Home Assistant | Nothing but Home Assistant | The HADA integration, installed in Home Assistant from the Marketplace |
 | Sensors (screen, battery, what is playing, …) | Yes | Yes | Yes |
 | Buttons, switches and sliders to click in Home Assistant (lock, volume, mute, …) | Yes | **No** | Yes |
 | A notification with a text | Yes | Yes | Yes |
@@ -52,7 +52,7 @@ The earlier way of the direct connection, **As states**, is left out: it does wh
 
 **I have no broker and only want to see what the computer is doing.** Use the direct connection. You enter Home Assistant's address and an access token, and the sensors and notifications are there. Nothing to install.
 
-**I have no broker and want to control the computer from Home Assistant.** Use the direct connection with the HADA integration. It takes a few minutes to install with HACS, and then everything works as with MQTT.
+**I have no broker and want to control the computer from Home Assistant.** Use the direct connection with the HADA integration. It installs from Home Assistant's Marketplace in a minute, and then everything works as with MQTT.
 
 **My laptop is often away from home.** Use one of the two direct connections, with the address your Home Assistant has from outside.
 
@@ -79,7 +79,7 @@ HADA connects to Home Assistant itself, the way the Home Assistant app on a phon
 
 The same connection, but Home Assistant has a part of HADA installed, the [HADA integration](https://github.com/inowakowski/hada-homeassistant), which knows how to show buttons, switches and sliders.
 
-- In Home Assistant: install the integration with HACS and add it once under **Settings → Devices & services**.
+- In Home Assistant: find **HADA** under **Settings → Marketplace** and choose **Install**; there is no repository to add, and the setup that follows needs nothing entered. On a Home Assistant older than 2026.11, install it with HACS and add it once under **Settings → Devices & services**.
 - In HADA: on the **Connections** page, under **Home Assistant (WebSocket)**, set **Entities** to *Through the HADA integration*.
 - Notifications are sent with the action `hada.notify`.
 - See [Sensors through the HADA integration](websocket.md#sensors-through-the-hada-integration).

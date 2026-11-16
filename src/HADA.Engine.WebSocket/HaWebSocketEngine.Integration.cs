@@ -481,7 +481,7 @@ public sealed partial class HaWebSocketEngine
     [LoggerMessage(Level = LogLevel.Information, Message = "Connected to the HADA integration as '{DeviceName}'; entities it left out: {Ignored}.")]
     private static partial void LogIntegrationConnected(ILogger logger, string deviceName, string ignored);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The HADA integration in Home Assistant left out entities of a kind it does not know: it is older than this version of HADA. Update it in Home Assistant, with HACS, and restart Home Assistant.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The HADA integration in Home Assistant left out entities of a kind it does not know: it is older than this version of HADA. Update it in Home Assistant, under Settings → Updates, and restart Home Assistant.")]
     private static partial void LogIntegrationOutdated(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The HADA integration cannot be used on this connection ({Issue}), so the computer's entities are not in Home Assistant; trying again every {RetryInterval}.")]
