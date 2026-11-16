@@ -39,7 +39,7 @@ A server added in the window starts with **Notifications** on, and with sensors 
 
 *New in 1.4.0.*
 
-The [HADA integration](https://github.com/inowakowski/hada-homeassistant) is a part of HADA that runs inside Home Assistant. Install it there with HACS and add it once under **Settings → Devices & services**; its page says how. Computers then show up by themselves.
+The [HADA integration](https://github.com/inowakowski/hada-homeassistant) is a part of HADA that runs inside Home Assistant. It is in Home Assistant's Marketplace, so there is no repository to add by hand: find **HADA** under **Settings → Marketplace** and choose **Install**. Home Assistant sets it up at once, without a restart, and there is nothing to enter. On a Home Assistant older than 2026.11, install it with HACS instead; the integration's page says how. Computers then show up by themselves.
 
 Compared with entities of the `mobile_app` device:
 
@@ -50,7 +50,7 @@ Compared with entities of the `mobile_app` device:
 - **Quick actions** are `event` entities of the device. What happens on the computer fires `hada_event` as [below](#events-from-the-computer), with the token of any user: it is the integration that fires it.
 - The computer is a device of its own, apart from the one **Notifications** makes under Mobile App.
 
-While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected. An integration older than HADA is used for what it knows, and the card says that it wants updating, in Home Assistant with HACS (*new in 1.5.0*).
+While Home Assistant does not have the integration, or it was not added there, the connection's card on the **Overview** page says so, and HADA looks for it again every minute; nothing else about the connection is affected. An integration older than HADA is used for what it knows, and the card says that it wants updating, which Home Assistant offers under **Settings → Updates** (*new in 1.5.0*).
 
 ## Commands
 
