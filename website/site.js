@@ -1,6 +1,6 @@
 // Points the download buttons straight at the files of the latest release.
 // Without it (no JavaScript, GitHub unreachable) they lead to the releases page, which works too.
-// A button names its file without "-untested", which the Linux and macOS packages carry until somebody
+// A button names its file without "-untested", which the Linux packages carry until somebody
 // has tried them by hand, so that it still finds the file once the word is dropped.
 const latest = "https://api.github.com/repos/inowakowski/home-assistant-desktop-app/releases/latest";
 
